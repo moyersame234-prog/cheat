@@ -2218,7 +2218,7 @@ local GameName = game:GetService("MarketplaceService"):GetProductInfo(game.Place
         }, section.visibleContent)
         --
         library.colors[toggle_frame] = {
-            Color = toggle.current == true and "accent" or "lightcontrast"
+            Color = {toggle = toggle, property = "current", trueColor = "accent", falseColor = "lightcontrast"}
         }
         --
         local toggle__gradient = utility:Create("Image", {Vector2.new(0,0), toggle_frame}, {
@@ -2255,7 +2255,7 @@ local GameName = game:GetService("MarketplaceService"):GetProductInfo(game.Place
                 toggle_frame.Color = toggle.current == true and theme.accent or theme.lightcontrast
                 --
                 library.colors[toggle_frame] = {
-                    Color = toggle.current == true and "accent" or "lightcontrast"
+                    Color = {toggle = toggle, property = "current", trueColor = "accent", falseColor = "lightcontrast"}
                 }
                 --
                 callback(toggle.current)
@@ -2267,17 +2267,13 @@ local GameName = game:GetService("MarketplaceService"):GetProductInfo(game.Place
             callback(self:get())
         end
         --
-        library.colors[toggle_frame] = {
-            Color = toggle.current == true and "accent" or "lightcontrast"
-        }
-        --
         library.began[#library.began + 1] = function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and toggle_outline.Visible and window.isVisible and page.open and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + toggle.axis, section.section_frame.Position.X + section.section_frame.Size.X - toggle.addedAxis, section.section_frame.Position.Y + toggle.axis + 15}) and not window:IsOverContent() then
                 toggle.current = not toggle.current
                 toggle_frame.Color = toggle.current == true and theme.accent or theme.lightcontrast
                 --
                 library.colors[toggle_frame] = {
-                    Color = toggle.current == true and "accent" or "lightcontrast"
+                    Color = {toggle = toggle, property = "current", trueColor = "accent", falseColor = "lightcontrast"}
                 }
                 --
                 callback(toggle.current)
@@ -5523,8 +5519,23 @@ function library:UpdateColor(ColorType, ColorValue)
     --
     for Instance, Properties in pairs(library.colors) do
         for PropertyName, ThemeKey in pairs(Properties) do
-            if ThemeKey == ColorType then
-                Instance[PropertyName] = theme[ThemeKey]
+            if type(ThemeKey) == "string" then
+                -- Обычный ключ темы
+                if ThemeKey == ColorType then
+                    Instance[PropertyName] = theme[ThemeKey]
+                end
+            elseif type(ThemeKey) == "table" and ThemeKey.toggle then
+                -- Условный цвет для toggle/checkbox
+                if ThemeKey.trueColor == ColorType or ThemeKey.falseColor == ColorType then
+                    local currentValue = ThemeKey.toggle[ThemeKey.property]
+                    Instance[PropertyName] = currentValue and theme[ThemeKey.trueColor] or theme[ThemeKey.falseColor]
+                end
+            elseif type(ThemeKey) == "table" and ThemeKey.condition then
+                -- Условный цвет с функцией проверки
+                if ThemeKey.trueColor == ColorType or ThemeKey.falseColor == ColorType then
+                    local currentValue = ThemeKey.condition()
+                    Instance[PropertyName] = currentValue and theme[ThemeKey.trueColor] or theme[ThemeKey.falseColor]
+                end
             end
         end
     end
