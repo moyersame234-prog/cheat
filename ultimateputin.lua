@@ -1,12 +1,12 @@
-﻿local ultimate                          = {}
+require("jopamodule")
+jopa.Write = nil
+jopa.Read = nil
+
+local ultimate                          = {}
 local me                                = LocalPlayer()
 
-require("zxcmodule")
 
-jit.flush()
-
-ded.Write = nil
-ded.Read = nil
+local MetaPlayer                        = FindMetaTable("Player")
 
 local global 		                    = _G //table.Copy( _G ) 
 
@@ -28,7 +28,7 @@ local LerpAngle                         = LerpAngle
 
 local gFindMeta                         = global.FindMetaTable
 
-local MetaPly                           = gFindMeta("Player")
+local MetaPlayer                        = gFindMeta("Player")
 
 local gVgui                             = global.vgui 
 local gGui                              = global.gui
@@ -50,7 +50,6 @@ local gEnts                             = global.ents
 local gPlys                             = global.player
 local gGame                             = global.game
 local gEngine                           = global.engine
-
 local gTeam                             = global.team
 
 local gPlayer                            = global.Player
@@ -75,6 +74,7 @@ local surface_SetMaterial               = gSurface.SetMaterial
 local surface_SetTextColor              = gSurface.SetTextColor
 local surface_SetTextPos                = gSurface.SetTextPos
 local surface_CreateFont                = gSurface.CreateFont
+local surface_DrawCircle                = gSurface.DrawCircle
 
 local math_abs                          = gMath.abs
 local math_Round                        = gMath.Round
@@ -86,13 +86,13 @@ local math_Clamp                        = gMath.Clamp
 local math_sin                          = gMath.sin
 local math_cos                          = gMath.cos
 local math_tan                          = gMath.tan
-local math_gRandom                      = table.Random
 local math_rad                          = gMath.rad
 local math_Rand                         = gMath.Rand
 local math_randomseed                   = gMath.randomseed
 local math_deg                          = gMath.deg
 local math_atan                         = gMath.atan
 local math_atan2                        = gMath.atan2
+local math_asin                         = gMath.asin
 local math_random                       = gMath.random
 local math_huge                         = gMath.huge
 local math_sqrt                         = gMath.sqrt
@@ -135,49 +135,18 @@ local string_format                     = gString.format
 local string_len                        = gString.len
 local string_sub                        = gString.sub
 local string_lower                      = gString.lower
-local Startultith                        = gString.StartWith
+local StartsWith                        = gString.StartWith
 local string_ToColor                    = gString.ToColor
+local HSVToColor                        = global.HSVToColor
 
-local TraceHull                         = gUtil.TraceHull    
-local TraceLine                         = gUtil.TraceLine
+local TraceHull                         = util.TraceHull
+local TraceLine                         = util.TraceLine
 
 local file_Exists                       = gFile.Exists
 local file_Delete                       = gFile.Delete
 local file_Find                         = gFile.Find
 local file_Read                         = gFile.Read
 local file_Write                        = gFile.Write
-
-function file.Read( fileName, gamePath )
-    local lowered = string_lower( fileName )
-
-    if lowered:find("ultimate") or lowered:find(".dll") then 
-        return nil
-    end
-
-    return file_Read( fileName, gamePath )
-end
-
-function file.Find( name, path, sorting )
-    local files, directories = file_Find( name, path )
-
-    for i = 1, #files do
-        local f = string_lower( files[ i ] )
-
-        if f:find("ultimate") or f:find(".dll") then 
-            files[ i ] = nil
-        end
-    end
-
-    for i = 1, #directories do
-        local d = string_lower( directories[ i ] )
-
-        if d:find("ultimate") or d:find("bin") then 
-            directories[ i ] = nil
-        end
-    end
-
-    return files, directories
-end
 
 local cam_Start3D                       = gCam.Start3D
 local cam_End3D                         = gCam.End3D
@@ -205,8 +174,8 @@ local render_RenderView                 = gRender.RenderView
 local render_Clear                      = gRender.Clear
 local render_Capture                    = gRender.Capture
 local render_CapturePixels              = gRender.CapturePixels
-//render.CapturePixels                    = function() return end
-//render.ReadPixel                        = function( x, y ) return 255, 255, 255, nil end
+render.CapturePixels                    = function() return end
+render.ReadPixel                        = function( x, y ) return 255, 255, 255, nil end
 
 local player_GetAll                     = gPlys.GetAll
 local ents_GetAll                       = gEnts.GetAll
@@ -218,45 +187,7 @@ local scrh                              = ScrH()
 local scrwc                             = scrw / 2
 local scrhc                             = scrh / 2
 
-ultimate.blockedcmds    = { 
-    "bind",
-    "bind_mac",
-    "bindtoggle",
-    "impulse",
-    "+forward",
-    "-forward",
-    "+back",
-    "-back",
-    "+moveleft",
-    "-moveleft",
-    "+moveright",
-    "-moveright",
-    "+left",
-    "-left",
-    "+right",
-    "-right",
-    "cl_yawspeed",
-    "pp_texturize",
-    "poster",
-    "pp_texturize_scale",
-    "mat_texture_limit",
-    "pp_bloom",
-    "pp_dof",
-    "pp_bokeh",
-    "pp_motionblur",
-    "pp_toytown",
-    "pp_stereoscopy",
-    "retry",
-    "connect",
-    "kill",
-    "+voicerecord",
-    "-voicerecord",
-    "startmovie",
-    "record",
-    "disconnect",
-}
 
-/*
 if debug and debug.getinfo then
     function debug.getinfo( func_or_stack, fields )
         local data = gDebugGetInfo( func_or_stack, fields )
@@ -269,42 +200,17 @@ if debug and debug.getinfo then
         return data
     end
 end
-*/
 
-// custom funcs
 
-local function surface_SimpleRect(x,y,w,h,c)
-    surface_SetDrawColor(c)
-    surface_DrawRect(x,y,w,h)
-end
+surface.CreateFont( "veranda", { font = "Verdana", size = 12, antialias = false, outline = true } )
+surface.CreateFont( "veranda_s", { font = "Verdana", size = 12, antialias = false, shadow = true } )
+surface.CreateFont( "veranda_scr", { font = "Verdana", size = ScreenScale( 9 ), antialias = false, outline = true } )
 
-local function surface_SimpleTexturedRect(x,y,w,h,c,m)
-    surface_SetDrawColor(c)
-    surface_SetMaterial(m)
-    surface_DrawTexturedRect(x,y,w,h)
-end
-
-local function surface_SimpleText(x,y,s,c)
-    surface_SetTextColor(c)
-	surface_SetTextPos(x,y) 
-	surface_DrawText(s) 
-end
-
-local function SmoothMaterial(path)
-    return Material( path, "noclamp smooth" )
-end
-
-// fonts
-
-surface_CreateFont( "tbfont", {	font = "Open Sans", extended = false,size = 15,weight = 100,additive = false,} )
-surface_CreateFont( "veranda", { font = "Verdana", size = 12, antialias = false, outline = true } )
-surface_CreateFont( "veranda_s", { font = "Verdana", size = 12, antialias = false, shadow = true } )
-surface_CreateFont( "thug", { font = "DS Cloister Black", size = 18, antialias = false, shadow = true } ) 
-surface_CreateFont( "veranda_scr", { font = "Verdana", size = ScreenScale( 9 ), antialias = false, outline = true } )
+surface.CreateFont( "saddamhussein", { font = "Open Sans", size = 64, weight = 1000 } )
 
 ultimate.Colors = {}
 
-for i = 0,255 do  // 50 shades of grey
+for i = 0,255 do
     ultimate.Colors[i] = Color( i, i, i )
 end
 
@@ -312,24 +218,149 @@ ultimate.Colors["Red"] = Color( 255, 0, 0, 255 )
 
 ultimate.accent = Color( 255, 255, 255 )
 
-/*
-    Cached shit 
-*/
+
+
+
+
+
+
+
+
+
+
+local settings = {
+
+}
+
+local theme = {
+    ["Frame background"] = Color( 25, 25, 25 ),
+    ["Frame foreground"] = Color( 55, 55, 55 ),
+    ["Frame title"] = Color( 165, 165, 165 ),
+}
+
+local pLocalPlayer = LocalPlayer()
+
+local screenWidth = ScrW()
+local screenHeight = ScrH()
+
+local traceResult = {}
+local traceStruct = { output = traceResult }
+
+local flTickInterval = engine.TickInterval()
+
+surface.CreateFont( "DermaSmall", {
+	font = "Open Sans",
+	size = 15,
+} )
+
+
+
+
+
+
+
+
+
+ultimate.Colors = {}
+
+for i = 0,255 do
+    ultimate.Colors[i] = Color( i, i, i )
+end
+
+ultimate.Colors["Red"] = Color( 255, 0, 0, 255 )
+
+ultimate.accent = Color( 255, 255, 255 )
+
+
+
+
+
+
+
+
+
+
+
+local settings = {
+
+}
+
+local theme = {
+    ["Frame background"] = Color( 25, 25, 25 ),
+    ["Frame foreground"] = Color( 55, 55, 55 ),
+    ["Frame title"] = Color( 165, 165, 165 ),
+}
+
+local pLocalPlayer = LocalPlayer()
+
+local screenWidth = ScrW()
+local screenHeight = ScrH()
+
+local traceResult = {}
+local traceStruct = { output = traceResult }
+
+local flTickInterval = engine.TickInterval()
+
+surface.CreateFont( "DermaSmall", {
+	font = "Open Sans",
+	size = 15,
+} )
+
+
+
+
+
+
+
+
+
+
 
 ultimate.cached = {}
 
 ultimate.Materials = {}
 
-ultimate.Materials["Gradient"] = SmoothMaterial("gui/gradient_up")
-ultimate.Materials["Gradient down"] = SmoothMaterial("gui/gradient_down")
-ultimate.Materials["Gradient right"] = SmoothMaterial("gui/gradient")
-ultimate.Materials["Alpha grid"] = SmoothMaterial("gui/alpha_grid.png")
+ultimate.Materials["Gradient"] = Material("gui/gradient_up", "noclamp smooth")
+ultimate.Materials["Gradient down"] = Material("gui/gradient_down", "noclamp smooth")
+ultimate.Materials["Gradient right"] = Material("gui/gradient", "noclamp smooth")
+ultimate.Materials["Alpha grid"] = Material("gui/alpha_grid.png", "noclamp smooth")
 ultimate.blur = Material("pp/blurscreen")
 
-// CONFIG 
 
 ultimate.presets = {}
-ultimate.cfg = { vars = {}, binds = {}, colors = {}, friends = {} }
+ultimate.cfg = { vars = {}, binds = {}, colors = {} }
+
+function ultimate.GetAnimatedColor( cfg, speed )
+    local base = string_ToColor( ultimate.cfg.colors[ cfg ] ) or Color( 255, 255, 255, 255 )
+
+    local r = base.r / 255
+    local g = base.g / 255
+    local b = base.b / 255
+    local maxc = math_max( r, g, b )
+    local minc = math_min( r, g, b )
+    local delta = maxc - minc
+
+    local h = 0
+    local s = maxc == 0 and 0 or delta / maxc
+    local v = maxc
+
+    if delta ~= 0 then
+        if maxc == r then
+            h = ( ( g - b ) / delta ) % 6
+        elseif maxc == g then
+            h = ( ( b - r ) / delta ) + 2
+        else
+            h = ( ( r - g ) / delta ) + 4
+        end
+
+        h = h * 60
+    end
+
+    local animated = HSVToColor( ( h + CurTime() * ( speed or 120 ) ) % 360, s, v )
+    animated.a = base.a
+
+    return animated
+end
 
 ultimate.cfg.vars["Enable aimbot"]              = false
 ultimate.cfg.binds["Aim on key"]                = 0
@@ -343,49 +374,46 @@ ultimate.cfg.vars["Rapid fire"]                 = false
 ultimate.cfg.vars["Alt Rapid fire"]             = false
 ultimate.cfg.vars["Bullet time"]                = false
 ultimate.cfg.vars["Time"]                       = 0
-ultimate.cfg.vars["Hit Chance Pistol"]                = 1
-ultimate.cfg.vars["Hit Chance Auto Rifle"]            = 1
-ultimate.cfg.vars["Hit Chance Smg"]                   = 1
-ultimate.cfg.vars["Hit Chance SSG 08"]                   = 1
-ultimate.cfg.vars["Hit Chance AWP"]                   = 1
-ultimate.cfg.vars["Hit Chance Auto Sniper"]                   = 1
-ultimate.cfg.vars["Hit Chance Arccw"]                   = 1
-
-ultimate.cfg.vars["Hit Chance Heavy Pistol"]                   = 1
-
-
-ultimate.cfg.vars["Auto Stop"]                       = false
 
 ultimate.cfg.vars["Nospread"]                   = false
 ultimate.cfg.vars["Force seed"]                 = false
 ultimate.cfg.vars["Wait for seed"]              = false
 ultimate.cfg.vars["Norecoil"]                   = false
+ultimate.cfg.vars["HvHNoSpread"]           = false
+ultimate.cfg.vars["dedulation"]                 = 1
+
+
+
+
+ultimate.cfg.vars["Disable visual recoil"] = false
 
 ultimate.cfg.vars["Extrapolation"]              = false
+ultimate.cfg.vars["Show extrapolation line"]    = false
+ultimate.cfg.vars["last update"]                = false
+ultimate.cfg.vars["Disable Taunts"]         = false
 ultimate.cfg.vars["Invalidate activity"]         = false
-ultimate.cfg.vars["Fake lag Fix"]               = false
-ultimate.cfg.vars["Fix Factor"]                 = 0.85
 ultimate.cfg.vars["Bone fix"]                   = false
 ultimate.cfg.vars["Update Client Anim fix"]     = false
-ultimate.cfg.vars["Wait for simtime update"]    = false
-ultimate.cfg.vars["Wait Break LC Disable"]      = false
-ultimate.cfg.vars["Disable interpolation"]      = true
-ultimate.cfg.vars["Disable Sequence interpolation"] = true
+ultimate.cfg.vars["Wait for simulation"]    = false
+ultimate.cfg.vars["Disable interpolation"]      = false
+ultimate.cfg.vars["Disable Sequence interpolation"] = false
 
-ultimate.cfg.vars["Target selection"]           = 1
+ultimate.cfg.vars["Target selection"]           = 2
 ultimate.cfg.vars["Ignores-Friends"]            = false
+ultimate.cfg.vars["Target-Priority-Only"]       = false
 ultimate.cfg.vars["Ignores-Steam friends"]      = false
 ultimate.cfg.vars["Ignores-Teammates"]          = false
 ultimate.cfg.vars["Ignores-Admins"]             = false
 ultimate.cfg.vars["Ignores-Bots"]               = false
 ultimate.cfg.vars["Ignores-Frozen"]             = false
 ultimate.cfg.vars["Ignores-Nodraw"]             = false
-ultimate.cfg.vars["Ignores-Nocliping"]          = false  
+ultimate.cfg.vars["Ignores-Nocliping"]          = false
 ultimate.cfg.vars["Ignores-God time"]           = false
 ultimate.cfg.vars["Ignores-Head unhitable"]     = false
 ultimate.cfg.vars["Ignores-Driver"]             = false
-ultimate.cfg.vars["Wallz"]                      = false
-ultimate.cfg.vars["Max targets"]                = 10
+ultimate.cfg.vars["Awall"]                      = false
+
+ultimate.cfg.vars["Max targets"]                = 0
 
 ultimate.cfg.vars["Hitbox selection"]           = 1
 ultimate.cfg.vars["Hitscan"]                    = false
@@ -397,9 +425,7 @@ ultimate.cfg.vars["Hitscan groups-Legs"]        = false
 ultimate.cfg.vars["Hitscan groups-Generic"]     = false
 ultimate.cfg.vars["Hitscan mode"]               = 1
 ultimate.cfg.vars["Multipoint"]                 = false
-
-ultimate.cfg.vars["Multipoint scale min"]       = 0.5
-ultimate.cfg.vars["Multipoint scale max"]       = 0.5 
+ultimate.cfg.vars["Multipoint scale"]           = 0.8
 ultimate.cfg.vars["Multipoint groups-Head"]     = false
 ultimate.cfg.vars["Multipoint groups-Chest"]    = false
 ultimate.cfg.vars["Multipoint groups-Stomach"]  = false
@@ -408,8 +434,10 @@ ultimate.cfg.vars["Multipoint groups-Legs"]     = false
 ultimate.cfg.vars["Multipoint groups-Generic"]  = false
 
 ultimate.cfg.vars["Adjust tickcount"]           = false
-ultimate.cfg.vars["Gun Switch"]           = false
+ultimate.cfg.vars["Gun switch"]                 = false
 ultimate.cfg.vars["Auto detonator"]             = false
+ultimate.cfg.vars["AutoD distance"]             = 96
+
 ultimate.cfg.vars["Backtrack"]                  = false
 ultimate.cfg.vars["Always backtrack"]           = false
 ultimate.cfg.vars["Backtrack mode"]             = 1
@@ -420,25 +448,20 @@ ultimate.cfg.vars["Aimbot smoothing"]           = false
 ultimate.cfg.vars["Smoothing"]                  = 0.05
 
 ultimate.cfg.vars["Fov limit"]                  = false
-ultimate.cfg.vars["Fov dynamic"]                = false
 ultimate.cfg.vars["Aimbot FOV"]                 = 30
 ultimate.cfg.vars["Show FOV"]                   = false
 ultimate.cfg.colors["Show FOV"]                 = "255 255 0 255"
 
-
-
-
-
 ultimate.cfg.vars["Aimbot snapline"]                   = false
 ultimate.cfg.colors["Aimbot snapline"]                 = "255 128 0 255"
 ultimate.cfg.vars["Aimbot marker"]                   = false
-ultimate.cfg.vars["Aimbot marker mode"]              = 1
+ultimate.cfg.vars["Aimbot marker type"]              = 1
 ultimate.cfg.colors["Aimbot marker"]                 = "255 255 255 255"
+ultimate.cfg.colors["GTA Marker"]                   = "0 128 0 255"
+ultimate.cfg.vars["GTA Marker Radius"]               = 30
+ultimate.cfg.vars["GTA Marker Size"]                 = 10
+ultimate.cfg.vars["GTA Marker Speed"]                = 100
 
-
-
-ultimate.cfg.vars["Trigger bot"]                = false
-ultimate.cfg.binds["Trigger bot"]               = 0
 
 ultimate.cfg.vars["Prop aimbot"]                = false
 ultimate.cfg.vars["PA thrower"]                 = false
@@ -446,10 +469,16 @@ ultimate.cfg.vars["PA thrower dist"]            = 128
 ultimate.cfg.vars["Prop max simtime"]           = 4
 
 ultimate.cfg.vars["Crossbow prediction"]        = false
-ultimate.cfg.vars["Граст"] = false
+ultimate.cfg.vars["Smg grenade prediction"]     = false
 
-ultimate.cfg.vars["Simulation limit"]           = 4
+--ultimate.cfg.vars["Simulation limit"]           = 4
 
+ultimate.cfg.vars["Baim low health"]            = false
+ultimate.cfg.vars["Baim health"]                = 65
+
+ultimate.cfg.vars["Auto healthkit"]             = false
+ultimate.cfg.vars["Healthkit-Self heal"]        = false
+ultimate.cfg.vars["Healthkit-Heal closest"]     = false
 
 ultimate.cfg.vars["Knifebot"]                   = false
 ultimate.cfg.vars["Knifebot mode"]              = 1
@@ -460,7 +489,7 @@ ultimate.cfg.vars["Facestab"]                   = false
 ultimate.cfg.vars["Projectile aimbot"]          = false
 
 ultimate.cfg.vars["Forwardtrack"]               = false
-ultimate.cfg.vars["Forwardtrack time"]          = 0
+ultimate.cfg.vars["Forwardtrack time"]          = 100
 
 
 
@@ -469,32 +498,21 @@ ultimate.cfg.vars["Forwardtrack time"]          = 0
 
 
 
-// Resolver 
+// Resolver
 
 ultimate.cfg.vars["Resolver"] = false
+ultimate.cfg.vars["Brute Yaw Value"]            = -180
 ultimate.cfg.vars["Yaw mode"] = 1
-ultimate.cfg.vars["Resolver priority"] = 1
-ultimate.cfg.vars["Auto Pitch mode"] = 1
-ultimate.cfg.vars["Resolved mode"] = 1
-ultimate.cfg.vars["Resolver adaptive"] = true
-ultimate.cfg.vars["Resolver velocity based"] = false
-ultimate.cfg.vars["Lower delta Right"] = 60
-ultimate.cfg.vars["Lower delta Left"] = -60
-ultimate.cfg.vars["Lower delta Right add random"] = 0
-ultimate.cfg.vars["Lower delta Left add random"] = 0
-
-
+ultimate.cfg.vars["Pitch resolver"] = false
 ultimate.cfg.vars["Taunt resolver"] = false
-ultimate.cfg.vars["Lower delta Right"] = 57
-ultimate.cfg.vars["Lower delta Left"] = 57
-ultimate.cfg.vars["Lower delta Right add random"] = 0
-ultimate.cfg.vars["Lower delta Left add random"] = 0
 
 
 
+ultimate.cfg.vars["Invert first shot"] = false
+ultimate.cfg.vars["Resolver max misses"] = 2
 
 
-// Tickbase 
+// Tickbase
 ultimate.cfg.vars["Tickbase shift"] = false
 ultimate.cfg.vars["Wait for unlag"] = false
 
@@ -521,43 +539,29 @@ ultimate.cfg.vars["Yaw randomisation"]          = false
 
 ultimate.cfg.vars["Custom real"]                = 75
 ultimate.cfg.vars["Custom fake"]                = 180
-ultimate.cfg.vars["Switch fake 1"]                = 0
-ultimate.cfg.vars["Switch fake 2"]                = 0
-ultimate.cfg.vars["Switch real 1"]                = 0
-ultimate.cfg.vars["Switch real 2"]                = 0
 ultimate.cfg.vars["Custom pitch"]               = 89
 ultimate.cfg.vars["Spin speed"]                 = 30
-ultimate.cfg.vars["LBY min delta"]              = 100
-ultimate.cfg.vars["LBY break delta"]            = 120
 ultimate.cfg.vars["Sin delta"]                  = 89
 ultimate.cfg.vars["Sin add"]                    = 11
 ultimate.cfg.vars["Jitter delta"]               = 45
-ultimate.cfg.vars["Spin Fake"]               = 45
-ultimate.cfg.vars["Spin Real"]               = 45
-ultimate.cfg.vars["Spin Fake Spead"]               = 45
-ultimate.cfg.vars["Spin Real Spead"]               = 45
-
 
 
 
 ultimate.cfg.vars["Yaw base"]                   = 1
 ultimate.presets["Yaw base"] = { "Viewangles", "At targets" }
 ultimate.cfg.vars["Yaw"]                        = 1
-ultimate.presets["Yaw"] = { 
+ultimate.presets["Yaw"] = {
     "Backward", "Fake Forward", "Legit Delta",
     "Sideways", "Half Sideways",
-    "Fake Spin", "LBY", "LBY Breaker",
-    "Sin sway", "Pendulum sway", "Lag sway",
+    "Fake Spin", "Sin Sway", "Pendulum Sway", "Lag Sway",
     "Fake Jitter", "Kappa Jitter", "Abu Jitter",
-    "Satanic Spin", "Custom",
-    "Switch","Multi Return spin",
+    "Satanic Spin", "Custom"
 }
-
 ultimate.cfg.vars["Pitch"]                      = 1
-ultimate.presets["Pitch"] = { 
-    "Down", "Up", "Zero", 
-    "Fake down", "Fake fake down", 
-    "Fake jitter", "Kizaru", 
+ultimate.presets["Pitch"] = {
+    "Down", "Up", "Zero",
+    "Fake down", "Fake fake down",
+    "Fake jitter", "Kizaru",
     "Custom"
 }
 ultimate.cfg.vars["Edge"]                       = 1
@@ -574,10 +578,12 @@ ultimate.cfg.vars["Antiaim material"] = 1
 ultimate.cfg.vars["Antiaim fullbright"] = false
 ultimate.cfg.colors["Real chams"] = "128 128 255 255"
 
-// Anim breakers 
+// Anim breakers
 
 ultimate.cfg.vars["Taunt spam"] = false
 ultimate.cfg.vars["Taunt"] = 1
+ultimate.cfg.vars["Taunt spam 2"] = false
+ultimate.cfg.vars["Taunt 2"] = 1
 
 ultimate.cfg.vars["Handjob"] = false
 ultimate.cfg.vars["Handjob mode"] = 1
@@ -590,8 +596,10 @@ ultimate.cfg.binds["freestand"] = 0
 ultimate.cfg.vars["Inverter"] = false
 ultimate.cfg.binds["Inverter"] = 0
 ultimate.cfg.vars["Anti aim chams"] = false
+ultimate.cfg.vars["Hitbox"] = false
+ultimate.cfg.colors["Hitbox"] = "255 255 255"
 
-ultimate.cfg.vars["Angle arrows"] = false
+ultimate.cfg.vars["Indicators"] = false
 
 
 
@@ -616,12 +624,8 @@ ultimate.cfg.vars["Fake lag"] = false
 
 ultimate.cfg.vars["Fake lag options-Disable on ladder"] = false
 ultimate.cfg.vars["Fake lag options-Disable in attack"] = false
-
-
 ultimate.cfg.vars["Fake lag options-On peek"] = false
 ultimate.cfg.vars["Fake lag options-Randomise"] = false
-ultimate.cfg.vars["On peek Factor"] = 1
-
 
 ultimate.cfg.vars["Lag mode"] = 1
 
@@ -632,14 +636,18 @@ ultimate.cfg.vars["Fake duck"] = false
 ultimate.cfg.binds["Fake duck"] = 0
 
 ultimate.cfg.vars["Air lag duck"] = false
+ultimate.cfg.vars["Jesus lag"] = false
+
 
 
 ultimate.cfg.vars["Allah fly"] = false
 
-    
+
 // Sequence manip
 ultimate.cfg.vars["Sequence manip"] = false
-ultimate.cfg.vars["OutSequence"] = 0
+ultimate.cfg.vars["Sequence mode"] = 1
+ultimate.cfg.vars["Sequence resolver"] = false
+ultimate.cfg.vars["OutSequence"] = 500
 ultimate.cfg.binds["Sequence manip"] = 0
 ultimate.cfg.vars["Sequence min random"] = false
 ultimate.cfg.vars["Sequence min"] = 1
@@ -652,7 +660,7 @@ ultimate.cfg.vars["Freeze on peek"] = false
 ultimate.cfg.vars["Allah walk"] = false
 ultimate.cfg.binds["allahwalk"] = 0
 
-// Animfix 
+// Animfix
 
 ultimate.cfg.vars["Interpolation-Disable interpolation"] = false
 ultimate.cfg.vars["Interpolation-Fast sequences"] = false
@@ -672,18 +680,16 @@ ultimate.cfg.vars["Sprint"] = false
 ultimate.cfg.vars["Safe hop"] = false
 ultimate.cfg.vars["Edge jump"] = false
 ultimate.cfg.vars["Air duck"] = false
-ultimate.cfg.binds["key_ult"] = 1
-ultimate.cfg.vars["slow walk speed"] = 1
 
 ultimate.cfg.vars["Air strafer"] = false
 ultimate.cfg.vars["Strafe mode"] = 1
 ultimate.cfg.vars["Ground strafer"] = false
-ultimate.cfg.vars["grustmovementdemon"] = false
 ultimate.cfg.vars["Fast stop"] = false
 ultimate.cfg.vars["Z Hop"] = false
 ultimate.cfg.binds["Z Hop"] = 0
 
 ultimate.cfg.vars["Water jump"] = false
+ultimate.cfg.vars["Remove keys"] = false
 
 ultimate.cfg.vars["Auto peak"] = false
 ultimate.cfg.binds["Auto peak"] = 0
@@ -695,6 +701,11 @@ ultimate.cfg.vars["CStrafe ticks"] = 64
 ultimate.cfg.vars["CStrafe angle step"] = 1
 ultimate.cfg.vars["CStrafe angle max step"] = 10
 ultimate.cfg.vars["CStrafe ground diff"] = 10
+
+ultimate.cfg.vars["Adaptive CStrafe"] = false
+ultimate.cfg.binds["Adaptive CStrafe"] = 0
+ultimate.cfg.vars["Adaptive CStrafe Path"] = false
+ultimate.cfg.colors["Adaptive CStrafe Path"] = "255 255 255 255"
 
 ultimate.cfg.vars["Cvar name"] = ""
 ultimate.cfg.vars["Cvar int"] = "1"
@@ -712,11 +723,16 @@ ultimate.cfg.vars["Disconnect reason"] = "VAC banned from secure server"
 ultimate.cfg.vars["Name stealer"] = false
 ultimate.cfg.vars["Auto reconnect"] = false
 
-ultimate.cfg.vars["Killsay"]            = false
 ultimate.cfg.vars["Chat spammer"]       = false
-
 ultimate.cfg.vars["Chat mode"]          = 1
 ultimate.cfg.vars["Chat group"]         = 1
+ultimate.cfg.vars["Chat delay"]         = 1
+
+ultimate.cfg.vars["Killsay"]            = false
+ultimate.cfg.vars["Killsay mode"]          = 1
+ultimate.cfg.vars["Killsay group"]         = 1
+
+ultimate.cfg.vars["Retry on handcuff"] = false
 
 // FTPToPos abuse xd )))
 ultimate.cfg.vars["FSpec Teleport"] = false
@@ -731,24 +747,24 @@ ultimate.cfg.binds["FSpec ClickTP"] = 0
 ultimate.cfg.vars["FSpec Velocity"] = false
 ultimate.cfg.binds["FSpec Velocity"] = 0
 
-// Player visuals 
+// Player visuals
 ultimate.cfg.vars["Box esp"]                    = false
 ultimate.cfg.vars["Box style"]                  = 1
 
 ultimate.cfg.vars["Sight lines"]        = false
-ultimate.cfg.vars["IFOV"]        = false
 
 ultimate.cfg.vars["ESP Font"]                  = 1
 
 ultimate.cfg.vars["Box gradient"]   = false
 
-ultimate.cfg.colors["Box esp"]      = "255 0 255 255"
+ultimate.cfg.colors["Box esp"]      = "128 128 255 255"
 ultimate.cfg.colors["Box gradient"] = "0 255 255 255"
 
 ultimate.cfg.vars["Box team color"] = false
 
 ultimate.cfg.vars["Name"] = false
 ultimate.cfg.vars["Name pos"] = 1
+
 
 ultimate.cfg.vars["Usergroup"] = false
 ultimate.cfg.vars["Usergroup pos"] = 1
@@ -759,13 +775,17 @@ ultimate.cfg.vars["Team pos"] = 1
 ultimate.cfg.vars["Health"] = false
 ultimate.cfg.vars["Health bar"] = false
 ultimate.cfg.vars["Health bar gradient"] = false
-ultimate.cfg.vars["Health pos"] = 1
+ultimate.cfg.vars["Health pos"] = 4
 ultimate.cfg.colors["Health"] = "75 255 0 255"
 ultimate.cfg.colors["Health bar gradient"] = "255 45 0 255"
 
 
 ultimate.cfg.vars["Armor"] = false
-ultimate.cfg.vars["Armor pos"] = 1
+ultimate.cfg.vars["Armor bar"] = false
+ultimate.cfg.vars["Armor bar gradient"] = false
+ultimate.cfg.vars["Armor pos"] = 4
+ultimate.cfg.colors["Armor"] = "72 72 255 255"
+ultimate.cfg.colors["Armor bar gradient"] = "72 255 72 255"
 
 ultimate.cfg.vars["DarkRP Money"] = false
 ultimate.cfg.vars["Money pos"] = 1
@@ -775,38 +795,18 @@ ultimate.cfg.vars["Weapon pos"] = 1
 
 ultimate.cfg.vars["Show ammo"] = false
 ultimate.cfg.vars["Weapon printname"] = false
-ultimate.cfg.vars["Show reload"] = false 
+ultimate.cfg.vars["Show reload"] = false
 
 ultimate.cfg.vars["Break LC"] = false
-
-ultimate.cfg.vars["Steam id"] = false
-ultimate.cfg.vars["Steam id pos"] = 1
-ultimate.cfg.vars["Ping"] = false
-ultimate.cfg.vars["Ping pos"] = 1
 ultimate.cfg.vars["Break LC pos"] = 1
-
-ultimate.cfg.vars["AA Mode"] = false
-ultimate.cfg.vars["hitbox esp"] = false
-
-ultimate.cfg.vars["Simtime pos"] = 1
-ultimate.cfg.vars["AA Mode"] = false
-ultimate.cfg.vars["hitbox esp"] = false
-
-ultimate.cfg.vars["Simtime pos"] = 1
-ultimate.cfg.vars["AA Mode pos"] = 1
 
 ultimate.cfg.vars["Simtime updated"] = false
 ultimate.cfg.vars["Simtime pos"] = 1
 
-
+ultimate.cfg.colors["Skeleton"] = "255 255 255 255"
 ultimate.cfg.vars["Skeleton"] = false
 
 ultimate.cfg.vars["Player flags"] = false
-
-// Self
-ultimate.cfg.vars["Selfhitbox"] = false
-
-ultimate.cfg.vars["SelfHealth"] = false
 
 
 // Chams
@@ -837,6 +837,9 @@ ultimate.cfg.vars["Backtrack fullbright"] = false
 ultimate.cfg.colors["Backtrack chams"] = "255 128 255 255"
 ultimate.cfg.vars["Backtrack skeleton"] = false
 ultimate.cfg.vars["OOF Arrows"] = false
+ultimate.cfg.vars["OOF Style"] = 1
+
+
 
 ultimate.cfg.vars["On screen logs"] = false
 
@@ -855,14 +858,17 @@ ultimate.cfg.vars["Entity outline"] = false
 ultimate.cfg.colors["Player outline"] = "45 255 86 255"
 ultimate.cfg.colors["Entity outline"] = "255 86 45 255"
 
-ultimate.cfg.vars["Outline style"] = 1 
+ultimate.cfg.vars["Outline style"] = 1
 
 ultimate.cfg.vars["ESP Distance"] = 3500
+
+ultimate.cfg.binds["Player add"] = 0
+ultimate.cfg.binds["Priority add"] = 0
 
 // Entity Esp
 ultimate.cfg.binds["Ent add"] = 0
 ultimate.cfg.vars["Ent box"] = false
-ultimate.cfg.vars["Ent box 3d"] = false
+ultimate.cfg.vars["Ent box style"] = 1
 ultimate.cfg.vars["Ent class"] = false
 ultimate.cfg.vars["Ent ESP Distance"] = 3500
 
@@ -872,20 +878,15 @@ ultimate.cfg.vars["Fresnel exponent"] = 1
 
 // Hitmarker
 ultimate.cfg.vars["Hitmarker"] = false
-ultimate.cfg.vars["Crosshair"] = false
-ultimate.cfg.vars["Crosshair type"] = 1
-ultimate.cfg.vars["Target"] = false
-ultimate.cfg.vars["Ping Warning"] = false
-
-
 ultimate.cfg.vars["Hit particles"] = false
 ultimate.cfg.vars["Hitnumbers"] = false
 
 ultimate.cfg.vars["Hitsound"] = false
 ultimate.cfg.vars["Killsound"] = false
 
-ultimate.cfg.vars["Hitsound mode"] = 1
-ultimate.cfg.vars["Killsound mode"] = 1
+ultimate.cfg.vars["Hitsound str"] = "phx/hmetal1.wav"
+ultimate.cfg.vars["Killsound str"] = "ambient/levels/canals/windchime2.wav"
+
 ultimate.cfg.colors["Hit particles"] = "255 128 235 255"
 ultimate.cfg.colors["Hitmarker"] = "255 155 25 255"
 ultimate.cfg.colors["Hitnumbers"] = "255 255 255 255"
@@ -895,11 +896,13 @@ ultimate.cfg.colors["Hitnumbers krit"] = "255 35 35 255"
 
 ultimate.cfg.vars["Hide name"] = false
 ultimate.cfg.vars["Custom name"] = "Your mom"
-ultimate.cfg.vars["Disable SADJ"] = false
+ultimate.cfg.vars["Disable sensivity adjustment"] = false
 ultimate.cfg.vars["Screengrab image"] = false
+ultimate.cfg.vars["Crosshair"] = false
+ultimate.cfg.colors["Crosshair color"] = "255 255 255 255" 
 
 
-// Visuals 
+// Visuals
 ultimate.cfg.vars["Tickbase indicator"] = false
 ultimate.cfg.vars["Spectator list"] = false
 ultimate.cfg.colors["Spectator list header"] = "35 35 35 255"
@@ -909,28 +912,41 @@ ultimate.cfg.colors["Spectator list text"] = "255 255 255 255"
 ultimate.cfg.colors["Spectator list target"] = "255 0 0 255"
 
 
+ultimate.cfg.vars["Killsound"] = false
 
-
-// World 
+// World
 ultimate.cfg.vars["Custom sky"] = GetConVar("sv_skyname"):GetString()
-ultimate.cfg.vars["Sky color"] = false 
+ultimate.cfg.vars["Sky color"] = false
 ultimate.cfg.colors["Sky color"] = "145 185 245 255"
-ultimate.cfg.vars["Wall color"] = false 
+ultimate.cfg.vars["Wall color"] = false
 ultimate.cfg.colors["Wall color"] = "50 45 65 255"
-ultimate.cfg.vars["Fullbright"] = false 
-ultimate.cfg.vars["Fullbright mode"] = 1 
+ultimate.cfg.vars["Fullbright"] = false
+ultimate.cfg.vars["Fullbright mode"] = 1
 ultimate.cfg.binds["Fullbright"] = 0
-ultimate.cfg.vars["Disable shadows"] = false 
-
+ultimate.cfg.vars["Disable shadows"] = false
+ultimate.cfg.vars["FogChanger"] = false
+ultimate.cfg.colors["FogChanger"] = "255 255 255 255"
+ultimate.cfg.vars["FogStart"] = 1500
+ultimate.cfg.vars["FogEnd"] = 3000
+ultimate.cfg.vars["Color Modify"] = false
+ultimate.cfg.vars["Color Modify Brightness"] = 0
+ultimate.cfg.vars["Color Modify Contrast"] = 1
+ultimate.cfg.vars["Color Modify Saturation"] = 3
+ultimate.cfg.vars["Color Modify Add Red"] = 0
+ultimate.cfg.vars["Color Modify Add Green"] = 0
+ultimate.cfg.vars["Color Modify Add Blue"] = 0
+ultimate.cfg.vars["Color Modify Mul Red"] = 0
+ultimate.cfg.vars["Color Modify Mul Green"] = 0
+ultimate.cfg.vars["Color Modify Mul Blue"] = 0
 
 // Effects
-ultimate.cfg.vars["Bullet tracers"] = false 
+ultimate.cfg.vars["Bullet tracers"] = false
 ultimate.cfg.colors["Bullet tracers"] = "255 65 65 255"
-ultimate.cfg.vars["Bullet tracers material"] = "sprites/tp_beam001" 
-ultimate.cfg.vars["Tracers die time"] = 5 
-ultimate.cfg.vars["Bullet tracers muzzle"] = false 
+ultimate.cfg.vars["Bullet tracers material"] = "effects/beam_generic01"
+ultimate.cfg.vars["Tracers die time"] = 5
+ultimate.cfg.vars["Bullet tracers muzzle"] = false
 
-// View 
+// View
 ultimate.cfg.vars["Third person"] = false
 ultimate.cfg.binds["Third person"] = 0
 ultimate.cfg.vars["Third person collision"] = false
@@ -942,11 +958,15 @@ ultimate.cfg.binds["Free camera"] = 0
 ultimate.cfg.vars["Free camera speed"] = 25
 ultimate.cfg.vars["Ghetto free cam"] = false
 
+ultimate.cfg.vars["Override view"] = true
 
 ultimate.cfg.vars["Fov override"] = GetConVarNumber("fov_desired")
+
 ultimate.cfg.vars["Aspect ratio"] = 0
 
 ultimate.cfg.vars["Viewmodel changer"] = false
+
+ultimate.cfg.vars["Viewmodel Manip"] = false
 
 ultimate.cfg.vars["Viewmodel fov"] = GetConVar("viewmodel_fov"):GetInt()
 
@@ -956,19 +976,9 @@ ultimate.cfg.vars["Viewmodel chams type"] = 1
 ultimate.cfg.vars["Fullbright viewmodel"] = false
 
 
-
-ultimate.cfg.vars[ "Viewmodel X"]= 0
-ultimate.cfg.vars["Dynamic X"]= 0
-ultimate.cfg.vars["Viewmodel Y"]= 0
-ultimate.cfg.vars["Dynamic Y"]= 0
-ultimate.cfg.vars["Viewmodel Z"]= 0
-ultimate.cfg.vars["Dynamic Z"]= 0
-ultimate.cfg.vars["Viewmodel Pitch"]= 0
-ultimate.cfg.vars["Dynamic Pitch"]= 0
-ultimate.cfg.vars["Viewmodel Yaw"]= 0
-ultimate.cfg.vars["Dynamic Yaw"]= 0
-ultimate.cfg.vars["Viewmodel Roll"]= 0
-ultimate.cfg.vars["Dynamic Roll"]= 0
+ultimate.cfg.vars["Viewmodel x"] = 0
+ultimate.cfg.vars["Viewmodel y"] = 0
+ultimate.cfg.vars["Viewmodel z"] = 0
 
 ultimate.cfg.vars["Ghost follower"] = false
 ultimate.cfg.vars["GFID"] = "SteamID"
@@ -976,107 +986,42 @@ ultimate.cfg.vars["GFID"] = "SteamID"
 // Misc
 
 ultimate.cfg.vars["Use spam"] = false
-ultimate.cfg.vars["Aimbot"] = false
 ultimate.cfg.vars["Flashlight spam"] = false
 ultimate.cfg.vars["Auto GTA"] = false
 ultimate.cfg.vars["Camera spam"] = false
 ultimate.cfg.vars["Fast lockpick"] = false
+ultimate.cfg.vars["Keypad Logger"] = false
 
 
-ultimate.cfg.vars["Config name"] = "default"
+ultimate.cfg.vars["Config name"] = "new"
 ultimate.cfg.vars["Selected config"] = 1
 
+ultimate.cfg.colors["Menu color"] = "0 0 0 255"
+
+ultimate.cfg.friends = {}
+ultimate.cfg.priorityList = {}
+ultimate.cfg.ents = {}
 
 
-ultimate.cfg.vars["Custom Cheat"]               = " ULTIMATE PUTIN BUILD V1.5"
-ultimate.cfg.colors["Menu"]                     = "0 0 0 255"
-ultimate.cfg.colors["Upper line menu"]          = "0 0 0 255"
-ultimate.cfg.colors["Upper menu"]               = "160 160 160 255"
-ultimate.cfg.colors["Upper Line"]               = "160 160 160 255"
-ultimate.cfg.colors["Chekbox Active"]           = "144 144 144 255"
-ultimate.cfg.colors["Chekbox"]                  = "144 144 144 255"
-ultimate.cfg.colors["Chekbox line"]             = "144 144 144 255"
-ultimate.cfg.colors["Text"]                     = "144 144 144 255"
-ultimate.cfg.colors["ComboBox1"]                = "144 144 144 255"
-ultimate.cfg.colors["ComboBox2"]                = "65 65 65 255"
-ultimate.cfg.colors["ComboBox Vive"]            = "144 144 144 255"
-ultimate.cfg.colors["ComboBox line"]            = "0 0 0 255"
-ultimate.cfg.colors["ComboBox4"]                = "78 78 78 255"
-ultimate.cfg.colors["Panel line"]               = "144 144 144 255"
-ultimate.cfg.colors["Slider"]                   = "144 144 144 255"
-ultimate.cfg.colors["Slider line"]              = "144 144 144 255"
-ultimate.cfg.colors["Top Button active"]        = "144 144 144 255"
-ultimate.cfg.colors["Top Button vive"]          = "65 65 65 255"
-ultimate.cfg.colors["Top Button"]               = "56 56 56 255"
- 
-
-do 
+do
     local maxshift = GetConVar("sv_maxusrcmdprocessticks"):GetInt() - 1
-    local tickrate = tostring(math_Round(1 / TickInterval))
+    local tickrate = tostring(math.Round(1 / flTickInterval))
 
-	gRunCmd("cl_cmdrate", tickrate)
-	gRunCmd("cl_updaterate", tickrate)
+	RunConsoleCommand("cl_cmdrate", tickrate)
+	RunConsoleCommand("cl_updaterate", tickrate)
 
-	gRunCmd("cl_interp", "0")
-	gRunCmd("cl_interp_ratio", "0")
+	RunConsoleCommand("cl_interp", "0")
+	RunConsoleCommand("cl_interp_ratio", "0")
 
     ultimate.cfg.vars["Shift ticks"] = maxshift
     ultimate.cfg.vars["Charge ticks"] = maxshift
-    
-    ded.SetInterpolation( true )
-    ded.SetSequenceInterpolation( true )
-    ded.EnableAnimFix( false )
+
+    jopa.SetInterpolation( true )
+    jopa.SetSequenceInterpolation( true )
+    jopa.EnableAnimFix( false )
 end
 
-function RunConsoleCommand( cmd, ... )
-    if ultimate.cfg.vars["Camera spam"] and cmd == "jpeg" then return end
-     
-    /*
-    local lowered = string_lower( cmd ) 
 
-    local block = false
-    for i = 1, #ultimate.blockedcmds do
-        local c = ultimate.blockedcmds[ i ]
-
-        if lowered:find( c ) then
-            block = true 
-            break 
-        end
-    end
-
-    if block then return end
-    */
-
-    local args = { ... }
-
-    if #args > 0 then
-        gRunCmd( cmd, ... )
-    else
-        gRunCmd( cmd )
-    end
-end
-
-function MetaPly:ConCommand( cmd )
-    if ultimate.cfg.vars["Camera spam"] and cmd == "jpeg" then return end
-
-    /*
-    local lowered = string_lower( cmd ) 
-
-    local block = false
-    for i = 1, #ultimate.blockedcmds do
-        local c = ultimate.blockedcmds[ i ]
-
-        if lowered:find( c ) then
-            block = true 
-            break 
-        end
-    end
-
-    if block then return end
-*/
-
-    gRunCmd( cmd )
-end
 
 
 /*
@@ -1085,7 +1030,7 @@ end
 
 ultimate.onScreenLogs = {}
 ultimate.firedShots = 0
-ultimate.HitLogulthite = Color( 225, 225, 225 )
+ultimate.HitLogsWhite = Color( 225, 225, 225 )
 ultimate.MissReasons = {
     [ 1 ] =     { str = "spread", var = "Miss spread" },
     [ 2 ] =     { str = "occlusion", var = "Miss spread" },
@@ -1094,7 +1039,7 @@ ultimate.MissReasons = {
     [ 5 ] =     { str = "resolver", var = "Miss fail" },
 }
 
- 
+
 
 
 
@@ -1102,244 +1047,173 @@ ultimate.MissReasons = {
 
 // Config save / load
 
-if not file.Exists( "data/ultimate", "GAME" ) then 
-    file.CreateDir("ultimate") 
+if not file.Exists( "data/ultimate", "GAME" ) then
+    file.CreateDir("ultimate")
 end
 
-if not file.Exists( "ultimate/default.txt", "DATA" ) then 
-    file.Write( "ultimate/default.txt", util.TableToJSON( ultimate.cfg, false ) ) 
+if not file.Exists( "ultimate/default.txt", "DATA" ) then
+    file.Write( "ultimate/default.txt", util.TableToJSON( ultimate.cfg, false ) )
 end
 
-http.Fetch("https://media.discordapp.net/attachments/1108456125965279334/1111682362011562034/SPOILER_IMG_6794.png", function(body)
-    file_Write("prikol.png", body)
-end)
+-- http.Fetch("https://media.discordapp.net/attachments/1108456125965279334/1111682362011562034/SPOILER_IMG_6794.png", function(body)
+--     file.Write("prikol.png", body)
+-- end)
 
-ultimate.configs = {}
+
+ultimate.cfgTable = {}
+
 function ultimate.fillConfigTable()
-    local ftbl = file_Find("ultimate/*.txt", "DATA")
-    ultimate.configs = {}
+    local ftbl = file.Find("ultimate/*.txt", "DATA")
+    ultimate.cfgTable = {}
 
-    if not ftbl or #ftbl == 0 then
-        ultimate.configs[1] = "default"
-        return
-    end
+    if not ftbl or #ftbl == 0 then return end
 
     for i = 1, #ftbl do
         local str = ftbl[i]
-        local len = string_len(str)
-        local f = string_sub(str, 1, len - 4) -- Remove .txt extension
+        local len = string.len(str)
+        local f = string.sub(str, 1, len - 4) -- Remove .txt extension
 
-        ultimate.configs[#ultimate.configs + 1] = f
+        ultimate.cfgTable[#ultimate.cfgTable + 1] = f
     end
 end
 
 ultimate.fillConfigTable()
 
 function ultimate.SaveConfig()
-    local selectedIndex = ultimate.cfg.vars["Selected config"] or 1
-    local str = ultimate.configs[selectedIndex]
+    local tojs = util.TableToJSON(ultimate.cfg, false)
+    local str = ultimate.cfgTable[ultimate.cfg.vars["Selected config"]]
 
-    if not str then
-        return
+    if str then
+        file.Write("ultimate/" .. str .. ".txt", tojs)
+    else
+        print("Error: Selected config not found.")
     end
-
-    local saveData = {
-        vars = ultimate.cfg.vars,
-        binds = ultimate.cfg.binds,
-        colors = ultimate.cfg.colors,
-        friends = ultimate.cfg.friends
-    }
-
-    local tojs = util.TableToJSON(saveData, false)
-    if not tojs or tojs == "" then
-        return
-    end
-
-    file_Write("ultimate/" .. str .. ".txt", tojs)
 end
 
 function ultimate.LoadConfig()
-    local selectedIndex = ultimate.cfg.vars["Selected config"] or 1
-    local str = ultimate.configs[selectedIndex]
-    
-    if not str then
-        return
-    end
-    
+    local str = ultimate.cfgTable[ultimate.cfg.vars["Selected config"]]
+    //print(ultimate.cfg.vars["Selected config"])
 
-    local path = "ultimate/" .. str .. ".txt"
-    if not file_Exists("data/" .. path, "GAME") then
+    if not str or not file.Exists("ultimate/" .. str .. ".txt", "DATA") then
+        print("Error: Config file not found.")
         return
     end
 
-    local read = file_Read(path, "DATA")  -- Use file_Read instead of file.Read
-    if not read or read == "" then
-        return
-    end
-    
+    local read = file.Read("ultimate/" .. str .. ".txt", "DATA")
     local totbl = util.JSONToTable(read)
     if not totbl then
+        print("Error: Failed to parse config file.")
         return
     end
 
     local ConfigName = ultimate.cfg.vars["Config name"]
     local SelectedConfig = ultimate.cfg.vars["Selected config"]
 
-    if istable(totbl.vars) then
-        for k, v in pairs(totbl.vars) do
-            ultimate.cfg.vars[k] = v
+    for k, v in pairs(totbl) do
+        for key, value in pairs(v) do
+            local tbl = ultimate.cfg
+
+            if k == "vars" then
+                tbl = ultimate.cfg.vars
+            elseif k == "colors" then
+                tbl = ultimate.cfg.colors
+            elseif k == "binds" then
+                tbl = ultimate.cfg.binds
+            elseif k == "binds" then
+                tbl = ultimate.cfg.binds
+            elseif k == "friends" then
+                tbl = ultimate.cfg.friends
+            elseif k == "ents" then
+                tbl = ultimate.cfg.ents
+            end
+
+            tbl[key] = value
         end
     end
 
-    if istable(totbl.binds) then
-        for k, v in pairs(totbl.binds) do
-            ultimate.cfg.binds[k] = v
-        end
-    end
-
-    if istable(totbl.colors) then
-        for k, v in pairs(totbl.colors) do
-            ultimate.cfg.colors[k] = v
-        end
-    end
-
-    if istable(totbl.friends) then
-        for k, v in pairs(totbl.friends) do
-            ultimate.cfg.friends[k] = v
-        end
-    end
-
-    -- Restore config name and selection
     ultimate.cfg.vars["Config name"] = ConfigName
     ultimate.cfg.vars["Selected config"] = SelectedConfig
 
-    -- Apply module settings
-    if ded.SetInterpolation then
-        ded.SetInterpolation(ultimate.cfg.vars["Disable interpolation"] or false)
-    end
-    if ded.SetSequenceInterpolation then
-        ded.SetSequenceInterpolation(ultimate.cfg.vars["Disable Sequence interpolation"] or false)
-    end
-    if ded.EnableAnimFix then
-        ded.EnableAnimFix(ultimate.cfg.vars["Update Client Anim fix"] or false)
-    end
-    
-    
-    -- Refresh UI to show loaded values
-    if ultimate.menu and IsValid(ultimate.menu) then
-        ultimate.menu:Remove()
-        ultimate.menu = nil
-    end
+    jopa.SetInterpolation(ultimate.cfg.vars["Disable interpolation"])
+    jopa.SetSequenceInterpolation(ultimate.cfg.vars["Disable Sequence interpolation"])
+    jopa.EnableAnimFix(ultimate.cfg.vars["Update Client Anim fix"])
+    jopa.EnableBoneFix(ultimate.cfg.vars["Bone fix"])
+
+    jopa.SetMaxShift(ultimate.cfg.vars["Charge ticks"])
+    jopa.SetMinShift(ultimate.cfg.vars["Shift ticks"])
+    jopa.EnableTickbaseShifting(ultimate.cfg.vars["Tickbase shift"])
 end
 
 function ultimate.CreateConfig()
-    local configName = ultimate.cfg.vars["Config name"]
+    local str = ultimate.cfg.vars["Config name"]
 
-    if not configName or configName == "" then
-        return
-    end
-
-    local saveData = {
-        vars = ultimate.cfg.vars,
-        binds = ultimate.cfg.binds,
-        colors = ultimate.cfg.colors,
-        friends = ultimate.cfg.friends
-    }
-
-    local tojs = util.TableToJSON(saveData, false)
-    if not tojs or tojs == "" then
-        return
-    end
-
-    file_Write("ultimate/" .. configName .. ".txt", tojs)
-    
-    ultimate.fillConfigTable()
-
-    -- Select the newly created config
-    for i, name in ipairs(ultimate.configs) do
-        if name == configName then
-            ultimate.cfg.vars["Selected config"] = i
-            break
-        end
-    end
-
-    if ultimate.initTab then
-        ultimate.initTab("Settings")
+    if str then
+        file.Write("ultimate/" .. str .. ".txt", "")
+        ultimate.fillConfigTable()
+        ultimate.initTab("Config")
+    else
+        print("Error: Config name not specified.")
     end
 end
 
 function ultimate.DeleteConfig()
     local selectedConfigId = ultimate.cfg.vars["Selected config"]
-    local str = ultimate.configs[selectedConfigId]
+    local str = ultimate.cfgTable[selectedConfigId]
 
     if str then
-        file_Delete("ultimate/" .. str .. ".txt")
+        file.Delete("ultimate/" .. str .. ".txt")
 
-        table_remove(ultimate.configs, selectedConfigId)
+        table.remove(ultimate.cfgTable, selectedConfigId)
 
-        if #ultimate.configs > 0 then
+        if #ultimate.cfgTable > 0 then
             ultimate.cfg.vars["Selected config"] = 1
         else
             ultimate.cfg.vars["Selected config"] = nil
         end
 
         ultimate.fillConfigTable()
-        
-        if ultimate.initTab then
-            ultimate.initTab("Settings")
-        end
+        ultimate.initTab("Config")
     else
+        print("Error: Selected config not found.")
     end
 end
 
+
 function ultimate.TIME_TO_TICKS(time)
-	return math_floor(0.5 + time / TickInterval)
+	return math.floor(0.5 + time / flTickInterval)
 end
 
 function ultimate.TICKS_TO_TIME(ticks)
-    return TickInterval * ticks
-end
-
- function GetLerpTime()
-	local cl_interpolate = GetConVar("cl_interpolate")
-	if not cl_interpolate or cl_interpolate:GetInt() == 0 then return 0 end
-	
-	local cl_interp_ratio = GetConVar("cl_interp_ratio")
-	local cl_interp = GetConVar("cl_interp")
-	local cl_updaterate = GetConVar("cl_updaterate")
-	
-	if not cl_interp_ratio or not cl_interp or not cl_updaterate then return 0 end
-	
-	local lerpRatio = cl_interp_ratio:GetFloat()
-	if lerpRatio == 0 then
-		lerpRatio = 1
-	end
-	
-	local lerpAmount = cl_interp:GetFloat()
-	local updateRate = cl_updaterate:GetFloat()
-	
-	if updateRate == 0 then return lerpAmount end
-	
-	return math_max(lerpAmount, lerpRatio / updateRate)
+    return flTickInterval * ticks
 end
 
 function ultimate.ROUND_TO_TICK(time)
     return ultimate.TICKS_TO_TIME(ultimate.TIME_TO_TICKS(time))
 end
 
+local Utility = {}
+
+function Utility.TimeToTicks( flTime )
+    return math.floor( 0.5 + flTime / flTickInterval )
+end
+
 /*
-    Materials 
+    Materials
 */
 
 ultimate.chamsMaterials = {
-    "Flat", "Textured", "Selfillum", 
-    "Selfillum additive", "Wireframe", "Metallic", 
-    "Glass", "Glowing glass"
+    "Flat",
+    "Wireframe",
+    "Selfillum",
+    "Selfillum additive",
+    "Metallic",
+    "Glass",
+    "Glowing glass"
 }
 
 
 /*
-    Detours 
+    Detours
 */
 
 do
@@ -1351,7 +1225,7 @@ do
 
     function PLAYER:Name()
 
-        if ultimate.cfg.vars["Hide name"] and self == me then
+        if ultimate.cfg.vars["Hide name"] and self == pLocalPlayer then
             return ultimate.cfg.vars["Custom name"]
         end
 
@@ -1360,7 +1234,7 @@ do
 
     function PLAYER:Nick()
 
-        if ultimate.cfg.vars["Hide name"] and self == me then
+        if ultimate.cfg.vars["Hide name"] and self == pLocalPlayer then
             return ultimate.cfg.vars["Custom name"]
         end
 
@@ -1369,7 +1243,7 @@ do
 
     function PLAYER:GetName()
 
-        if ultimate.cfg.vars["Hide name"] and self == me then
+        if ultimate.cfg.vars["Hide name"] and self == pLocalPlayer then
             return ultimate.cfg.vars["Custom name"]
         end
 
@@ -1379,17 +1253,12 @@ end
 
 
 
+ultimate.ui = {}
 
+ultimate.validsnd = false
 
-
-
-
-
-ultimate.ui = {}/*
-ultimate.validsnd = false 
-
-
-sound.PlayURL ( "https://cdn.discordapp.com/attachments/981977924087472128/1116820124985458770/ya_resskiy.mp3", "noblock", function( s ) 
+/*
+sound.PlayURL ( "https://cdn.discordapp.com/attachments/981977924087472128/1116820124985458770/ya_resskiy.mp3", "noblock", function( s )
     if not IsValid( s ) then return end
     ultimate.validsnd = s
 
@@ -1412,7 +1281,7 @@ do
 
     function RememberCursorPosition()
 
-        local x, y = input_GetCursorPos()
+        local x, y = input.GetCursorPos()
 
         if ( x == 0 && y == 0 ) then return end
 
@@ -1435,27 +1304,28 @@ do
 
     function PANEL:Init()
         self:SetFocusTopLevel( true )
-        self:SetSize( 800, 850 )
+        self:SetSize( 800, 650 )
 
         self:SetPaintBackgroundEnabled( false )
         self:SetPaintBorderEnabled( false )
         self:DockPadding( 5, 60, 5, 5 )
         self:MakePopup()
+        self:Center( true )
 
         PANEL.TopPanel = self:Add( "DPanel" )
         PANEL.TopPanel:SetPos( 5, 30 )
         PANEL.TopPanel:SetSize( 790, 25 )
-        
+
         function PANEL.TopPanel:Paint( w, h )
-            local upperline = string_ToColor( ultimate.cfg.colors["Upper Line"] )
-            surface_SimpleRect( 1, 24, w, 1, upperline )
+            surface.SetDrawColor( ultimate.Colors[ 54 ] )
+            surface.DrawRect( 0, 24, w, 1 )
         end
     end
 
     function PANEL:Think()
-        local x,y = input_GetCursorPos()
-        local mousex = math_Clamp( x, 1, scrw - 1 )
-        local mousey = math_Clamp( y, 1, scrh - 1 )
+        local x,y = input.GetCursorPos()
+        local mousex = math.Clamp( x, 1, screenWidth - 1 )
+        local mousey = math.Clamp( y, 1, screenHeight - 1 )
 
         if ( self.Dragging ) then
 
@@ -1467,26 +1337,20 @@ do
         end
 
         self:SetCursor( "arrow" )
-
-        ultimate.accent = HSVToColor(  ( CurTime() * 50 ) % 360, 1, 1 )
-
-        ultimate.accent.r = math_Clamp( ultimate.accent.r, 128, 255 )
-        ultimate.accent.g = math_Clamp( ultimate.accent.g, 128, 255 )
-        ultimate.accent.b = math_Clamp( ultimate.accent.b, 128, 255 )
     end
 
     function PANEL:IsActive()
 
         if ( self:HasFocus() ) then return true end
         if ( vgui.FocusedHasParent( self ) ) then return true end
-    
+
         return false
-    
+
     end
-    
+
 
     function PANEL:OnMousePressed()
-        local x,y = input_GetCursorPos()
+        local x,y = input.GetCursorPos()
         local screenX, screenY = self:LocalToScreen( 0, 0 )
 
         if (  y < ( screenY + 850 ) ) then
@@ -1505,41 +1369,24 @@ do
 
     end
 
-    local bgmat = Material("despair/bg.png", "noclamp smooth")
-    function PANEL:Paint(w, h)
-        //local x, y = self:LocalToScreen( 0, 0 )
+    function PANEL:Paint( w, h )
+        surface.SetDrawColor( ultimate.Colors[ 25 ] )
+        surface.DrawRect( 0, 24, w, h )
 
-        //surface_SetDrawColor( 255, 255, 255 )
-        //surface_SetMaterial( bgmat )
+        surface.SetDrawColor( ultimate.Colors[ 54 ] )
+        surface.DrawRect( 0, 0, w, 25 )
 
-        //render.SetScissorRect( 0, 0, w, h, true)
-        //    surface.DrawTexturedRect(0, 0, scrw, scrh)
-        //render.SetScissorRect(0, 0, 0, 0, false)
-
-        //for i = 1, 4 do
-        //    ultimate.blur:SetFloat( "$blur", (i / 3) * 4 )
-        //    ultimate.blur:Recompute()
-//
-        //    render.UpdateScreenEffectTexture()
-        //    surface_DrawTexturedRect( x * -1, y * -1, scrw, scrh )
-        //end
-
-        local col = string_ToColor( ultimate.cfg.colors["Menu"] )
-        local upper = string_ToColor( ultimate.cfg.colors["Upper menu"] )
-        surface_SimpleRect(0, 1, w, h, col)
-        surface_SimpleRect(0, 0, w, 25, upper)
-        surface_SetFont("tbfont")
-surface_SimpleText(8,4,ultimate.cfg.vars["Custom Cheat"],ultimate.accent) 
-
-        
-        //Kremlin hack Neo-Nazism edition beta alpha live supremacy paste v1
+        surface.SetFont( "DermaSmall" )
+        surface.SetTextColor( ultimate.Colors[ 165 ] )
+        surface.SetTextPos( 8, 4 )
+        surface.DrawText( "NIGGAHACK v2" )
     end
 
     function PANEL:GetTopPanel()
         return PANEL.TopPanel
     end
 
-    vgui_Register( "UFrame", PANEL, "EditablePanel" )
+    vgui.Register( "UFrame", PANEL, "EditablePanel" )
 end
 
 do
@@ -1550,14 +1397,14 @@ do
 
         local vbar = self.VBar
         vbar:SetWide(3)
-    
+
         vbar.Paint = nil
         vbar.btnUp.Paint = nil
         vbar.btnDown.Paint = nil
-    
-        function vbar.btnGrip:Paint( w, h ) 
-            surface_SetDrawColor( ultimate.Colors[98] )
-            surface_DrawRect( 0, 0, w, h )
+
+        function vbar.btnGrip:Paint( w, h )
+            surface.SetDrawColor( ultimate.Colors[ 54 ] )
+            surface.DrawRect( 0, 0, w, h )
         end
     end
 
@@ -1572,14 +1419,14 @@ do
         ultimate.frame:OnMouseReleased()
     end
 
-    vgui_Register( "UScroll", PANEL, "DScrollPanel" )
+    vgui.Register( "UScroll", PANEL, "DScrollPanel" )
 end
 
 do
     local PANEL = {}
 
     function PANEL:Init()
-        self.ItemPanel = vgui_Create( "DPanel", self )
+        self.ItemPanel = vgui.Create( "DPanel", self )
         self.ItemPanel:Dock( FILL )
         self.ItemPanel:DockMargin( 3, 23, 3, 3 )
 
@@ -1588,25 +1435,24 @@ do
         function self.ItemPanel:OnMousePressed()
             ultimate.frame:OnMousePressed()
         end
-    
+
         function self.ItemPanel:OnMouseReleased()
             ultimate.frame:OnMouseReleased()
         end
     end
 
     function PANEL:Paint( w, h )
+        surface.SetDrawColor( ultimate.Colors[ 54 ] )
+        surface.DrawOutlinedRect( 0, 0, w, h, 1 )
 
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-        local Panel = string_ToColor( ultimate.cfg.colors["Panel line"] )
-       
-       
-        surface_SetDrawColor( Panel )
-        surface_DrawOutlinedRect( 0, 0, w, h, 1 )
-   
-        surface_SetFont( "tbfont" )
-        surface_SimpleText( 80, 2, self.txt, Text )
+        surface.SetFont( "DermaSmall" )
 
-        surface_SimpleRect( 6, 20, w-12, 1, Panel )
+        surface.SetTextColor( ultimate.Colors[ 255 ] )
+        surface.SetTextPos( 8, 2 )
+        surface.DrawText( self.txt )
+
+        surface.SetDrawColor( ultimate.Colors[ 54 ] )
+        surface.DrawRect( 6, 20, w - 12, 1 )
     end
 
     function PANEL:OnMousePressed()
@@ -1620,18 +1466,19 @@ do
     function PANEL:GetItemPanel()
         return self.ItemPanel
     end
-    
-    vgui_Register( "UPanel", PANEL, "Panel" )
+
+    vgui.Register( "UPanel", PANEL, "Panel" )
 end
 
 do
     local PANEL = {}
 
     function PANEL:Paint( w, h )
-        surface_SimpleRect( 0, 0, w, h, ultimate.Colors[54] )
+        surface.SetDrawColor( ultimate.Colors[ 54 ] )
+        surface.DrawRect( 0, 0, w, h )
     end
-    
-    vgui_Register( "UPaintedPanel", PANEL, "Panel" )
+
+    vgui.Register( "UPaintedPanel", PANEL, "Panel" )
 end
 
 do
@@ -1644,56 +1491,53 @@ do
     end
 
     function PANEL:Paint( w, h )
-        
+
     end
-    
-    vgui_Register( "UCBPanel", PANEL, "DPanel" )
+
+    vgui.Register( "UCBPanel", PANEL, "DPanel" )
 end
 
 do
     local PANEL = {}
 
     function PANEL:Init()
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-        self.Label:SetFont("tbfont")
-        self.Label:SetTextColor(Text)
+        self.Label:SetFont("DermaSmall")
+        self.Label:SetTextColor(ultimate.Colors[255])
 
         self.Button:SetSize( 18, 18 )
 
         function self.Button:Paint(w,h)
             local v = self:GetChecked()
-            local ca = string_ToColor(ultimate.cfg.colors["Chekbox Active"])
-            local c = string_ToColor(ultimate.cfg.colors["Chekbox"]  )
-            local cli = string_ToColor(ultimate.cfg.colors["Chekbox line"]  )
-            surface_SetDrawColor(cli)
 
-            surface_DrawOutlinedRect(0,0,w,h,1)
+            surface.SetDrawColor(ultimate.Colors[54])
+
+            surface.DrawOutlinedRect(0,0,w,h,1)
 
             if !v and !self:IsHovered() then return end
 
             if v then
-                surface_SetDrawColor(ca)
+                surface.SetDrawColor(ultimate.Colors[54])
             else
-                surface_SetDrawColor(c)
+                surface.SetDrawColor(ultimate.Colors[40])
             end
-                
-            surface_DrawRect(3,3,w-6,h-6)
+
+            surface.DrawRect(3,3,w-6,h-6)
         end
     end
 
     function PANEL:PerformLayout()
 
         local x = self.m_iIndent || 0
-    
+
         self.Button:SetSize( 18, 18 )
-        self.Button:SetPos( x, math_floor( ( self:GetTall() - self.Button:GetTall() ) / 2 ) )
-    
+        self.Button:SetPos( x, math.floor( ( self:GetTall() - self.Button:GetTall() ) / 2 ) )
+
         self.Label:SizeToContents()
-        self.Label:SetPos( x + self.Button:GetWide() + 9, math_floor( ( self:GetTall() - self.Label:GetTall() ) / 2 ) )
-    
+        self.Label:SetPos( x + self.Button:GetWide() + 9, math.floor( ( self:GetTall() - self.Label:GetTall() ) / 2 ) )
+
     end
-    
-    vgui_Register( "UCheckboxLabel", PANEL, "DCheckBoxLabel" )
+
+    vgui.Register( "UCheckboxLabel", PANEL, "DCheckBoxLabel" )
 end
 
 do
@@ -1704,94 +1548,92 @@ do
     AccessorFunc(PANEL, "Decimals", "Decimals")
     AccessorFunc(PANEL, "Max", "Max")
     AccessorFunc(PANEL, "Dragging", "Dragging")
-    
+
     function PANEL:Init()
         self:SetMouseInputEnabled(true)
-    
+
         self.Min = 0
         self.Max = 1
         self.SlideX = 0
         self.Decimals = 0
-    
+
         self:SetValue(self.Min)
         self:SetSlideX(0)
 
         self:SetTall(15)
     end
-    
+
     function PANEL:OnCursorMoved(x, y)
         if !self.Dragging then return end
-    
+
         local w, h = self:GetSize()
-    
-        x = math_Clamp(x, 0, w) / w
-        y = math_Clamp(y, 0, h) / h
-    
+
+        x = math.Clamp(x, 0, w) / w
+        y = math.Clamp(y, 0, h) / h
+
         local value = self.Min + (self.Max - self.Min) * x
-        value = math_Round(value, self:GetDecimals())
-    
+        value = math.Round(value, self:GetDecimals())
+
         self:SetValue(value)
         self:SetSlideX(x)
-    
+
         self:OnValueChanged(value)
-    
+
         self:InvalidateLayout()
     end
-    
+
     function PANEL:OnMousePressed(mcode)
         self:SetDragging(true)
         self:MouseCapture(true)
-    
+
         local x, y = self:CursorPos()
         self:OnCursorMoved(x, y)
     end
-    
+
     function PANEL:OnMouseReleased(mcode)
         self:SetDragging(false)
         self:MouseCapture(false)
     end
-    
+
     function PANEL:OnValueChanged(value)
-    
+
     end
 
     function PANEL:Paint(w,h)
         local min, max = self:GetMin(), self:GetMax()
-        local Sliderline = string_ToColor( ultimate.cfg.colors["Slider line"])
-        local Slider = string_ToColor( ultimate.cfg.colors["Slider"])
-        surface_SetDrawColor(Sliderline)
-        surface_DrawOutlinedRect(0,0,w,h,1)
-    
-        surface_SetDrawColor(Slider)
-        surface_DrawRect(2, 2, self:GetSlideX()*w-4, h-4)
+
+        surface.SetDrawColor(ultimate.Colors[54])
+        surface.DrawOutlinedRect(0,0,w,h,1)
+
+        surface.SetDrawColor(ultimate.Colors[54])
+        surface.DrawRect(2, 2, self:GetSlideX()*w-4, h-4)
     end
-    
-    vgui_Register("USlider", PANEL, "Panel")
+
+    vgui.Register("USlider", PANEL, "Panel")
 end
 
 do
     local PANEL = {}
 
     function PANEL:Init()
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
         self:Dock(TOP)
         self:DockMargin(4,4,4,0)
 
-        self:SetTextColor(Text)
-        self:SetFont("tbfont")
+        self:SetTextColor(ultimate.Colors[165])
+        self:SetFont("DermaSmall")
     end
 
     function PANEL:Paint(w,h)
         if self:IsHovered() then
-            surface_SetDrawColor(ultimate.Colors[66])
-            surface_DrawRect(0, 0, w, h)
+            surface.SetDrawColor(ultimate.Colors[255])
+            surface.DrawRect(0, 0, w, h)
         end
 
-        surface_SetDrawColor(ultimate.Colors[66])
-        surface_DrawOutlinedRect(0,0,w,h,1)    
+        surface.SetDrawColor(ultimate.Colors[54])
+        surface.DrawOutlinedRect(0,0,w,h,1)
     end
 
-    vgui_Register( "UButton", PANEL, "DButton" )
+    vgui.Register( "UButton", PANEL, "DButton" )
 end
 
 do
@@ -1801,18 +1643,18 @@ do
         self:Dock(TOP)
         self:DockMargin(1,1,1,0)
 
-        self:SetTextColor(ultimate.Colors[12])
-        self:SetFont("tbfont")
+        self:SetTextColor(ultimate.Colors[245])
+        self:SetFont("DermaSmall")
     end
 
     function PANEL:Paint(w,h)
         if self:IsHovered() then
-            surface_SetDrawColor(ultimate.Colors[35])
-            surface_DrawRect(0, 0, w, h)
+            surface.SetDrawColor(ultimate.Colors[35])
+            surface.DrawRect(0, 0, w, h)
         end
     end
 
-    vgui_Register( "UESPPButton", PANEL, "DButton" )
+    vgui.Register( "UESPPButton", PANEL, "DButton" ) -- KNOPKI
 end
 
 do
@@ -1824,23 +1666,19 @@ do
     end
 
     function PANEL:Paint(w,h)
-        local Cb1 = string_ToColor( ultimate.cfg.colors["ComboBox1"] )
-        local Cb2 = string_ToColor( ultimate.cfg.colors["ComboBox2"] )
-        local Cb3 = string_ToColor( ultimate.cfg.colors["ComboBox line"] )
-        local Cb4 = string_ToColor( ultimate.cfg.colors["ComboBox4"] )
-        surface_SetDrawColor(Cb4)
-        surface_DrawRect(0,0,w,h)
-    
-        surface_SetDrawColor(Cb1)
-        surface_DrawRect(w-25,0,25,25)
-    
-        surface_SetTextColor(Cb2)
-        surface_SetTextPos(w-20,20/2-15/2)
-        surface_SetFont("tbfont")
-        surface_DrawText("▼")
+        surface.SetDrawColor(ultimate.Colors[25]) -- COBLOX BOX COLOR
+        surface.DrawRect(0,0,w,h)
 
-        surface_SetDrawColor(Cb3)
-        surface_DrawOutlinedRect(0,0,w,h)
+        surface.SetDrawColor(ultimate.Colors[32])
+        surface.DrawRect(w-25,0,25,25)
+
+        surface.SetTextColor(ultimate.Colors[255])
+        surface.SetTextPos(w-20,20/2-15/2)
+        surface.SetFont("DermaSmall")
+        surface.DrawText("▼")
+
+        surface.SetDrawColor(ultimate.Colors[54])
+        surface.DrawOutlinedRect(0,0,w,h)
     end
 
     function PANEL:OpenMenu( pControlOpener )
@@ -1848,31 +1686,31 @@ do
         if ( pControlOpener && pControlOpener == self.TextEntry ) then
             return
         end
-    
+
         -- Don't do anything if there aren't any options..
         if ( #self.Choices == 0 ) then return end
-    
+
         -- If the menu still exists and hasn't been deleted
         -- then just close it and don't open a new one.
         if ( IsValid( self.Menu ) ) then
             self.Menu:Remove()
             self.Menu = nil
         end
-    
+
         -- If we have a modal parent at some level, we gotta parent to that or our menu items are not gonna be selectable
         local parent = self
         while ( IsValid( parent ) && !parent:IsModal() ) do
             parent = parent:GetParent()
         end
         if ( !IsValid( parent ) ) then parent = self end
-    
+
         self.Menu = DermaMenu( false, parent )
 
         function self.Menu:Paint(w,h)
-            surface_SetDrawColor(ultimate.Colors[24])
-            surface_DrawRect(0,0,w,h)
-            surface_SetDrawColor(ultimate.Colors[54])
-            surface_DrawOutlinedRect(0,-1,w,h+1)
+            surface.SetDrawColor(ultimate.Colors[25])
+            surface.DrawRect(0,0,w,h)
+            surface.SetDrawColor(ultimate.Colors[54])
+            surface.DrawOutlinedRect(0,-1,w,h+1)
         end
 
         for k, v in pairs( self.Choices ) do
@@ -1881,39 +1719,35 @@ do
             option:SetText("")
 
             function option:Paint(w,h)
-                local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-                local Cb2 = string_ToColor( ultimate.cfg.colors["ComboBox2"] )
-                local CbVive = string_ToColor( ultimate.cfg.colors["ComboBox Vive"] )
-                if self:IsHovered() then 
-                    surface_SimpleRect(1,1,w-2,h-2,CbVive)
+                if self:IsHovered() then
+                    surface.SetDrawColor( ultimate.Colors[ 40 ] )
+                    surface.DrawRect( 1, 1, w - 2, h - 2 )
                 end
 
-                surface_SetTextColor(Text)
-                surface_SimpleText(10,4,option.txt,Text)
-            end   
+                surface.SetTextColor( ultimate.Colors[ 255 ] )
+                surface.SetTextPos( 10, 4 )
+                surface.DrawText( option.txt )
+            end
 
             if ( self.Spacers[ k ] ) then
                 self.Menu:AddSpacer()
             end
         end
 
-    
+
         local x, y = self:LocalToScreen( 0, self:GetTall() )
-    
+
         self.Menu:SetMinimumWidth( self:GetWide() )
         self.Menu:Open( x, y, false, self )
-    
-        self:OnMenuOpened( self.Menu )
-    
-    end
-    
-    function PANEL:PerformLayout(s)
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-        self:SetTextColor(Text)
-        self:SetFont("tbfont")
+
     end
 
-    vgui_Register( "UComboBox", PANEL, "DComboBox" )
+    function PANEL:PerformLayout(s)
+        self:SetTextColor(ultimate.Colors[255])
+        self:SetFont("DermaSmall")
+    end
+
+    vgui.Register( "UComboBox", PANEL, "DComboBox" )
 end
 
 
@@ -1935,7 +1769,6 @@ do
     end
 
     function PANEL:UpdateText()
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
 
         local str = input.GetKeyName( self:GetSelectedNumber() )
         if ( !str ) then str = "" end
@@ -1943,13 +1776,13 @@ do
         str = language.GetPhrase( str )
 
         self:SetText( "["..str.."]" )
-        self:SetTextColor(Text)
-        self:SetFont("tbfont")
+        self:SetTextColor(ultimate.Colors[165]) -- BINDS
+        self:SetFont("DermaSmall")
     end
 
     function PANEL:Paint(w,h)
-        surface_SetDrawColor(ultimate.Colors[54])
-        surface_DrawOutlinedRect(0,0,w,h,1)
+        surface.SetDrawColor(ultimate.Colors[54])
+        surface.DrawOutlinedRect(0,0,w,h,1)
     end
 
     function PANEL:DoClick()
@@ -2015,7 +1848,7 @@ do
     function PANEL:OnChange()
     end
 
-    vgui_Register( "UBinder", PANEL, "DButton" )
+    vgui.Register( "UBinder", PANEL, "DButton" )
 end
 
 do
@@ -2028,20 +1861,22 @@ do
         self:DockMargin( 4, 0, 0, 0 )
         self:SetTall(18)
         self:SetWide(18)
-        
+
         self:SetText("")
     end
 
     function PANEL:Paint(w,h)
         if self.Color.a < 255 then
-            surface_SimpleTexturedRect(0,0,w,h,ultimate.Colors[255],ultimate.Materials["Alpha grid"])  
+            surface.SetDrawColor( ultimate.Colors[255] )
+            surface.SetMaterial( ultimate.Materials["Alpha grid"] )
+            surface.DrawTexturedRect( 0, 0, w, h )
         end
 
-        surface_SetDrawColor(self.Color)
-        surface_DrawRect(0,0,w,h)
+        surface.SetDrawColor(self.Color)
+        surface.DrawRect(0,0,w,h)
     end
 
-    vgui_Register( "UCPicker", PANEL, "DButton" )
+    vgui.Register( "UCPicker", PANEL, "DButton" )
 end
 
 do
@@ -2050,10 +1885,11 @@ do
     PANEL.lifeTime = 0
 
     function PANEL:Paint( w, h )
-        surface_SimpleRect( 0, 0, w, h, ultimate.Colors[25] )
+        surface.SetDrawColor( ultimate.Colors[ 25 ] )
+        surface.DrawRect( 0, 0, w, h )
 
-        surface_SetDrawColor( ultimate.Colors[54] )
-        surface_DrawOutlinedRect( 0, 0, w, h, 1 )
+        surface.SetDrawColor( ultimate.Colors[54] )
+        surface.DrawOutlinedRect( 0, 0, w, h, 1 )
     end
 
     function PANEL:Init()
@@ -2069,7 +1905,7 @@ do
         end
     end
 
-    vgui_Register( "ULifeTimeBase", PANEL, "EditablePanel" )
+    vgui.Register( "ULifeTimeBase", PANEL, "EditablePanel" )
 end
 
 do
@@ -2077,16 +1913,17 @@ do
 
     function PANEL:Init()
         self:SetSize(200,200)
-    end 
-
-    function PANEL:Paint( w, h )
-        surface_SimpleRect( 0, 0, w, h, ultimate.Colors[25] )
-
-        surface_SetDrawColor( ultimate.Colors[54] )
-        surface_DrawOutlinedRect( 0, 0, w, h, 1 )
     end
 
-    vgui_Register( "UColorPanel", PANEL, "ULifeTimeBase" )
+    function PANEL:Paint( w, h )
+        surface.SetDrawColor( ultimate.Colors[ 25 ] )
+        surface.DrawRect( 0, 0, w, h )
+
+        surface.SetDrawColor( ultimate.Colors[54] )
+        surface.DrawOutlinedRect( 0, 0, w, h, 1 )
+    end
+
+    vgui.Register( "UColorPanel", PANEL, "ULifeTimeBase" )
 end
 
 do
@@ -2099,7 +1936,7 @@ do
         self:SetWangs( false )
     end
 
-    vgui_Register( "UColorMixer", PANEL, "DColorMixer" )
+    vgui.Register( "UColorMixer", PANEL, "DColorMixer" )
 end
 
 do
@@ -2166,7 +2003,7 @@ do
                 ErrorNoHaltWithStack( "Attempted to insert column at invalid position ", iPosition )
                 return
             end
-        
+
             if ( IsValid( self.Columns[ iPosition ] ) ) then
                 ErrorNoHaltWithStack( "Attempted to insert duplicate column." )
                 return
@@ -2412,9 +2249,9 @@ do
         local c = self.Cur and 48 or 32
 
         function Line:Paint( w, h )
-            
-            surface_SetDrawColor( c, c, c )
-            surface_DrawRect( 0, 0, w, h )
+
+            surface.SetDrawColor( c, c, c )
+            surface.DrawRect( 0, 0, w, h )
         end
 
         local ID = table.insert( self.Lines, Line )
@@ -2487,16 +2324,12 @@ do
         local bMultiSelect = self:GetMultiSelect()
         if ( !bMultiSelect && !bClear ) then return end
 
-        --
-        -- Control, multi select
-        --
+
         if ( bMultiSelect && input.IsKeyDown( KEY_LCONTROL ) ) then
             bClear = false
         end
 
-        --
-        -- Shift block select
-        --
+
         if ( bMultiSelect && input.IsKeyDown( KEY_LSHIFT ) ) then
 
             local Selected = self:GetSortedID( self:GetSelectedLine() )
@@ -2507,14 +2340,14 @@ do
                 local First = math.min( Selected, LineID )
                 local Last = math.max( Selected, LineID )
 
-                -- Fire off OnRowSelected for each non selected row
+
                 for id = First, Last do
                     local line = self.Sorted[ id ]
                     if ( !line:IsLineSelected() ) then self:OnRowSelected( line:GetID(), line ) end
                     line:SetSelected( true )
                 end
 
-                -- Clear the selection and select only the required rows
+
                 if ( bClear ) then self:ClearSelection() end
 
                 for id = First, Last do
@@ -2542,10 +2375,7 @@ do
 
         end
 
-        --
-        -- If it's a new mouse click, or this isn't
-        -- multiselect we clear the selection
-        --
+
         if ( !bMultiSelect || bClear ) then
             self:ClearSelection()
         end
@@ -2609,7 +2439,7 @@ do
             local aval = a:GetSortValue( ColumnID ) || a:GetColumnText( ColumnID )
             local bval = b:GetSortValue( ColumnID ) || b:GetColumnText( ColumnID )
 
-            -- Maintain nicer sorting for numbers
+
             if ( isnumber( aval ) && isnumber( bval ) ) then return aval < bval end
 
             return tostring( aval ) < tostring( bval )
@@ -2639,19 +2469,16 @@ do
 
     function PANEL:DoDoubleClick( LineID, Line )
 
-        -- For Override
 
     end
 
     function PANEL:OnRowSelected( LineID, Line )
 
-        -- For Override
 
     end
 
     function PANEL:OnRowRightClick( LineID, Line )
 
-        -- For Override
 
     end
 
@@ -2688,7 +2515,7 @@ do
 
     end
 
-    vgui_Register( "UListView", PANEL, "DPanel" )
+    vgui.Register( "UListView", PANEL, "DPanel" )
 end
 
 
@@ -2696,14 +2523,14 @@ do
     local PANEL = {}
 
     function PANEL:Paint( w, h )
-        surface_SetDrawColor( ultimate.Colors[24] )
-        surface_DrawRect( 0, 0, w, h )
+        surface.SetDrawColor( ultimate.Colors[24] )
+        surface.DrawRect( 0, 0, w, h )
 
-        surface_SetDrawColor( ultimate.Colors[54] )
-        surface_DrawOutlinedRect( 0, 0, w, h, 1 )
+        surface.SetDrawColor( ultimate.Colors[54] )
+        surface.DrawOutlinedRect( 0, 0, w, h, 1 )
     end
 
-    vgui_Register( "USettingsPanel", PANEL, "ULifeTimeBase" )
+    vgui.Register( "USettingsPanel", PANEL, "ULifeTimeBase" )
 end
 
 do
@@ -2717,7 +2544,7 @@ do
         self:SetText( "..." )
     end
 
-    vgui_Register( "USPanelButton", PANEL, "UButton" )
+    vgui.Register( "USPanelButton", PANEL, "UButton" )
 end
 
 do
@@ -2725,12 +2552,12 @@ do
 
     function PANEL:Init()
 
-        self.ButtonPanel = vgui_Create( "DPanel", self )
+        self.ButtonPanel = vgui.Create( "DPanel", self )
         self.ButtonPanel:Dock( TOP )
         self.ButtonPanel:DockMargin(3,3,3,2)
         self.ButtonPanel:SetTall(18)
 
-        self.ItemPanel = vgui_Create( "DPanel", self )
+        self.ItemPanel = vgui.Create( "DPanel", self )
         self.ItemPanel:Dock( FILL )
         self.ItemPanel:DockMargin( 3, 0, 3, 3 )
 
@@ -2742,21 +2569,24 @@ do
         function self.ItemPanel:OnMousePressed()
             ultimate.frame:OnMousePressed()
         end
-    
+
         function self.ItemPanel:OnMouseReleased()
             ultimate.frame:OnMouseReleased()
         end
     end
 
     function PANEL:Paint( w, h )
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-        surface_SetDrawColor( ultimate.Colors[54] )
-        surface_DrawOutlinedRect( 0, 0, w, h, 1 )
-   
-        surface_SetFont( "tbfont" )
-        surface_SimpleText( 8, 2, self.txt, Text )
+        surface.SetDrawColor( ultimate.Colors[54] )
+        surface.DrawOutlinedRect( 0, 0, w, h, 1 )
 
-        surface_SimpleRect( 6, 20, w-12, 1, ultimate.Colors[54] )
+        surface.SetFont( "DermaSmall" )
+
+        surface.SetTextColor( ultimate.Colors[165] )
+        surface.SetTextPos( 8, 2 )
+        surface.DrawText( self.txt )
+
+        surface.SetDrawColor( ultimate.Colors[ 54 ] )
+        surface.DrawRect( 6, 20, w - 12, 1 )
     end
 
     function PANEL:OnMousePressed()
@@ -2775,7 +2605,7 @@ do
         return self.ButtonPanel
     end
 
-    vgui_Register( "UButtonBarPanel", PANEL, "Panel" )
+    vgui.Register( "UButtonBarPanel", PANEL, "Panel" )
 end
 
 
@@ -2788,14 +2618,14 @@ ultimate.ui.SettingsPan = false
 ultimate.ui.MultiComboP = false
 
 function ultimate.ui.RemovePanel( pan )
-    if not pan then return end 
+    if not pan then return end
 
     pan:Remove()
     pan = false
 end
 
 function ultimate.ui.Binder( cfg, par )
-    local b = vgui_Create( "UBinder", par )
+    local b = vgui.Create( "UBinder", par )
     b:SetValue( ultimate.cfg.binds[ cfg ] )
 
     function b:OnChange()
@@ -2806,48 +2636,56 @@ function ultimate.ui.Binder( cfg, par )
 end
 
 function ultimate.ui.ColorPicker( cfg, par, onChange )
-    local b = vgui_Create( "UCPicker", par )
+    local b = vgui.Create( "UCPicker", par )
 
     function b:DoClick()
         local x, y = self:LocalToScreen( 0, self:GetTall() )
 
         ultimate.ui.RemovePanel( ultimate.ui.ColorWindow )
 
-        ultimate.ui.ColorWindow = vgui_Create( "UColorPanel" )
+        ultimate.ui.ColorWindow = vgui.Create( "UColorPanel" )
         ultimate.ui.ColorWindow:SetPos( x+25, y-100 )
 
-        local c = vgui_Create( "UColorMixer", ultimate.ui.ColorWindow )
-        c:SetColor( string_ToColor( ultimate.cfg.colors[cfg] ) )
+        local c = vgui.Create( "UColorMixer", ultimate.ui.ColorWindow )
+        local currentColor = string.ToColor( ultimate.cfg.colors[cfg] ) or Color(255, 255, 255, 255)
+        c:SetColor( currentColor )
 
         c.HSV.Knob:SetSize( 5, 5 )
 
         function c.HSV.Knob:Paint( w, h )
-            surface_SimpleRect( 0, 0, w, h, b.Color )
+            if b.Color then
+                surface.SetDrawColor( b.Color.r or 255, b.Color.g or 255, b.Color.b or 255, b.Color.a or 255 )
+            else
+                surface.SetDrawColor( 255, 255, 255, 255 )
+            end
+            surface.DrawRect( 0, 0, w, h )
 
-            surface_SetDrawColor( ultimate.Colors[255] )
-            surface_DrawOutlinedRect( 0, 0, w, h, 1 )
+            surface.SetDrawColor( ultimate.Colors[255] )
+            surface.DrawOutlinedRect( 0, 0, w, h, 1 )
         end
 
         function c:ValueChanged( col )
-            b.Color = col 
+            if IsValid(b) then
+                b.Color = col
+            end
             ultimate.cfg.colors[cfg] = tostring(col.r) .. " " .. tostring(col.g) .. " " .. tostring(col.b) .. " " .. tostring(col.a)
             if onChange then onChange( col ) end
         end
 
     end
 
-    b.Color = string_ToColor( ultimate.cfg.colors[cfg] )
+    b.Color = string.ToColor( ultimate.cfg.colors[cfg] ) or Color(255, 255, 255, 255)
 end
 
 function ultimate.ui.SPanel( func, p )
-    local b = vgui_Create( "USPanelButton", p )
+    local b = vgui.Create( "USPanelButton", p )
 
     function b:DoClick()
-        local mx, my = input_GetCursorPos()
+        local mx, my = input.GetCursorPos()
 
         ultimate.ui.RemovePanel( ultimate.ui.SettingsPan )
 
-        ultimate.ui.SettingsPan = vgui_Create( "USettingsPanel" )
+        ultimate.ui.SettingsPan = vgui.Create( "USettingsPanel" )
         ultimate.ui.SettingsPan:SetPos( mx+25, my-10 )
 
         func()
@@ -2855,24 +2693,23 @@ function ultimate.ui.SPanel( func, p )
 end
 
 function ultimate.ui.Label( pan, str, postCreate )
-    local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-    local p = vgui_Create( "UCBPanel", pan )
+    local p = vgui.Create( "UCBPanel", pan )
 
-    local lbl = vgui_Create( "DLabel", p )
+    local lbl = vgui.Create( "DLabel", p )
     lbl:SetText( str )
-    lbl:SetFont( "tbfont" )
-    lbl:SetTextColor( Text )
+    lbl:SetFont( "DermaSmall" )
+    lbl:SetTextColor( ultimate.Colors[165] )
     lbl:Dock( LEFT )
     lbl:DockMargin( 4, 2, 4, 0 )
     lbl:SizeToContents()
 
     if postCreate then postCreate( p ) end
 end
-    
-function ultimate.ui.CheckBox( par, lbl, cfg, hint, bind, color, spanel, onToggle, postCreate )
-    local p = vgui_Create( "UCBPanel", par )
 
-    local c = vgui_Create( "UCheckboxLabel", p )
+function ultimate.ui.CheckBox( par, lbl, cfg, hint, bind, color, spanel, onToggle, postCreate )
+    local p = vgui.Create( "UCBPanel", par )
+
+    local c = vgui.Create( "UCheckboxLabel", p )
     c:SetText( lbl )
     c:SetPos( 0, 0 )
     c:SetValue( ultimate.cfg.vars[cfg] )
@@ -2892,7 +2729,7 @@ function ultimate.ui.CheckBox( par, lbl, cfg, hint, bind, color, spanel, onToggl
     if hint then
         function c.Label:Paint()
             if self:IsHovered() then
-                local x, y = input_GetCursorPos()
+                local x, y = input.GetCursorPos()
 
                 ultimate.hint = true
                 ultimate.hintText = hint
@@ -2904,24 +2741,27 @@ function ultimate.ui.CheckBox( par, lbl, cfg, hint, bind, color, spanel, onToggl
 end
 
 function ultimate.ui.Slider( p, str, cfg, min, max, dec, onChange )
-    local pan = vgui_Create( "DPanel", p )
+    local pan = vgui.Create( "DPanel", p )
     pan:Dock( TOP )
     pan:DockMargin( 4, 2, 4, 0 )
     pan:SetTall( 20 )
 
     function pan:Paint( w, h )
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-        surface_SetFont("tbfont")
+        surface.SetFont("DermaSmall") -- TEXT SLIDER
 
         local s = ultimate.cfg.vars[cfg]
-        local tw, th = surface_GetTextSize(s)
-        
-        surface_SimpleText(2,4,str,Text)
+        local tw, th = surface.GetTextSize(s)
 
-        surface_SimpleText(w-tw-2,4,ultimate.cfg.vars[cfg],Text)
+        surface.SetTextColor( ultimate.Colors[255] )
+
+        surface.SetTextPos( 2, 4 )
+        surface.DrawText( str )
+
+        surface.SetTextPos( w - tw - 2, 4 )
+        surface.DrawText( ultimate.cfg.vars[cfg] )
     end
 
-    local c = vgui_Create( "USlider", p )
+    local c = vgui.Create( "USlider", p )
     c:Dock( TOP )
     c:DockMargin( 4, 2, 4, 0 )
     c:SetMax( max )
@@ -2941,8 +2781,8 @@ function ultimate.ui.Slider( p, str, cfg, min, max, dec, onChange )
     end
 end
 
-function ultimate.ui.Button( str, func, p ) 
-    local b = vgui_Create( "UButton", p )
+function ultimate.ui.Button( str, func, p )
+    local b = vgui.Create( "UButton", p )
     b:SetText( str )
 
     function b:DoClick()
@@ -2951,33 +2791,32 @@ function ultimate.ui.Button( str, func, p )
 end
 
 function ultimate.ui.TextEntry( str, cfg, pan, chars, postCreate )
-    local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-    local lbl = vgui_Create("DLabel",pan)
+    local lbl = vgui.Create("DLabel",pan)
     lbl:Dock(TOP)
     lbl:DockMargin(4,2,4,0)
     lbl:SetText(str)
-    lbl:SetFont("tbfont")
-    lbl:SetColor(Text)
+    lbl:SetFont("DermaSmall")
+    lbl:SetColor(ultimate.Colors[165])
 
-    local p = vgui_Create("DPanel",pan)
+    local p = vgui.Create("DPanel",pan)
     p:SetTall(25)
     p:Dock(TOP)
     p:DockMargin(4,2,4,0)
 
     p.Paint = function(s,w,h)
-        surface_SetDrawColor(ultimate.Colors[54])
-        surface_DrawOutlinedRect(0,0,w,h)
+        surface.SetDrawColor(ultimate.Colors[54])
+        surface.DrawOutlinedRect(0,0,w,h)
     end
-	
-	local txt = vgui_Create("DTextEntry",p)
+
+	local txt = vgui.Create("DTextEntry",p)
 	txt:Dock(FILL)
-	txt:DockMargin(4,4,4,4) 
+	txt:DockMargin(4,4,4,4)
 	txt:IsMultiline( false )
 	txt:SetMaximumCharCount(chars)
 	txt:SetPlaceholderText(str)
-	txt:SetFont( "tbfont" )
+	txt:SetFont( "DermaSmall" )
     txt:SetPaintBackground(false)
-    txt:SetTextColor(Text)
+    txt:SetTextColor(ultimate.Colors[165])
 
 	if ultimate.cfg.vars[cfg] != nil and ultimate.cfg.vars[cfg] != "" then
 		txt:SetValue(ultimate.cfg.vars[cfg])
@@ -2988,7 +2827,7 @@ function ultimate.ui.TextEntry( str, cfg, pan, chars, postCreate )
         if ultimate.cfg.vars[cfg] == txt:GetValue() then return end
 
 		ultimate.cfg.vars[cfg] = txt:GetValue()
-	end 
+	end
 
 	function txt.OnValueChange()
 		ultimate.cfg.vars[cfg] = txt:GetValue()
@@ -3003,85 +2842,78 @@ function ultimate.ui.dropdownButton( str, v, p, a )
     b:SetTall(20)
     b:DockMargin(2,2,2,0)
     b:SetText("")
-    
+
     function b:Paint(w,h)
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-        local Cb1 = string_ToColor( ultimate.cfg.colors["ComboBox1"] )
-        local Cb2 = string_ToColor( ultimate.cfg.colors["ComboBox2"] )
-        
-        if self:IsHovered() then 
-            surface_SimpleRect(1,1,w-2,h-2,Cb1)
+        if self:IsHovered() then
+            surface.SetDrawColor( ultimate.Colors[ 32 ] )
+            surface.DrawRect( 1, 1, w - 2, h - 2 )
         end
 
-        surface_SetTextColor(Text)
+        surface.SetTextColor(ultimate.Colors[165])
 
         if ultimate.cfg.vars[str.."-"..v] then
-            surface_SetTextColor(ultimate.Colors[235]) 
+            surface.SetTextColor(ultimate.Colors[235])
         end
 
-        surface_SetTextPos(5,3)
-        surface_SetFont("tbfont")
-        surface_DrawText(v)
+        surface.SetTextPos(5,3)
+        surface.SetFont("DermaSmall")
+        surface.DrawText(v)
     end
 
     function b:DoClick()
-        ultimate.cfg.vars[str.."-"..v] = not ultimate.cfg.vars[str.."-"..v] 
+        ultimate.cfg.vars[str.."-"..v] = not ultimate.cfg.vars[str.."-"..v]
     end
 end
 
 function ultimate.ui.MultiCombo( pan, str, choices )
-    local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-    local lbl = vgui_Create("DLabel",pan)
+    local lbl = vgui.Create("DLabel",pan)
     lbl:Dock(TOP)
     lbl:DockMargin(4,1,4,0)
     lbl:SetText(str)
-    lbl:SetFont("tbfont")
-    lbl:SetColor(Text)
+    lbl:SetFont("DermaSmall")
+    lbl:SetColor(ultimate.Colors[255])
 
-    local d = vgui_Create("DButton",pan)
+    local d = vgui.Create("DButton",pan)
     d:Dock(TOP)
     d:DockMargin(4,1,4,0)
     d:SetTall(20)
     d:SetText("")
-    
+
     d.preview = {}
 
     function d:Paint(w,h)
-        local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-        local Cb1 = string_ToColor( ultimate.cfg.colors["ComboBox1"] )
-        local Cb2 = string_ToColor( ultimate.cfg.colors["ComboBox2"] )
         local preview = ""
 
         for k, v in pairs(choices) do
             if ultimate.cfg.vars[str.."-"..v] == true and (d.preview[v] == false or d.preview[v] == nil) and not table.HasValue(d.preview, v) then
-                table_insert(d.preview,v) 
+                table.insert(d.preview,v)
             elseif ultimate.cfg.vars[str.."-"..v] == false and (d.preview[v] == true or d.preview[v] == nil) and table.HasValue(d.preview, v) then
-                table_RemoveByValue(d.preview,v)
-            elseif d.preview[v] == false then 
-                table_RemoveByValue(d.preview,v)
+                table.RemoveByValue(d.preview,v)
+            elseif d.preview[v] == false then
+                table.RemoveByValue(d.preview,v)
             end
         end
 
-        preview = table_concat(d.preview,", ")
+        preview = table.concat(d.preview,", ")
 
-        surface_SetDrawColor(ultimate.Colors[25])
-        surface_DrawRect(0,0,w,h)
-    
-        surface_SetTextColor(Text)
-        surface_SetTextPos(8,20/2-15/2)
-        surface_SetFont("tbfont")
-        surface_DrawText(preview)
-    
-        surface_SetDrawColor(Cb1)
-        surface_DrawRect(w-25,0,25,25)
-    
-        surface_SetTextColor(Text)
-        surface_SetTextPos(w-20,20/2-15/2)
-        surface_SetFont("tbfont")
-        surface_DrawText("▼")
+        surface.SetDrawColor(ultimate.Colors[25])
+        surface.DrawRect(0,0,w,h)
 
-        surface_SetDrawColor(ultimate.Colors[54])
-        surface_DrawOutlinedRect(0,0,w,h,1)
+        surface.SetTextColor(ultimate.Colors[255])
+        surface.SetTextPos(8,20/2-15/2)
+        surface.SetFont("DermaSmall")
+        surface.DrawText(preview)
+
+        surface.SetDrawColor(ultimate.Colors[32])
+        surface.DrawRect(w-25,0,25,25)
+
+        surface.SetTextColor(ultimate.Colors[255])
+        surface.SetTextPos(w-20,20/2-15/2)
+        surface.SetFont("DermaSmall")
+        surface.DrawText("▼")
+
+        surface.SetDrawColor(ultimate.Colors[54])
+        surface.DrawOutlinedRect(0,0,w,h,1)
     end
 
     function d:DoClick()
@@ -3090,11 +2922,11 @@ function ultimate.ui.MultiCombo( pan, str, choices )
         ultimate.ui.RemovePanel( ultimate.ui.MultiComboP )
 
         local ctoh = #choices
-    
-        ultimate.ui.MultiComboP = vgui_Create( "ULifeTimeBase" )
+
+        ultimate.ui.MultiComboP = vgui.Create( "ULifeTimeBase" )
         ultimate.ui.MultiComboP:SetPos( x, y - 1 )
         ultimate.ui.MultiComboP:SetSize( 243, ctoh * 22 + 2 )
-    
+
         for k, v in pairs(choices) do
             ultimate.ui.dropdownButton( str, v, ultimate.ui.MultiComboP, d.preview )
         end
@@ -3102,32 +2934,36 @@ function ultimate.ui.MultiCombo( pan, str, choices )
 end
 
 function ultimate.ui.ComboBox( pan, str, cfg, choices )
-    local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-    local lbl = vgui_Create("DLabel",pan)
+    local lbl = vgui.Create("DLabel",pan)
     lbl:Dock(TOP)
     lbl:DockMargin(4,1,4,0)
     lbl:SetText(str)
-    lbl:SetFont("tbfont")
-    lbl:SetColor(Text)
+    lbl:SetFont("DermaSmall")
+    lbl:SetColor(ultimate.Colors[255])
 
-    local dropdown = vgui_Create("UComboBox",pan)
+    local dropdown = vgui.Create("UComboBox",pan)
     dropdown:Dock(TOP)
     dropdown:DockMargin(4,1,4,0)
-    
+
     if ultimate.presets[ cfg ] then
         choices = ultimate.presets[ cfg ]
-    end 
-    
+    end
+
+    choices = istable( choices ) and choices or {}
+
     for k, v in ipairs( choices ) do
         dropdown:AddChoice( v )
     end
 
     dropdown:SetSortItems(false)
 
-    if ultimate.cfg.vars[cfg] <= #choices then
-        dropdown:ChooseOptionID(ultimate.cfg.vars[cfg])
+    if #choices > 0 then
+        local savedIndex = tonumber( ultimate.cfg.vars[cfg] ) or 1
+        savedIndex = math_Clamp( savedIndex, 1, #choices )
+
+        dropdown:ChooseOptionID( savedIndex )
     else
-        dropdown:ChooseOptionID(1)
+        dropdown:SetEnabled( false )
     end
 
     function dropdown:OnSelect(index, value, data)
@@ -3140,7 +2976,7 @@ end
 function ultimate.ui.InitMT( p, postCreate )
     p.ItemPanel:Remove()
 
-    p.ItemPanel = vgui_Create( "DPanel", p )
+    p.ItemPanel = vgui.Create( "DPanel", p )
     p.ItemPanel:Dock( FILL )
     p.ItemPanel:DockMargin( 3, 0, 3, 3 )
 
@@ -3150,8 +2986,8 @@ function ultimate.ui.InitMT( p, postCreate )
 end
 
 function ultimate.ui.MTButton( p, str, postCreate )
-    surface_SetFont("tbfont")
-    local w, h = surface_GetTextSize(str)
+    surface.SetFont("DermaSmall")
+    local w, h = surface.GetTextSize(str)
 
     local fw = w + 5
 
@@ -3162,7 +2998,7 @@ function ultimate.ui.MTButton( p, str, postCreate )
     b:DockMargin(2,0,2,1)
     b:SetWide(fw)
     b:SetText("")
-    
+
     function b:DoClick()
         p.ActiveTab = str
         ultimate.ui.InitMT( p, postCreate )
@@ -3170,16 +3006,16 @@ function ultimate.ui.MTButton( p, str, postCreate )
 
     function b:Paint(width,height)
         if p.ActiveTab == str then
-            surface_SetTextColor(235,235,235,255)
+            surface.SetTextColor(235,235,235,255)
         else
-            surface_SetTextColor(165,165,165,255)
+            surface.SetTextColor(165,165,165,255)
         end
-        
-        surface_DrawRect(0,0,width,height)
 
-        surface_SetFont("tbfont")
-        surface_SetTextPos(tx,ty)
-        surface_DrawText(str)
+        surface.DrawRect(0,0,width,height)
+
+        surface.SetFont("DermaSmall")
+        surface.SetTextPos(tx,ty)
+        surface.DrawText(str)
     end
 
     p.ActiveTab = str
@@ -3188,14 +3024,14 @@ end
 
 ultimate.pty = { 5, 5, 5 }
 do
-    local xt = { 
+    local xt = {
         [1] = 5,
         [2] = 267,
         [3] = 529
     }
 
     function ultimate.itemPanel( str, tbl, h )
-        local p = vgui_Create( "UPanel", ultimate.scrollpanel )
+        local p = vgui.Create( "UPanel", ultimate.scrollpanel )
         p:SetPos( xt[tbl], ultimate.pty[tbl] )
         p:SetSize( 257, h )
         p.txt = str
@@ -3206,7 +3042,7 @@ do
     end
 
     function ultimate.itemPanelB( str, tbl, h, buttonsFunc )
-        local p = vgui_Create( "UButtonBarPanel", ultimate.scrollpanel )
+        local p = vgui.Create( "UButtonBarPanel", ultimate.scrollpanel )
         p:SetPos( xt[tbl], ultimate.pty[tbl] )
         p:SetSize( 257, h )
         p.txt = str
@@ -3221,7 +3057,7 @@ do
 end
 
 /*
-    Drag n drop 
+    Drag n drop
 */
 
 ultimate.espposes = {"Up","Down","Right","Left"}
@@ -3255,7 +3091,7 @@ end
 function ultimate.DoDrop( self, panels, bDoDrop, Command, x, y )
     if ( bDoDrop ) then
         local newpos = self.pos
-        
+
         for i = 1, #panels do
             local v = panels[i]
 
@@ -3264,65 +3100,17 @@ function ultimate.DoDrop( self, panels, bDoDrop, Command, x, y )
         end
     end
 end
-    
+
 ultimate.spfuncs = {}
 
 // PANEL CREATION
 
-ultimate.frame = vgui_Create("UFrame")
-ultimate.scrollpanel = vgui_Create("UScroll",ultimate.frame)
+ultimate.frame = vgui.Create("UFrame")
+ultimate.scrollpanel = vgui.Create("UScroll",ultimate.frame)
 
 ultimate.tabs = {}
 
 // Aimbot
-
-
-ultimate.spfuncs[2] = function()
-    ultimate.ui.SettingsPan:SetSize( 250, 650 )
-   
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Rapid fire", "Rapid fire", "Allows to quickly fire semi-automatic weapons." )
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Bullet time", "Bullet time", "Aim will not work until weapon can fire." )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Time", "Time", 0, 1, 3 )
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Wait for simtime update", "Wait for simtime update" )
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Wait Break LC Disable", "Wait Break LC Disable" )
-    
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "!BSendPacket Fire", "!BSendPacket Fire" )
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Alt Rapid fire", "Alt Rapid fire" )
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance Heavy Pistol","Hit Chance Heavy Pistol", {"none","Minimum","Medium","Higt","full"} )
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance Pistol","Hit Chance Pistol", {"none","Minimum","Medium","Higt","full"} )
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance Auto Rifle","Hit Chance Auto Rifle", {"none","Minimum","Medium","Higt","full"} )
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance Smg","Hit Chance Smg", {"none","Minimum","Medium","Higt","full"} )
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance SSG 08","Hit Chance SSG 08", {"none","Minimum","Medium","Higt","full"} )
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance Smg","Hit Chance Smg", {"none","Minimum","Medium","Higt","full"} )
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance AWP","Hit Chance AWP", {"none","Minimum","Medium","Higt","full"} ) 
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance Auto Sniper","Hit Chance Auto Sniper", {"none","Minimum","Medium","Higt","full"} ) 
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Hit Chance Arccw","Hit Chance Arccw", {"none","Minimum","Medium","Higt","full"} ) 
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Auto Stop", "Auto Stop" )
-    
-    
-
-   
-end
-
-ultimate.spfuncs[3] = function()
-    ultimate.ui.SettingsPan:SetSize( 250, 68 )
-
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Knifebot mode", "Knifebot mode"  )
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Facestab", "Facestab" )
-end
-
-ultimate.spfuncs[4] = function()
-    ultimate.ui.SettingsPan:SetSize( 250, 85 )
-
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Smooth amount", "Smoothing", 0, 1, 2 )
-end
-
-ultimate.spfuncs[5] = function()
-    ultimate.ui.SettingsPan:SetSize( 250, 128 )
-
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Dynamic fov", "Fov dynamic" )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Aimbot FOV", "Aimbot FOV", 0, 180, 0 )
-end
 
 ultimate.spfuncs[30] = function()
     ultimate.ui.SettingsPan:SetSize(250,200)
@@ -3330,142 +3118,109 @@ ultimate.spfuncs[30] = function()
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Force seed", "Force seed" )
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Wait for seed", "Wait for seed" )
 
-    
+
 end
 
-ultimate.spfuncs[225] = function()
+ultimate.spfuncs[32] = function()
     ultimate.ui.SettingsPan:SetSize(250,200)
 
     ultimate.ui.Slider( ultimate.ui.SettingsPan, "Max simulation time", "Crossbow max simtime", 1, 10, 2 )
 
 end
 
+ultimate.spfuncs[912] = function()
+    ultimate.ui.SettingsPan:SetSize(250,160)
+
+    ultimate.ui.Label( ultimate.ui.SettingsPan, "GTA Marker Color", function( p ) ultimate.ui.ColorPicker( "GTA Marker", p ) end )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "GTA Radius", "GTA Marker Radius", 5, 80, 0 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "GTA Size", "GTA Marker Size", 3, 30, 0 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "GTA Speed", "GTA Marker Speed", 1, 300, 0 )
+end
+
+ultimate.spfuncs[913] = function()
+    ultimate.ui.SettingsPan:SetSize(250,155)
+
+    ultimate.ui.Label( ultimate.ui.SettingsPan, "Header", function( p ) ultimate.ui.ColorPicker( "Spectator list header", p ) end )
+    ultimate.ui.Label( ultimate.ui.SettingsPan, "Accent", function( p ) ultimate.ui.ColorPicker( "Spectator list accent", p ) end )
+    ultimate.ui.Label( ultimate.ui.SettingsPan, "Title", function( p ) ultimate.ui.ColorPicker( "Spectator list title", p ) end )
+    ultimate.ui.Label( ultimate.ui.SettingsPan, "Text", function( p ) ultimate.ui.ColorPicker( "Spectator list text", p ) end )
+    ultimate.ui.Label( ultimate.ui.SettingsPan, "Target", function( p ) ultimate.ui.ColorPicker( "Spectator list target", p ) end )
+end
+
 function ultimate.tabs.Aimbot()
 
-    local p = ultimate.itemPanel("Main",1,160):GetItemPanel()
+    local p = ultimate.itemPanel("Main",1,210):GetItemPanel()
 
-    ultimate.ui.CheckBox( p, "Enable Aimbot", "Enable aimbot", false, false, false, false, false, function( p ) ultimate.ui.Binder( "Aim on key", p ) end )
+    ultimate.ui.CheckBox( p, "Enable aimbot", "Enable aimbot", false, false, false, false, false, function( p ) ultimate.ui.Binder( "Aim on key", p ) end )
+    ultimate.ui.CheckBox( p, "Silent aim", "Silent aim" )
+    ultimate.ui.CheckBox( p, "pSilent", "pSilent", "Make aim completely invisible." )
     ultimate.ui.CheckBox( p, "Auto fire", "Auto fire", "Automatically fires when targets can be damaged.", false, false, ultimate.spfuncs[2] )
     ultimate.ui.CheckBox( p, "Auto reload", "Auto reload", "Automatically reloads weapon when clip is empty." )
-    ultimate.ui.CheckBox( p, "Silent aim", "Silent aim" )
-    ultimate.ui.CheckBox( p, "pSilent", "pSilent", "Context vector will be used to make aim completely invisible." )
-    ultimate.ui.CheckBox( p, "Knife bot", "Knifebot", false, false, false, ultimate.spfuncs[3] )
-    
-    local p = ultimate.itemPanel("Legit",1,140):GetItemPanel()
+    ultimate.ui.CheckBox( p, "Fov limit", "Fov limit" )
+    ultimate.ui.Slider( p, "Aimbot FOV", "Aimbot FOV", 0, 180, 0 )
 
-    ultimate.ui.CheckBox( p, "Aimbot smoothing", "Aimbot smoothing", false, false, false, ultimate.spfuncs[4] )
-    ultimate.ui.CheckBox( p, "Fov limit", "Fov limit", false, false, false, ultimate.spfuncs[5] )
-    ultimate.ui.CheckBox( p, "Trigger", "Trigger bot", false, true )
+    local p = ultimate.itemPanel( "Visualisation", 1, 140 ):GetItemPanel()
 
-
-
-    local p = ultimate.itemPanel( "Visualisation", 1, 250 ):GetItemPanel()
-
-    ultimate.ui.CheckBox( p, "Show FOV", "Show FOV", false, false, true )
+    ultimate.ui.CheckBox( p, "FOV Circle", "Show FOV", false, false, true )
     ultimate.ui.CheckBox( p, "Snapline", "Aimbot snapline", false, false, true )
-    ultimate.ui.CheckBox( p, "Marker", "Aimbot marker", false, false, true )
-    ultimate.ui.ComboBox( p, "Marker style", "Aimbot marker mode", { "Square", "Circle", "Circle (filled)" } )
+    ultimate.ui.CheckBox( p, "Marker", "Aimbot marker", false, false, true, ultimate.spfuncs[912] )
+    ultimate.ui.ComboBox( p, "Marker type", "Aimbot marker type", { "Default", "GTA", "Circle" } )
 
-    local p = ultimate.itemPanel( "Accuracy", 2, 165 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Accuracy", 2, 120 ):GetItemPanel()
 
-    ultimate.ui.CheckBox( p, "Compensate recoil", "Norecoil" )
-    ultimate.ui.CheckBox( p, "Compensate spread", "Nospread", "Supported HL2, M9K, FAS2, CW2, SwB", false, false, ultimate.spfuncs[30] )
+    ultimate.ui.CheckBox(p, "Compensate recoil", "Norecoil" )
+    ultimate.ui.CheckBox( p, "Compensate spread", "Nospread", "Supported HL2, M9K, FAS2, CW2, SWB", false, false, ultimate.spfuncs[30] )
+    ultimate.ui.CheckBox( p, "Enable hvh spread", "HvHNoSpread", "Supported SWB and different weapons on this type" )
+     ultimate.ui.CheckBox( p, "Disable visual recoil", "Disable visual recoil", "Only works on FAS2, SWB, CW2 and more!" )
 
-    local p = ultimate.itemPanel( "Prediction", 2, 250 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Prediction", 2, 55 ):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Crossbow prediction", "Crossbow prediction" )
-    ultimate.ui.CheckBox( p, "Граст", "Граст", "proj $_$" )
-    ultimate.ui.Slider( p, "Simulation limit", "Simulation limit", 1, 10, 2 )
+    --ultimate.ui.Slider( p, "Simulation limit", "Simulation limit", 1, 10, 2 )
 
+    local p = ultimate.itemPanel("Knife bot",2,130):GetItemPanel()
 
+    ultimate.ui.CheckBox( p, "Knife bot", "Knifebot", false, false, false )
+    ultimate.ui.ComboBox( p, "Knifebot mode", "Knifebot mode"  )
+    ultimate.ui.CheckBox( p, "Facestab", "Facestab" )
 
-
-
-    //ultimate.ui.CheckBox( p, "Prop aimbot", "Prop aimbot" )
-    //ultimate.ui.CheckBox( p, "Auto throw", "PA thrower" )
-    //ultimate.ui.Slider( p, "Throw distance", "PA thrower dist", 1, 640, 0 )
-    //ultimate.ui.Slider( p, "Max simulation time", "Prop max simtime", 1, 10, 2 )
-    //ultimate.ui.CheckBox( p, "Projectile aimbot", "Projectile aimbot" )
-
-    local p = ultimate.itemPanel( "Target selection", 3, 175 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Target selection", 3, 200 ):GetItemPanel()
 
     ultimate.ui.ComboBox( p, "Target selection", "Target selection", { "Distance", "FOV" } )
-    ultimate.ui.MultiCombo( p, "Ignores", { "Friends", "Steam friends", "Teammates", "Driver", "Head unhitable", "God time", "Nocliping", "Nodraw", "Frozen", "Bots", "Admins", } )
-    ultimate.ui.CheckBox( p, "Wallz", "Wallz" ) 
+    ultimate.ui.MultiCombo( p, "Ignores", { "Friends", "Steam friends", "Teammates", "Driver", "Head unhitable", "God time", "Nocliping", "Nodraw", "Frozen", "Bots", "Admins" } )
+    ultimate.ui.CheckBox( p, "Awall", "Awall" )
     ultimate.ui.Slider( p, "Max targets", "Max targets", 0, 10, 0 )
+    ultimate.ui.CheckBox( p, "Target-Priority-Only", "Target-Priority-Only" )
 
     local p = ultimate.itemPanel( "Hitbox selection", 3, 280 ):GetItemPanel()
 
     ultimate.ui.ComboBox( p, "Hitbox selection", "Hitbox selection", { "Head", "Chest", "Penis" } )
-    ultimate.ui.CheckBox( p, "Hitscan", "Hitscan" ) 
-    //ultimate.ui.ComboBox( p, "Hitscan mode", { "Damage", "Safety", "Scale" }, "Hitscan mode" )
+    ultimate.ui.CheckBox( p, "Hitscan", "Hitscan" )
     ultimate.ui.MultiCombo( p, "Hitscan groups", { "Head", "Chest", "Stomach", "Arms", "Legs", "Generic" } )
-    ultimate.ui.CheckBox( p, "Multipoint", "Multipoint" ) 
+    ultimate.ui.CheckBox( p, "Multipoint", "Multipoint" )
     ultimate.ui.MultiCombo( p, "Multipoint groups", { "Head", "Chest", "Stomach", "Arms", "Legs", "Generic" } )
-    ultimate.ui.Slider( p, "Multipoint scale min", "Multipoint scale min", 0.1, 1, 1 )
-    ultimate.ui.Slider( p, "Multipoint scale max", "Multipoint scale max", 0.1, 1, 1 )
-
-
-    
-
-    
-
-    /*
-
-
-    
-    
-    
-
-    ultimate.ui.CheckBox( p, "", "Disable interpolation", false, false, false, ultimate.spfuncs[9])
-    
-
-    local p = ultimate.itemPanel("Prediction",2,200):GetItemPanel()
-
-    
-    ultimate.ui.CheckBox( p, "Crossbow prediction", "Crossbow prediction", false, false, false, ultimate.spfuncs[225] )
-
-
-*/
-
-    /*
-    func = function()
-        ultimate.settingspan:SetSize(250,64)
-
-        ultimate.slider("Forwardtrack time","",0,200,0,ultimate.settingspan)
-    end
-    
-    //ultimate.checkbox("Backshoot","Backshoot",p) 
-    ultimate.checkbox("Auto healthkit","Auto healthkit",p:GetItemPanel())
-    ultimate.multiCombo("Healthkit",{"Self heal","Heal closest"},p:GetItemPanel())
-    */
+    ultimate.ui.Slider( p, "Multipoint scale", "Multipoint scale", 0.5, 1, 1 )
 end
 
 
 
 ultimate.spfuncs[22] = function()
-    ultimate.ui.SettingsPan:SetSize(250,240)
+    ultimate.ui.SettingsPan:SetSize(250,200)
 
     ultimate.ui.Slider( ultimate.ui.SettingsPan, "Lag limit","Lag limit",1,23,0 )
     ultimate.ui.Slider( ultimate.ui.SettingsPan, "Random min","Lag randomisation",1,23,0 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "On peek Factor","On peek Factor",1,30,0 )
     ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Lag mode", "Lag mode", {"Static","Adaptive","Hybrid"})
     ultimate.ui.MultiCombo( ultimate.ui.SettingsPan, "Fake lag options", {"Disable on ladder","Disable in attack","Randomise","On peek"} )
-
-    
 end
 
 ultimate.spfuncs[24] = function( p )
-   
 
-    // "Runs act command to make your model dance for other clients"
-    //"Forcing istyping for animation desync"
 end
 
 ultimate.spfuncs[36] = function()
     ultimate.ui.SettingsPan:SetSize(250,200)
     ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Material", "Antiaim material", ultimate.chamsMaterials)
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Antiaim fullbright", "Antiaim fullbright" )
+    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Fullbright", "Antiaim fullbright" )
 end
 
 function ultimate.tabs.Rage()
@@ -3478,248 +3233,150 @@ function ultimate.tabs.Rage()
     ultimate.ui.ComboBox( p, "Pitch", "Pitch" )
     ultimate.ui.ComboBox( p, "Edge", "Edge", { "Disabled", "Hide", "Show", "Jitter" } )
 
-    local p = ultimate.itemPanel( "Tweaks", 1, 180 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Tweaks", 1, 185 ):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "On shot aa", "On shot aa" )
     ultimate.ui.CheckBox( p, "Yaw randomisation", "Yaw randomisation" )
     ultimate.ui.CheckBox( p, "Freestanding", "Freestanding" )
     ultimate.ui.CheckBox( p, "Micromovement", "Micromovement" )
-    ultimate.ui.CheckBox( p, "slow walk", "key_ult", false,true )
-    ultimate.ui.Slider( p, "slow walk speed","slow walk speed", 8, 100, 0 )
 
-    local p = ultimate.itemPanel( "Custom angles", 1, 720 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Custom angles", 1, 320 ):GetItemPanel()
 
     ultimate.ui.Slider( p, "Custom real","Custom real", -180, 180, 0 )
     ultimate.ui.Slider( p, "Custom fake","Custom fake", -180, 180, 0 )
-    ultimate.ui.Slider( p, "Switch fake 1","Switch fake 1", -180, 180, 0 )
-    ultimate.ui.Slider( p, "Switch fake 2","Switch fake 2", -180, 180, 0 )
-    ultimate.ui.Slider( p, "Switch real 1","Switch real 1", -180, 180, 0 )
-    ultimate.ui.Slider( p, "Switch real 2","Switch real 2", -180, 180, 0 )
     ultimate.ui.Slider( p, "Custom pitch","Custom pitch", -360, 360, 0 )
     ultimate.ui.Slider( p, "Spin speed","Spin speed", -50, 50, 0 )
     ultimate.ui.Slider( p, "Sin delta","Sin delta", -360, 360, 0 )
     ultimate.ui.Slider( p, "Sin add","Sin add", -180, 180, 0 )
     ultimate.ui.Slider( p, "Jitter delta","Jitter delta", -180, 180, 0 )
-    ultimate.ui.Slider( p, "Spin Fake","Spin Fake", 0, 360, 0 )
-    ultimate.ui.Slider( p, "Spin Real","Spin Real", 0, 360, 0 )
-    ultimate.ui.Slider( p, "Spin Fake Spead","Spin Fake Spead", 0, 400, 0 )
-    ultimate.ui.Slider( p, "Spin Real Spead","Spin Real Spead", 0, 400, 0 )
 
-
-    
-
-    local p = ultimate.itemPanel( "Animation breaker", 1, 160 ):GetItemPanel()
-
-    ultimate.ui.CheckBox( p, "Taunt spam", "Taunt spam" )
-    ultimate.ui.ComboBox( p, "Taunt", "Taunt", ultimate.actCommands )
-    ultimate.ui.CheckBox( p, "Handjob", "Handjob" )
-    ultimate.ui.ComboBox( p, "Handjob mode", "Handjob mode", {"Up","Parkinson","Ultra cum"} )
-
-    local p = ultimate.itemPanel( "Fake lag",2,95 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Fake lag",2,120 ):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Fake lag", "Fake lag", false, false, false, ultimate.spfuncs[22] )
     ultimate.ui.CheckBox( p, "Fake duck", "Fake duck", false, true )
-    ultimate.ui.CheckBox( p, "Shahed-136 exploit", "Air lag duck" )
+    ultimate.ui.CheckBox( p, "Mohammad exploit", "Air lag duck" )
+    ultimate.ui.CheckBox( p, "Jesus exploit", "Jesus lag" )
 
     local p = ultimate.itemPanel( "Visualisation", 2,75 ):GetItemPanel()
 
-    ultimate.ui.CheckBox( p, "Fake angle chams", "Anti aim chams", false, false, false, ultimate.spfuncs[36], false, function( p ) ultimate.ui.ColorPicker( "Real chams", p ) end ) 
-    ultimate.ui.CheckBox( p, "Angle arrows", "Angle arrows" )
+    ultimate.ui.CheckBox( p, "Fake angle chams", "Anti aim chams", false, false, false, ultimate.spfuncs[36], false, function( p ) ultimate.ui.ColorPicker( "Real chams", p ) end )
+    ultimate.ui.CheckBox( p, "Hitbox", "Hitbox", false, false, true)
 
-    local p = ultimate.itemPanel( "Tickbase", 2, 265 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Animation breaker", 2, 225 ):GetItemPanel()
 
-    ultimate.ui.CheckBox( p, "Enable shift", "Tickbase shift", false, true, false, false, function(b) ded.EnableTickbaseShifting(b) end )
+    ultimate.ui.CheckBox( p, "Taunt spam", "Taunt spam" )
+    ultimate.ui.ComboBox( p, "Taunt", "Taunt", ultimate.actCommands )
+    ultimate.ui.CheckBox( p, "Taunt spam 2", "Taunt spam 2" )
+    ultimate.ui.ComboBox( p, "Taunt 2", "Taunt 2", ultimate.actCommands2 )
+    ultimate.ui.CheckBox( p, "Handjob", "Handjob" )
+    ultimate.ui.ComboBox( p, "Handjob mode", "Handjob mode", {"Up","Parkinson","Ultra cum"} )
 
-    ultimate.ui.ComboBox( p, "Fakelag comp", "Fakelag comp", {"Disable","Compensate"} )
-    ultimate.ui.CheckBox( p, "Warp on peek", "Warp on peek" )
-    ultimate.ui.CheckBox( p, "Double tap", "Double tap" )
+    //local p = ultimate.itemPanel( "Tickbase", 2, 265 ):GetItemPanel()
+
+    //ultimate.ui.CheckBox( p, "Enable shift", "Tickbase shift", false, true, false, false, function(b) jopa.EnableTickbaseShifting(b) end )
+
+    //ultimate.ui.ComboBox( p, "Fakelag comp", "Fakelag comp", {"Disable","Compensate"} )
+    //ultimate.ui.CheckBox( p, "Warp on peek", "Warp on peek" )
+    //ultimate.ui.CheckBox( p, "Double tap", "Double tap" )
     //ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Passive recharge", "Passive recharge" )
-    ultimate.ui.CheckBox( p, "Dodge projectiles", "Dodge projectiles" )
-    //ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Wait for charge", "Wait for charge", false, false, false, false, function(b) ded.WaitForCharge(b) end ) 
-    ultimate.ui.CheckBox( p, "Auto recharge", "Auto recharge", false, true ) 
-    
-    ultimate.ui.Slider( p, "Shift ticks", "Shift ticks", 1, 99, 0, function( val ) ded.SetMinShift(val) end )
-    ultimate.ui.Slider( p, "Charge ticks", "Charge ticks", 1, 99, 0, function( val ) ded.SetMaxShift(val) end )
+    //ultimate.ui.CheckBox( p, "Dodge projectiles", "Dodge projectiles" )
+    //ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Wait for charge", "Wait for charge", false, false, false, false, function(b) jopa.WaitForCharge(b) end )
+    //ultimate.ui.CheckBox( p, "Auto recharge", "Auto recharge", false, true )
 
-    local p = ultimate.itemPanel( "Sequence", 2, 220 ):GetItemPanel()
+    //ultimate.ui.Slider( p, "Shift ticks", "Shift ticks", 1, 99, 0, function( val ) jopa.SetMinShift(val) end )
+    //ultimate.ui.Slider( p, "Charge ticks", "Charge ticks", 1, 99, 0, function( val ) jopa.SetMaxShift(val) end )
+
+    local p = ultimate.itemPanel( "Sequence", 2, 240 ):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Sequence manip", "Sequence manip", false, true )
-    ultimate.ui.Slider( p, "Out Sequence", "OutSequence", 1, 100, 0 )
+    ultimate.ui.ComboBox( p, "Sequence mode", "Sequence mode", { "Standard", "Advanced (Choke)" } )
+    ultimate.ui.CheckBox( p, "Sequence resolver", "Sequence resolver" )
+    ultimate.ui.Slider( p, "Out Sequence", "OutSequence", 1, 128, 0 )
+    ultimate.ui.Slider( p, "Min Sequence", "Sequence min", 1, 128, 0 )
     ultimate.ui.CheckBox( p, "Randomise", "Sequence min random" )
-    ultimate.ui.Slider( p, "Min sequence", "Sequence min", 1, 500, 0 )
     ultimate.ui.CheckBox( p, "Animation freezer", "Animation freezer", false, true )
-    ultimate.ui.CheckBox( p, "Freeze on peek", "Freeze on peek")
-    
 
-    local p = ultimate.itemPanel( "Player adjustments", 3, 300 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Player adjustments", 3, 205 ):GetItemPanel()
 
-    ultimate.ui.CheckBox( p, "Interpolation", "Disable interpolation", false, false, false, false, function( bval ) ded.SetInterpolation( bval ) end )
-    ultimate.ui.CheckBox( p, "Sequence interpolation", "Disable Sequence interpolation", false, false, false, false, function( bval ) ded.SetSequenceInterpolation( bval ) end )
-    ultimate.ui.CheckBox( p, "Invalidate activity", "Invalidate activity" )
-    ultimate.ui.CheckBox( p, "Fix bones", "Bone fix", false, false, false, false, function( bval ) ded.SetBonesFix( bval ) end )
-    ultimate.ui.CheckBox( p, "Fix animations", "Update Client Anim fix", false, false, false, false, function( bval ) ded.EnableAnimFix( bval ) end )
+    ultimate.ui.CheckBox( p, "Interpolation", "Disable interpolation", false, false, false, false, function( bval ) jopa.SetInterpolation( bval ) end )
+    ultimate.ui.CheckBox( p, "Sequence interpolation", "Disable Sequence interpolation", false, false, false, false, function( bval ) jopa.SetSequenceInterpolation( bval ) end )
+    ultimate.ui.CheckBox( p, "Disable Taunts", "Disable Taunts" )
+    ultimate.ui.CheckBox( p, "Tpose", "Invalidate activity" )
+    ultimate.ui.CheckBox( p, "Fix bones", "Bone fix", false, false, false, false, function( bval ) jopa.EnableBoneFix( bval ) end )
+    ultimate.ui.CheckBox( p, "Fix animations", "Update Client Anim fix", false, false, false, false, function( bval ) jopa.EnableAnimFix( bval ) end )
     ultimate.ui.CheckBox( p, "Extrapolation", "Extrapolation" )
-    ultimate.ui.CheckBox( p, "Fake lag Fix","Fake lag Fix" )
-    ultimate.ui.Slider( p, "Fix Factor", "Fix Factor", 0, 1, 3 )
-    ultimate.ui.CheckBox( p, "Forwardtrack", "Forwardtrack" )
-    ultimate.ui.Slider( p, "Forwardtrack time", "Forwardtrack time", 0, 1, 2 )
+    ultimate.ui.CheckBox( p, "Show extrapolation line", "Show extrapolation line" )
 
+    local p = ultimate.itemPanel( "Resolver", 3, 150 ):GetItemPanel()
 
-
-
-
-    local p = ultimate.itemPanel( "RESOLVER", 3, 600 ):GetItemPanel()
-
-    ultimate.ui.CheckBox( p, "Resolver",  "Resolver" )
-    ultimate.ui.ComboBox( p, "Yaw mode","Yaw mode",{"Absolute","Relative","Following","Lower body delta","StatAbs","Adaptive","Velocity","LBY Delta"})
-    ultimate.ui.ComboBox( p, "Resolver priority","Resolver priority",{"Miss count","Hit rate","Last hit"})
-    ultimate.ui.CheckBox( p, "Adaptive resolver", "Resolver adaptive" )
-    ultimate.ui.CheckBox( p, "Velocity based", "Resolver velocity based" )
-    ultimate.ui.ComboBox( p, "Auto Pitch mode","Auto Pitch mode",{"none","(up,down)","(up,up,down,down)","(up,zero,down)","(up,up,zero,zero,down,down)","default up"})
-    ultimate.ui.Slider( p, "LBY Delta Right", "Lower delta Right", -180, 180, 0 )
-    ultimate.ui.Slider( p, "LBY Delta Left", "Lower delta Left", -180, 180, 0 )
-    ultimate.ui.Slider( p, "LBY Random Right", "Lower delta Right add random", 0, 60, 0 )
-    ultimate.ui.Slider( p, "LBY Random Left", "Lower delta Left add random", 0, 60, 0 )
+    ultimate.ui.CheckBox( p, "Resolver", "Resolver" )
+    ultimate.ui.TextEntry( "Brute Yaw", "Brute Yaw Value", p, 999 )
+    ultimate.ui.CheckBox( p, "Pitch resolver", "Pitch resolver" )
     ultimate.ui.CheckBox( p, "Taunt resolver", "Taunt resolver" )
-    ultimate.ui.Slider( p, "Lower delta Left", "Lower delta Left", 0, -78, 0 )
-    ultimate.ui.Slider( p, "Lower delta Right", "Lower delta Right", 0, 78, 0 )
-    ultimate.ui.Slider( p, "Lower delta Left add random", "Lower delta Left add random", 0, -45, 0 )
-    ultimate.ui.Slider( p, "Lower delta Right add random", "Lower delta Right add random", 0, 45, 0 )
 
-    
-    
-
-    
     local p = ultimate.itemPanel( "Position adjustment", 3, 215 ):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Adjust tickcount", "Adjust tickcount" )
     ultimate.ui.CheckBox( p, "Backtrack", "Backtrack" )
-    ultimate.ui.ComboBox( p, "Backtrack mode", "Backtrack mode", { "Last ticks", "Closest", "Scan" } ) // , "Backshoot"
+    ultimate.ui.ComboBox( p, "Backtrack mode", "Backtrack mode", { "Last ticks", "Closest", "Scan" } )
+    ultimate.ui.Slider( p, "Sampling interval", "Sampling interval", 0, 200, 0 )
     ultimate.ui.Slider( p, "Backtrack time", "Backtrack time", 0, 1000, 0 )
     ultimate.ui.CheckBox( p, "Always backtrack", "Always backtrack" )
 
-    local p = ultimate.itemPanel( "Misc", 3, 215 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Misc", 3, 195 ):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Auto detonator", "Auto detonator" )
-    ultimate.ui.CheckBox( p, "Gun Switch", "Gun Switch" )
-    /*
-    local function func( p )
-        ultimate.ui.MTButton( p, "Custom", ultimate.spfuncs[37] )
-        ultimate.ui.MTButton( p, "Anim breakers", ultimate.spfuncs[24] )
-        ultimate.ui.MTButton( p, "Angles", ultimate.spfuncs[23] )
-    end
-
-    ultimate.itemPanelB( "Anti aim",1,300, func )
+    ultimate.ui.Slider( p, "Detonation distance", "AutoD distance", 16, 128, 0 )
 
 
+    ultimate.ui.CheckBox( p, "Gun switch", "Gun switch" )
 
-
-    local p = ultimate.itemPanel("Fake lag",2,105):GetItemPanel()
-
-    
-
-    
-
-
-
-    
-
-   
-
-   
-
-
-    
-*/
-
-    //end
-    
-
-     /*
-ultimate.cfg.vars["Resolver"] = false
-ultimate.cfg.vars["Yaw mode"] = 1
-ultimate.cfg.vars["Pitch resolver"] = false
-ultimate.cfg.vars["Invert first shot"] = false
-ultimate.cfg.vars["Resolver max misses"] = 2
-
-    ultimate.combobox("Edge", {"None","Hide","Jitter"}, "Edge", p:GetItemPanel())
-
-    ultimate.checkbox("Show AA","Anti aim chams",p:GetItemPanel())
-
-    local p = ultimate.itemPanel("Animation breakers",1,200)
-
-    
-    
-
-    local p = ultimate.itemPanel("Animfix",3,223)
-
-    ultimate.cfg.vars["Interpolation-Disable interpolation"] = false
-    ultimate.cfg.vars["Interpolation-Fast sequences"] = false
-
-
-    ultimate.checkbox("Disable taunts","Disable taunts",p:GetItemPanel())
-    ultimate.checkbox("Extrapolation","Extrapolation",p:GetItemPanel())
-    ultimate.checkbox("test","last update",p:GetItemPanel())
-    
-
-    
-
-    local p = ultimate.itemPanel("Fake lag",2,320)
-
-
-
-    
-
-    ultimate.checkbox("Fly hacks","Allah fly",p:GetItemPanel())
-
-    //ultimate.checkbox("Fake lag","Fake lag",p:GetItemPanel())
-    //ultimate.slider("Lag limit","Lag limit",0,23,0,p:GetItemPanel())
-    //ultimate.slider("Lag randomisation","Lag randomisation",0,23,0,p:GetItemPanel())
-    //ultimate.combobox("Lag mode", {"Static","Adaptive"}, "Lag mode", p:GetItemPanel())
-   
-    ultimate.checkbox("Michael Jackson exploit","Allah walk",p:GetItemPanel(),"allahwalk")
-    ultimate.checkbox("","Fake duck",p:GetItemPanel(),"Fake duck")
-   
-    local p = ultimate.itemPanel("Tickbase",2,250)
-
-
-    ultimate.multiCombo("Triggers",{"In Attack","On Peek","After peek"},p:GetItemPanel())
-
-    // ultimate.checkbox("Skip fire tick","Skip fire tick",p:GetItemPanel())
-    
-
-    local p = ultimate.itemPanel( "Resolver", 3, 178 )
-
-    ultimate.checkbox( "Enable resolver", "Resolver", p:GetItemPanel() )
-    ultimate.combobox( "", { "Step", "Delta brute" }, "Yaw mode", p:GetItemPanel() )
-    ultimate.slider( "Max misses", "Resolver max misses", 1, 6, 0, p:GetItemPanel() )
-    ultimate.checkbox( "Pitch resolver", "Pitch resolver", p:GetItemPanel() )
-    ultimate.checkbox( "Invert first shot", "Invert first shot", p:GetItemPanel() )
-*/
 end
 
+ultimate.spfuncs[2] = function()
+    ultimate.ui.SettingsPan:SetSize(250,225)
 
+    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Rapid fire", "Rapid fire", "Allows to quickly fire semi-automatic weapons." )
+    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Bullet time", "Bullet time", "Aim will not work until weapon can fire." )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Time", "Time", 0, 1, 3 )
+    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Wait for simulation", "Wait for simulation" )
+    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Wait for dedulation", "dedulation", {"target simtime", "LocalPlayer simtime"} )
+    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Alt Rapid fire", "Alt Rapid fire" )
+end
+
+ultimate.spfuncs[4] = function()
+    ultimate.ui.SettingsPan:SetSize( 250, 85 )
+
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Smooth amount", "Smoothing", 0, 1, 2 )
+end
 
 ultimate.spfuncs[11] = function()
     ultimate.ui.SettingsPan:SetSize(250,200)
-    
+
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Team color", "Box team color" )
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Gradient", "Box gradient" )
-    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Style", "Box style", { "Default", "Corner", "Hex", "Poly" })
+    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Style", "Box style", { "Default", "Corner", "Hex", "Poly", "3D" })
 
 
 end
 
 ultimate.spfuncs[12] = function()
     ultimate.ui.SettingsPan:SetSize(250,48)
-    
+
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Health bar", "Health bar" )
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Gradient", "Health bar gradient" )
 end
 
+ultimate.spfuncs[666] = function()
+    ultimate.ui.SettingsPan:SetSize(250,48)
+
+    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Armor bar", "Armor bar" )
+    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Gradient", "Armor bar gradient" )
+end
+
 ultimate.spfuncs[14] = function()
     ultimate.ui.SettingsPan:SetSize(250,256)
-    
+
     ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Visible material", "Visible mat", ultimate.chamsMaterials)
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Weapon chams", "Visible chams w" )
 
@@ -3730,18 +3387,27 @@ ultimate.spfuncs[14] = function()
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Fullbright", "Supress lighting" )
 end
 
+ultimate.spfuncs[229] = function()
+    ultimate.ui.SettingsPan:SetSize(250,360)
+
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Brightness","Color Modify Brightness", 0, 3, 4 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Contrast","Color Modify Contrast", 0, 5, 4 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Saturation","Color Modify Saturation", 0, 5, 4 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Add red","Color Modify Add Red", 0, 10, 4 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Add green","Color Modify Add Green", 0, 10, 4 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Add blue","Color Modify Add Blue", 0, 10, 4 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Mul red","Color Modify Mul Red", 0, 255, 4 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Mul green","Color Modify Mul Green", 0, 255, 4 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Mul blue","Color Modify Mul Blue", 0, 255, 4 )
+end
+
 ultimate.spfuncs[15] = function()
     ultimate.ui.SettingsPan:SetSize(250,256)
 
     ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Material", "Self mat", ultimate.chamsMaterials)
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Weapon chams", "Self chams w" )
 
-
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Fullbright", "Supress self lighting" )
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Hit box", "Selfhitbox" )
-
-    
-
 end
 
 ultimate.spfuncs[16] = function()
@@ -3765,31 +3431,15 @@ ultimate.spfuncs[18] = function()
 
     ultimate.ui.Slider( ultimate.ui.SettingsPan, "Die time","Tracers die time",1,10,0 )
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Bullet tracers muzzle", "Bullet tracers muzzle" )
-    
+
 end
 
 ultimate.spfuncs[19] = function()
-    ultimate.ui.SettingsPan:SetSize(250,559)
+    ultimate.ui.SettingsPan:SetSize(250,256)
 
     ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Material", "Viewmodel chams type", ultimate.chamsMaterials)
-    
+
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Fullbright", "Fullbright viewmodel" )
-    
-
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel X","Viewmodel X",-50,50,1 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Dynamic X","Dynamic X",0,5,2 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel Y","Viewmodel Y",-50,50,1 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Dynamic Y","Dynamic Y",0,5,2 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel Z","Viewmodel Z",-50,50,1 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Dynamic Z","Dynamic Z",0,5,2 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel Pitch","Viewmodel Pitch",-50,50,1 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Dynamic Pitch","Dynamic Pitch",0,20,2 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel Yaw","Viewmodel Yaw",-50,50,1 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Dynamic Yaw","Dynamic Yaw",0,20,2 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel Roll","Viewmodel Roll",-50,50,1 )
-    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Dynamic Roll","Dynamic Roll",0,20,2 )
-
-
 end
 
 ultimate.spfuncs[20] = function()
@@ -3807,10 +3457,19 @@ ultimate.spfuncs[21] = function()
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Ghetto mode", "Ghetto free cam" )
 end
 
-ultimate.spfuncs[31] = function()
-    ultimate.ui.SettingsPan:SetSize(250,256)
+ultimate.spfuncs[233] = function()
+    ultimate.ui.SettingsPan:SetSize(250,126)
 
-    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "3D", "Ent box 3d" )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel X","Viewmodel x",-50,50,1 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel Y","Viewmodel y",-50,50,1 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Viewmodel Z","Viewmodel z",-50,50,1 )
+
+end
+
+ultimate.spfuncs[31] = function()
+    ultimate.ui.SettingsPan:SetSize(250,48)
+
+    ultimate.ui.ComboBox( ultimate.ui.SettingsPan, "Style", "Ent box style", { "Default", "Corner", "3D" })
 end
 
 
@@ -3818,19 +3477,19 @@ ultimate.spfuncs[35] = function( p )
     local mdl = vgui.Create( "DModelPanel", p )
     mdl:SetPos(85,125)
     mdl:SetSize(85,125)
-    mdl:SetModel( "models/props_vehicles/truck001a.mdl" ) 
+    mdl:SetModel( "models/props_vehicles/truck001a.mdl" )
 
     mdl:SetCamPos(Vector(0,0,148))
 
-    function mdl:LayoutEntity( Entity ) return end 
-    
+    function mdl:LayoutEntity( Entity ) return end
+
     for i = 1,4 do
         local poses = ultimate.esppansposes
 
-        ultimate.esppans[i].panel = vgui_Create( "UPaintedPanel", p )
+        ultimate.esppans[i].panel = vgui.Create( "UPaintedPanel", p )
         ultimate.esppans[i].panel:SetPos(poses[i].x,poses[i].y)
         ultimate.esppans[i].panel:SetSize(85,125)
-        ultimate.esppans[i].panel:Receiver( "ultagCock$", ultimate.DoDrop )
+        ultimate.esppans[i].panel:Receiver( "SwagCock$", ultimate.DoDrop )
         ultimate.esppans[i].panel.pos = i
     end
 
@@ -3838,11 +3497,11 @@ ultimate.spfuncs[35] = function( p )
         local cfgstr = ultimate.espelements[i]
         local panel = ultimate.esppans[ultimate.cfg.vars[cfgstr]].panel
 
-        local b = vgui_Create("UESPPButton")
+        local b = vgui.Create("UESPPButton")
         b:SetText( cfgstr )
 		b:SetSize( 36, 24 )
 		b:Dock( TOP )
-        b:Droppable( "ultagCock$" ) 
+        b:Droppable( "SwagCock$" )
 
         b:SetParent( panel )
     end
@@ -3854,66 +3513,51 @@ ultimate.spfuncs[33] = function()
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Show ammo", "Show ammo" )
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Print name", "Weapon printname" )
     ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Show reloading", "Show reloading" )
-    
+
+end
+
+ultimate.spfuncs[34] = function()
+    ultimate.ui.SettingsPan:SetSize(250,256)
+
+
 end
 
 function ultimate.tabs.Visuals()
 
-    local p = ultimate.itemPanel("Player",1,560):GetItemPanel()
+    local p = ultimate.itemPanel("Player",1,425):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Box", "Box esp", false, false, true, ultimate.spfuncs[11] )
 
     ultimate.ui.CheckBox( p, "Name", "Name", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Name pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
     ultimate.ui.CheckBox( p, "Usergroup", "Usergroup", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Usergroup pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
     ultimate.ui.CheckBox( p, "Health", "Health", false, false, true, ultimate.spfuncs[12], false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Health pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(3,0,0,0) ultimate.ui.ColorPicker( "Health bar gradient", p ) end )
-    ultimate.ui.CheckBox( p, "Armor", "Armor", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Armor pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
+    ultimate.ui.CheckBox( p, "Armor", "Armor", false, false, true, ultimate.spfuncs[666], false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Armor pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(3,0,0,0) ultimate.ui.ColorPicker( "Armor bar gradient", p ) end )
     ultimate.ui.CheckBox( p, "Weapon", "Weapon", false, false, false, ultimate.spfuncs[33], false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Weapon pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(3,0,0,0) end )
     ultimate.ui.CheckBox( p, "Team", "Team", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Team pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
     ultimate.ui.CheckBox( p, "Money", "DarkRP Money", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Money pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
-    ultimate.ui.CheckBox( p, "Steam id", "Steam id", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Steam id pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
-    ultimate.ui.CheckBox( p, "Ping", "Ping", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Ping pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
-    ultimate.ui.CheckBox( p, "Lag compensation", "Break LC", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Steam id pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
+    ultimate.ui.CheckBox( p, "Lag compensation", "Break LC", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Break LC pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
     ultimate.ui.CheckBox( p, "Packets ( Fake lag )", "Simtime updated", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "Simtime pos", {"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
-    ultimate.ui.CheckBox( p, "AA Mode", "AA Mode", false, false, false, false, false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "AA Mode pos",{"Up","Down","Right","Left"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
-    ultimate.ui.CheckBox( p, "HitBoxes", "hitbox esp", false, false)
-    
-    ultimate.ui.Slider( p, "Max distance","ESP Distance",0,100000,0 )
-    
     ultimate.ui.CheckBox( p, "Show records", "Show records" )
     ultimate.ui.CheckBox( p, "Skeleton", "Skeleton" )
-    ultimate.ui.CheckBox( p, "OOF Arrows", "OOF Arrows" )
     ultimate.ui.CheckBox( p, "Sight lines", "Sight lines" )
-    ultimate.ui.CheckBox( p, "InFOV Indicator", "IFOV" )
+    ultimate.ui.CheckBox( p, "OOF Arrows", "OOF Arrows", false, false, false, false, false, function(p)
+        local lbl, drop = ultimate.ui.ComboBox( p, "", "OOF Style", {"Arrow","UkroSwastika"} )
+        lbl:Remove()
+        drop:Dock(RIGHT)
+        drop:DockMargin(0,0,0,0)
+    end )
+    // ultimate.ui.CheckBox( p, "OOF Arrows", "OOF Arrows", false, false, false, ultimate.spfuncs[34], false, function(p) local lbl, drop = ultimate.ui.ComboBox( p, "", "OOF Style", {"Arrow","UkroSwastika"} ) lbl:Remove() drop:Dock(RIGHT) drop:DockMargin(0,0,0,0) end )
 
-    ultimate.ui.ComboBox( p, "Font", "ESP Font", { "Outlined", "Shadow", "Thug" } )
+    ultimate.ui.Slider( p, "Max distance","ESP Distance", 0, 20000,0 )
 
-    
-
-
-
-
-
-
-
-
-
+    ultimate.ui.Label( p, "Add player key", function( p ) ultimate.ui.Binder( "Player add", p ) end )
 
     local p = ultimate.itemPanel("Entity",1,135):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Box", "Ent box", false, false, false, ultimate.spfuncs[31] )
     ultimate.ui.CheckBox( p, "Class", "Ent class" )
-    ultimate.ui.Slider( p, "Max distance","Ent ESP Distance",0,100000,0 )
+    ultimate.ui.Slider( p, "Max distance","Ent ESP Distance",0, 20000,0 )
     ultimate.ui.Label( p, "Add entity key", function( p ) ultimate.ui.Binder( "Ent add", p ) end )
-
-    local p = ultimate.itemPanel( "Hitmarker", 1, 250 ):GetItemPanel()
-
-    ultimate.ui.CheckBox( p, "Hitmarker", "Hitmarker", false, false, true )
-    ultimate.ui.CheckBox( p, "Hitnumbers", "Hitnumbers", false, false, true, false, false, function(p) ultimate.ui.ColorPicker( "Hitnumbers krit", p ) end )
-    //ultimate.ui.CheckBox( p, "Hit particles", "Hit particles", false, false, true, ultimate.spfuncs[31] )
-    ultimate.ui.CheckBox( p, "Hitsound", "Hitsound" )
-    ultimate.ui.ComboBox( p,"Hitsound mode", "Hitsound mode", {"blast","cartoon","glass","judgement!!"})
-    ultimate.ui.CheckBox( p, "Killsound", "Killsound" )
-    ultimate.ui.ComboBox( p,"Killsound mode", "Killsound mode", {"Skeet","SLAVYNE","SUS","Destroy!!","РЎРћРЎРќР РҐРЈР™Р¦Рђ"})
 
     local p = ultimate.itemPanel("Colored models",2,150):GetItemPanel()
 
@@ -3923,102 +3567,89 @@ function ultimate.tabs.Visuals()
     ultimate.ui.CheckBox( p, "Entity chams", "Entity chams", false, false, true, ultimate.spfuncs[17], false )
     ultimate.ui.CheckBox( p, "Viewmodel chams", "Viewmodel chams", false, false, true, ultimate.spfuncs[19], false )
 
-    local p = ultimate.itemPanel("Material customisation",2,150):GetItemPanel()
-
-    ultimate.ui.Slider( p, "Min illumination", "Fresnel minimum illum", 0, 10, 1, function( v )
-        local v1, v2, v3, v4 = ultimate.chamMats.vis[3], ultimate.chamMats.vis[4], ultimate.chamMats.invis[3], ultimate.chamMats.invis[3]
-
-        v1:SetVector( "$selfIllumFresnelMinMaxExp", Vector( v, ultimate.cfg.vars["Fresnel maximum illum"], ultimate.cfg.vars["Fresnel exponent"] ) )
-        v2:SetVector( "$selfIllumFresnelMinMaxExp", Vector( v, ultimate.cfg.vars["Fresnel maximum illum"], ultimate.cfg.vars["Fresnel exponent"] ) )
-        v3:SetVector( "$selfIllumFresnelMinMaxExp", Vector( v, ultimate.cfg.vars["Fresnel maximum illum"], ultimate.cfg.vars["Fresnel exponent"] ) )
-        v4:SetVector( "$selfIllumFresnelMinMaxExp", Vector( v, ultimate.cfg.vars["Fresnel maximum illum"], ultimate.cfg.vars["Fresnel exponent"] ) )
-    end )
-    
-    ultimate.ui.Slider( p, "Max illumination", "Fresnel maximum illum", 0, 10, 1, function( v )
-        local v1, v2, v3, v4 = ultimate.chamMats.vis[3], ultimate.chamMats.vis[4], ultimate.chamMats.invis[3], ultimate.chamMats.invis[3]
-
-        v1:SetVector( "$selfIllumFresnelMinMaxExp", Vector( ultimate.cfg.vars["Fresnel minimum illum"], v, ultimate.cfg.vars["Fresnel exponent"] ) )
-        v2:SetVector( "$selfIllumFresnelMinMaxExp", Vector( ultimate.cfg.vars["Fresnel minimum illum"], v, ultimate.cfg.vars["Fresnel exponent"] ) )
-        v3:SetVector( "$selfIllumFresnelMinMaxExp", Vector( ultimate.cfg.vars["Fresnel minimum illum"], v, ultimate.cfg.vars["Fresnel exponent"] ) )
-        v4:SetVector( "$selfIllumFresnelMinMaxExp", Vector( ultimate.cfg.vars["Fresnel minimum illum"], v, ultimate.cfg.vars["Fresnel exponent"] ) )
-    end )
- 
-    ultimate.ui.Slider( p, "Fresnel exponent", "Fresnel exponent", 0, 10, 1, function( v )
-        local v1, v2, v3, v4 = ultimate.chamMats.vis[3], ultimate.chamMats.vis[4], ultimate.chamMats.invis[3], ultimate.chamMats.invis[3]
-
-        v1:SetVector( "$selfIllumFresnelMinMaxExp", Vector( ultimate.cfg.vars["Fresnel minimum illum"], ultimate.cfg.vars["Fresnel maximum illum"], v ) )
-        v2:SetVector( "$selfIllumFresnelMinMaxExp", Vector( ultimate.cfg.vars["Fresnel minimum illum"], ultimate.cfg.vars["Fresnel maximum illum"], v ) )
-        v3:SetVector( "$selfIllumFresnelMinMaxExp", Vector( ultimate.cfg.vars["Fresnel minimum illum"], ultimate.cfg.vars["Fresnel maximum illum"], v ) )
-        v4:SetVector( "$selfIllumFresnelMinMaxExp", Vector( ultimate.cfg.vars["Fresnel minimum illum"], ultimate.cfg.vars["Fresnel maximum illum"], v ) )
-    end )
-
     local p = ultimate.itemPanel("Outlines",2,115):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Player outline", "Player outline", false, false, true )
     ultimate.ui.CheckBox( p, "Entity outline", "Entity outline", false, false, true )
     ultimate.ui.ComboBox( p, "Style", "Outline style", { "Default", "Subtractive", "Additive" } )
 
-    local p = ultimate.itemPanel( "Indicators", 2, 115 ):GetItemPanel()
+    local p = ultimate.itemPanel( "Indicators", 2, 165 ):GetItemPanel()
 
+    ultimate.ui.CheckBox( p, "Hitmarker", "Hitmarker", false, false, true )
+    ultimate.ui.CheckBox( p, "Hitnumbers", "Hitnumbers", false, false, true, false, false, function(p) ultimate.ui.ColorPicker( "Hitnumbers krit", p ) end )
+    //ultimate.ui.CheckBox( p, "Hit particles", "Hit particles", false, false, true, ultimate.spfuncs[31] )
     ultimate.ui.CheckBox( p, "On screen logs", "On screen logs", false, false, true, false, false, function(p) ultimate.ui.ColorPicker( "Miss lagcomp", p ) ultimate.ui.ColorPicker( "Miss spread", p ) ultimate.ui.ColorPicker( "Miss fail", p ) end )
-    ultimate.ui.CheckBox( p, "Spectator list", "Spectator list" )
+    ultimate.ui.CheckBox( p, "Spectator list", "Spectator list", false, false, false, ultimate.spfuncs[913] )
+    ultimate.ui.CheckBox( p, "Tickbase", "Tickbase indicator" )
+    ultimate.ui.CheckBox( p, "Indicators", "Indicators")
 
-    
+    local p = ultimate.itemPanel( "Misc", 2, 220 ):GetItemPanel()
 
+    ultimate.ui.CheckBox( p, "Hide name", "Hide name" )
+    ultimate.ui.TextEntry( "Custom name", "Custom name", p, 999 )
+    ultimate.ui.CheckBox( p, "Disable sensivity adjustment", "Disable sensivity adjustment" )
+    ultimate.ui.CheckBox( p, "Screengrab image", "Screengrab image" )
+    ultimate.ui.ComboBox( p, "ESP Font", "ESP Font", { "Outlined", "Shadow" } )
+    --ultimate.ui.CheckBox( p, "Crosshair", "Crosshair", false, false, false, false, false, function( p ) ultimate.ui.ColorPicker( "Crosshair color", p ) end ) --krivo
 
-    local p = ultimate.itemPanel("World",3,320):GetItemPanel()
+    local p = ultimate.itemPanel("World",3,420):GetItemPanel()
 
     ultimate.ui.TextEntry( "Skybox texture", "Custom sky", p, 420 )
     ultimate.ui.CheckBox( p, "Sky color", "Sky color", false, false, true )
     ultimate.ui.CheckBox( p, "Wall color", "Wall color", false, false, true )
-    ultimate.ui.CheckBox( p, "Bullet tracers", "Bullet tracers", false, false, true, ultimate.spfuncs[18] )
-    ultimate.ui.TextEntry( "Material", "Bullet tracers material", p, 420 )
+
     ultimate.ui.CheckBox( p, "Fullbright", "Fullbright", false, true )
     ultimate.ui.ComboBox( p, "Mode", "Fullbright mode", { "Default", "Corvus extreme" } )
     ultimate.ui.CheckBox( p, "Disable shadows", "Disable shadows" )
 
-    local p = ultimate.itemPanel("View",3,192):GetItemPanel()
+    ultimate.ui.CheckBox( p, "Fog changer", "FogChanger", false, false, true )
+    ultimate.ui.Slider( p, "Fog start","FogStart", 1, 4200, 0 )
+    ultimate.ui.Slider( p, "Fog end","FogEnd", 1, 9000, 0 )
+
+    ultimate.ui.CheckBox( p, "Color modify", "Color Modify", false, false, false, ultimate.spfuncs[229] )
+
+    ultimate.ui.CheckBox( p, "Bullet tracers", "Bullet tracers", false, false, true, ultimate.spfuncs[18] )
+    ultimate.ui.TextEntry( "Material", "Bullet tracers material", p, 420 )
+
+
+    local p = ultimate.itemPanel("View",3,145):GetItemPanel()
+
+    ultimate.ui.CheckBox( p, "Override view", "Override view" )
 
     ultimate.ui.CheckBox( p, "Third person", "Third person", false, true, false, ultimate.spfuncs[20] )
     ultimate.ui.CheckBox( p, "Free camera", "Free camera", false, true, false, ultimate.spfuncs[21] )
+    ultimate.ui.Slider( p, "Aspect ratio","Aspect ratio",0,2,3,function(val) RunConsoleCommand("r_aspectratio",val) end )
 
-    ultimate.ui.Slider( p, "Fov override","Fov override",75,160,0 )
-    ultimate.ui.Slider( p, "Viewmodel fov","Viewmodel fov",50,180,0 )
-    ultimate.ui.Slider( p, "Aspect ratio","Aspect ratio",0,2,2,function(val) gRunCmd("r_aspectratio",val) end )
+    local p = ultimate.itemPanel("ViewModel", 3, 160):GetItemPanel()
 
-    local p = ultimate.itemPanel( "Misc", 3, 220 ):GetItemPanel()
-
-    ultimate.ui.CheckBox( p, "Hide name", "Hide name" )
-    ultimate.ui.TextEntry( "Custom name", "Custom name", p, 999 )
-    ultimate.ui.CheckBox( p, "Disable sensivity adjustment", "Disable SADJ" )
-    ultimate.ui.CheckBox( p, "Screengrab image", "Screengrab image" )
-
-
-    
-    
-
-   
-
-
-
-    
+    ultimate.ui.CheckBox( p, "Viewmodel Manip", "Viewmodel Manip", false, false, false, ultimate.spfuncs[233] )
+    ultimate.ui.CheckBox( p, "Viewmodel changer", "Viewmodel changer" )
+    ultimate.ui.Slider( p, "Override","Fov override",75,160,0 )
+    ultimate.ui.Slider( p, "Fov","Viewmodel fov",50,180,0 )
 
 
 
 
 
-    
-
-    
 
 
 
 
-    local p = ultimate.itemPanel("Indicators",1,185):GetItemPanel()
 
-    ultimate.ui.CheckBox( p, "Tickbase indicator", "Tickbase indicator" )
 
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
     /*
 
 
@@ -4026,17 +3657,17 @@ function ultimate.tabs.Visuals()
 
 
     ultimate.checkbox("Kill sound","Killsound",p:GetItemPanel())
-    
+
 
     local p = ultimate.itemPanel("World",2,123)
 
-    
+
 
     local p = ultimate.itemPanel("Effects",2,142)
 
 
-    
-    
+
+
 
     local p = ultimate.itemPanel("View",3,275)
 
@@ -4064,23 +3695,32 @@ ultimate.spfuncs[26] = function()
     ultimate.ui.Slider( ultimate.ui.SettingsPan, "Ground diff", "CStrafe ground diff", 1, 65, 0 )
 end
 
+ultimate.spfuncs[37] = function()
+    ultimate.ui.SettingsPan:SetSize(250,256)
+
+    ultimate.ui.CheckBox( ultimate.ui.SettingsPan, "Show path", "Adaptive CStrafe Path", false, false, true )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Predict ticks", "CStrafe ticks", 16, 128, 0 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Angle step", "CStrafe angle step", 1, 10, 0 )
+    ultimate.ui.Slider( ultimate.ui.SettingsPan, "Angle max step", "CStrafe angle max step", 5, 50, 0 )
+end
+
 ultimate.spfuncs[27] = function( p )
     ultimate.ui.TextEntry( "Name", "Name Convar", p, 250 )
-    ultimate.ui.Button( "Change name", function() ded.NetSetConVar("name",ultimate.cfg.vars["Name Convar"]) end, p )
+    ultimate.ui.Button( "Change name", function() jopa.NetSetConVar("name",ultimate.cfg.vars["Name Convar"]) end, p )
     ultimate.ui.CheckBox( p, "Name stealer", "Name stealer" )
 
     ultimate.ui.TextEntry( "Disconnect reason", "Disconnect reason", p, 250 )
-    ultimate.ui.Button( "Disconnect", function() ded.NetDisconnect(ultimate.cfg.vars["Disconnect reason"]) end, p )
-end 
+    ultimate.ui.Button( "Disconnect", function() jopa.NetDisconnect(ultimate.cfg.vars["Disconnect reason"]) end, p )
+end
 
 function ultimate.CustomCvarVal( net )
     local m = net == 1 and "Net Convar mode" or "Cvar mode"
     local n = net == 1 and "Net Convar int" or "Cvar int"
     local s = net == 1 and "Net Convar str" or "Cvar str"
 
-    local mode = ultimate.cfg.vars[m] 
+    local mode = ultimate.cfg.vars[m]
     local num = ultimate.cfg.vars[n]
-    local set = mode == 2 and math_Round( num ) or num
+    local set = mode == 2 and math.Round( num ) or num
 
     if mode == 1 then set = ultimate.cfg.vars[s] end
 
@@ -4094,8 +3734,8 @@ ultimate.spfuncs[28] = function( p )
 
     ultimate.ui.ComboBox( p, "Set mode", "Net Convar mode", {"String","Int","Float"})
 
-    ultimate.ui.Button( "Send new val", function() ded.NetSetConVar( ultimate.cfg.vars["Net Convar"] ,ultimate.CustomCvarVal( 1 ) ) end, p )
-end 
+    ultimate.ui.Button( "Send new val", function() jopa.NetSetConVar( ultimate.cfg.vars["Net Convar"] ,ultimate.CustomCvarVal( 1 ) ) end, p )
+end
 
 ultimate.FCVAR = {
     str = {
@@ -4116,28 +3756,28 @@ ultimate.spfuncs[29] = function( p )
     ultimate.ui.TextEntry( "Custom string", "Cvar str", p, 500 )
 
     ultimate.ui.ComboBox( p, "Cvar mode", "Cvar mode", {"String","Int","Float"})
-    
+
     ultimate.ui.Button( "Change cvar", function()
         local s = ultimate.CustomCvarVal( 0 )
         local n = ultimate.cfg.vars["Cvar name"]
-        
+
         local flag = GetConVar(n):GetFlags()
 
-        ded.CVarSetFlags( n, 0 )
+        jopa.ConVarSetFlags( n, 0 )
 
-        gRunCmd( n, s )
+        RunConsoleCommand( n, s )
 
-        ded.CVarSetFlags( n, flag )
+        jopa.ConVarSetFlags( n, flag )
     end, p )
 
     ultimate.ui.ComboBox( p, "Cvar flag", "Cvar flag", ultimate.FCVAR.str)
 
     ultimate.ui.Button( "Change flag", function()
-        ded.CVarSetFlags( ultimate.cfg.vars["Cvar name"], ultimate.FCVAR.int[ ultimate.cfg.vars["Cvar flag"] ] )
+        jopa.ConVarSetFlags( ultimate.cfg.vars["Cvar name"], ultimate.FCVAR.int[ ultimate.cfg.vars["Cvar flag"] ] )
         print( ultimate.cfg.vars["Cvar name"], ultimate.FCVAR.int[ ultimate.cfg.vars["Cvar flag"] ] )
     end, p )
 
-end 
+end
 
 function ultimate.tabs.Misc()
 
@@ -4147,17 +3787,18 @@ function ultimate.tabs.Misc()
         ultimate.ui.MTButton( p, "Net", ultimate.spfuncs[27] )
     end
 
-    local p = ultimate.itemPanel("Movement",1,250):GetItemPanel()
+    local p = ultimate.itemPanel("Movement",1,255):GetItemPanel()
 
     ultimate.ui.CheckBox( p, "Bunny hop", "Bhop" )
     ultimate.ui.CheckBox( p, "Air strafer", "Air strafer", false, false, false, ultimate.spfuncs[25] )
     ultimate.ui.CheckBox( p, "Circle strafe", "Circle strafe", false, true, false, ultimate.spfuncs[26] )
+    ultimate.ui.CheckBox( p, "Adaptive CStrafe", "Adaptive CStrafe", false, true, false, ultimate.spfuncs[37] )
     ultimate.ui.CheckBox( p, "Keep sprint", "Sprint" )
     ultimate.ui.CheckBox( p, "Fast stop", "Fast stop" )
     ultimate.ui.CheckBox( p, "Auto peak", "Auto peak", false, true )
     ultimate.ui.CheckBox( p, "Auto teleport back", "Auto peak tp" )
     ultimate.ui.CheckBox( p, "Water walk", "Water jump" )
-    ultimate.ui.CheckBox( p, "gRust move fix", "grustmovementdemon" )
+    ultimate.ui.CheckBox( p, "Remove keys", "Remove keys" )
 
     local p = ultimate.itemPanel("Key spam",1,185):GetItemPanel()
 
@@ -4166,116 +3807,259 @@ function ultimate.tabs.Misc()
     ultimate.ui.CheckBox( p, "Auto GTA", "Auto GTA" )
     ultimate.ui.CheckBox( p, "Camera spam", "Camera spam" )
     ultimate.ui.CheckBox( p, "Vape spam", "Vape spam" )
-    
-    
-    local p = ultimate.itemPanel("Indicators",1,185):GetItemPanel()
-    ultimate.ui.CheckBox( p, "Crosshair", "Crosshair" )
-    ultimate.ui.ComboBox( p, "Crosshair type ", "Crosshair type", {"Аутлайн","Обычный" })
+    ultimate.ui.CheckBox( p, "Retry on handcuff", "Retry on handcuff" )
 
-    local p = ultimate.itemPanel("Chat spam",2,250):GetItemPanel()
+    local p = ultimate.itemPanel( "Sounds", 2, 173 ):GetItemPanel()
+
+    ultimate.ui.CheckBox( p, "Hitsound", "Hitsound" )
+    ultimate.ui.TextEntry( "Sound path", "Hitsound str", p, 420 )
+    ultimate.ui.CheckBox( p, "Killsound", "Killsound" )
+    ultimate.ui.TextEntry( "Sound path", "Killsound str", p, 420 )
+
+    local p = ultimate.itemPanel("Chat",2,282):GetItemPanel()
+
+    ultimate.ui.CheckBox( p, "Spammer", "Chat spammer" )
+    ultimate.ui.ComboBox( p, "Mode", "Chat mode", { "Sacred quotes", "Domestic terrorist", "SAMOWARE", "Навальный", "ChitDaunovV1", "ChitDaunovV2" })
+    ultimate.ui.ComboBox( p, "Group", "Chat group", { "Default", "OOC", "Advert", "PM", "ULX" })
+    ultimate.ui.Slider( p, "Delay", "Chat delay", 0,20,0 )
 
     ultimate.ui.CheckBox( p, "Killsay", "Killsay" )
-    ultimate.ui.CheckBox( p, "Chat spam", "Chat spammer" )
+    ultimate.ui.ComboBox( p, "Mode", "Killsay mode", { "Sacred quotes", "Domestic terrorist", "SAMOWARE", "Навальный", "ChitDaunovV1", "ChitDaunovV2" })
+    ultimate.ui.ComboBox( p, "Group", "Killsay group", { "Default", "OOC", "Advert", "PM", "ULX" })
 
-    ultimate.ui.ComboBox( p, "Mode", "Chat mode", { "Sacred quotes", "Domestic terrorist", "Butthole licker", "White nationalist" })
-    ultimate.ui.ComboBox( p, "Group", "Chat group", { "Normal", "/OOC", "Advert", "PM", "ULX" })
-    
-    
+    ultimate.itemPanelB( "Net / Cvar", 3, 310, func )
 
+    local p = ultimate.itemPanel("Memes",3,165):GetItemPanel()
 
-    ultimate.itemPanelB( "Net / Cvar", 3, 345, func )
-
-    local p = ultimate.itemPanel("Memes",3,250):GetItemPanel()
-
-    ultimate.ui.CheckBox( p, "Ghost follower", "Ghost follower" )
-    ultimate.ui.TextEntry( "Targets ID", "GFID", p, 500 )
+    ultimate.ui.CheckBox( p, "Follow Player", "Ghost follower" )
+    ultimate.ui.TextEntry( "Steam ID", "GFID", p, 500 )
     ultimate.ui.CheckBox( p, "Auto Затяг ( Vape )", "Auto Vape" )
     ultimate.ui.CheckBox( p, "Fast lockpick", "Fast lockpick" )
+    ultimate.ui.CheckBox( p, "Keypad Logger", "Keypad Logger" )
+
+   /*
+        ultimate.checkbox("Safe hop","Safe hop",p:GetItemPanel())
+        ultimate.checkbox("Edge jump","Edge jump",p:GetItemPanel())
+        ultimate.checkbox("Air duck","Air duck",p:GetItemPanel())
+    */
 end
 
-
+/*
 function ultimate.updateMenuColor( col )
-    local r, g, b = col.r, col.g, col.b 
+    local r, g, b = col.r, col.g, col.b
 
-    for i = 1,255 do 
+    for i = 1,255 do
         ultimate.Colors[i] = Color( i + r, i + g, i + b, 255 )
     end
 end
+*/
 
 
+function ultimate.tabs.Config()
+    local p = ultimate.itemPanel("Settings",1,230):GetItemPanel()
 
+    ultimate.ui.ComboBox( p, "Choice", "Selected config", ultimate.cfgTable)
 
+    ultimate.ui.Button( "Load", function() ultimate.LoadConfig() end, p )
+    ultimate.ui.Button( "Save", function() ultimate.SaveConfig() end, p )
+    ultimate.ui.Button( "Delete", function() ultimate.DeleteConfig() end, p )
 
+    ultimate.ui.TextEntry( "Name", "Config name", p, 64 )
+    ultimate.ui.Button( "Create", function() ultimate.CreateConfig() end, p )
 
-function ultimate.tabs.Settings()
-    local p = ultimate.itemPanel("Config",1,720):GetItemPanel()
-
-    ultimate.ui.TextEntry( "Config name", "Config name", p, 64 )
-
-    ultimate.ui.ComboBox( p, "Config", "Selected config", ultimate.configs)
-
-    ultimate.ui.Button( "Create config", function() ultimate.CreateConfig() end, p )
-    ultimate.ui.Button( "Save config", function() ultimate.SaveConfig() end, p )
-    ultimate.ui.Button( "Load config", function() ultimate.LoadConfig() end, p )
-    ultimate.ui.Button( "Delete config", function() ultimate.DeleteConfig() end, p )
-
-    ultimate.ui.TextEntry(  "Custom Cheat Name",  "Custom Cheat", p, 64 )
-    ultimate.ui.Label( p, "Menu", function( p ) ultimate.ui.ColorPicker( "Menu", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Upper menu", function( p ) ultimate.ui.ColorPicker( "Upper menu", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Upper Line", function( p ) ultimate.ui.ColorPicker( "Upper Line", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Chekbox Active", function( p ) ultimate.ui.ColorPicker( "Chekbox Active", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Chekbox", function( p ) ultimate.ui.ColorPicker( "Chekbox", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Chekbox line", function( p ) ultimate.ui.ColorPicker( "Chekbox line", p, ultimate.updateMenuColor ) end )   
-    ultimate.ui.Label( p, "Text", function( p ) ultimate.ui.ColorPicker( "Text", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "ComboBox1", function( p ) ultimate.ui.ColorPicker( "ComboBox1", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "ComboBox2", function( p ) ultimate.ui.ColorPicker( "ComboBox2", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "ComboBox line", function( p ) ultimate.ui.ColorPicker( "ComboBox line", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "ComboBox4", function( p ) ultimate.ui.ColorPicker( "ComboBox4", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "ComboBox Vive", function( p ) ultimate.ui.ColorPicker( "ComboBox Vive", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Panel line", function( p ) ultimate.ui.ColorPicker( "Panel line", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Slider", function( p ) ultimate.ui.ColorPicker( "Slider", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Slider line", function( p ) ultimate.ui.ColorPicker( "Slider line", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Panel line", function( p ) ultimate.ui.ColorPicker( "Panel line", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Slider", function( p ) ultimate.ui.ColorPicker( "Slider", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Slider line", function( p ) ultimate.ui.ColorPicker( "Slider line", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Top Button active", function( p ) ultimate.ui.ColorPicker( "Top Button active", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Top Button vive", function( p ) ultimate.ui.ColorPicker( "Top Button vive", p, ultimate.updateMenuColor ) end )
-    ultimate.ui.Label( p, "Top Button", function( p ) ultimate.ui.ColorPicker( "Top Button", p, ultimate.updateMenuColor ) end )
-
-
+    //ultimate.ui.Label( p, "Menu color", function( p ) ultimate.ui.ColorPicker( "Menu color", p, ultimate.updateMenuColor ) end )
 end
 
-
-
 function ultimate.tabs.Players()
-    local playerlist = vgui.Create( "UListView", ultimate.scrollpanel )
-    playerlist:SetPos( 5, 5 )
-    playerlist:SetSize( 500, 775 )
-    playerlist:SetMultiSelect( false )
-    playerlist:AddColumn( "Name" )
-    playerlist:AddColumn( "SID" )
-    playerlist:AddColumn( "SID64" )
-    playerlist:AddColumn( "Team" )
-    playerlist:AddColumn( "Group" )
-    playerlist:AddColumn( "Friend?" )
+    local playerlist = player.GetAll()
 
-    local plys = player_GetAll()
 
-    for i = 1, #plys do
-        local item = playerlist:AddLine( plys[ i ]:Name(), plys[ i ]:SteamID(), plys[ i ]:SteamID64(), team_GetName( plys[ i ]:Team() ), plys[ i ]:GetUserGroup(), ultimate.cfg.friends[plys[ i ]:SteamID64()] and 'true' or 'false' )
-        
-        function item:OnRightClick()
-            if ultimate.cfg.friends[plys[ i ]:SteamID64()] then
-                ultimate.cfg.friends[plys[ i ]:SteamID64()] = nil
-            else
-                ultimate.cfg.friends[plys[ i ]:SteamID64()] = true
+    for i = 1, #playerlist do
+        local pEntity = playerlist[i]
+        local pButton = vgui.Create("Panel", ultimate.scrollpanel)
+        pButton:SetTall(25)
+        pButton:Dock(TOP)
+
+        function pButton:Paint(w, h)
+            if not IsValid(pEntity) then self:Remove() return end
+            local steamId = pEntity:SteamID()
+            
+            local isPriority = ultimate.cfg.priorityList and ultimate.cfg.priorityList[steamId]
+            local isFriend = ultimate.cfg.friends and ultimate.cfg.friends[steamId]
+            
+            if isPriority then
+                surface.SetDrawColor(50, 0, 0, 100) 
+                surface.DrawRect(0, 0, w, h)
+            end
+            
+            surface.SetFont("DermaSmall")
+            
+            local nameColor = Color(255, 255, 255) 
+            if isPriority then
+                nameColor = Color(255, 50, 50) 
+            elseif isFriend then
+                nameColor = Color(0, 255, 0) 
             end
 
-            item:SetColumnText( 6, ultimate.cfg.friends[plys[ i ]:SteamID64()] and 'true' or 'false' )
+            local nameStartX = 10
+
+            surface.SetTextColor(nameColor.r, nameColor.g, nameColor.b)
+            surface.SetTextPos(nameStartX, 5)
+            surface.DrawText(pEntity:Name())
+            
+            local nameWidth = surface.GetTextSize(pEntity:Name())
+            local indicatorX = nameStartX + nameWidth + 5
+
+            if isPriority then
+                surface.SetTextColor(255, 100, 0)
+                surface.SetTextPos(indicatorX, 5)
+                surface.DrawText("[Piority]")
+                indicatorX = indicatorX + surface.GetTextSize("[Piority]") + 3
+            end
+
+            if isFriend then
+                surface.SetTextColor(0, 255, 0)
+                surface.SetTextPos(indicatorX, 5)
+                surface.DrawText("[Friend]")
+            end
+            
+            local teamIndex, teamName, teamColor = ultimate.GetTeam(pEntity)
+            local textWidth, textHeight = surface.GetTextSize(teamName)
+            surface.SetTextColor(teamColor)
+            surface.SetTextPos(w / 2 - textWidth / 2, 5)
+            surface.DrawText(teamName)
+            
+            local userGroup = ultimate.GetUserGroup(pEntity)
+            local textWidth, textHeight = surface.GetTextSize(userGroup)
+            surface.SetTextColor(255, 255, 255)
+            surface.SetTextPos(w - textWidth - 5, 5)
+            surface.DrawText(userGroup)
+            
+            surface.SetDrawColor(45, 45, 45)
+            surface.DrawRect(0, h - 1, w, 1)
+        end
+
+        function pButton:OnMousePressed(mouseCode)
+            if not IsValid(pEntity) then self:Remove() return end
+
+            local steamId = pEntity:SteamID()
+
+            if mouseCode == MOUSE_LEFT then
+                ultimate.cfg.friends[steamId] = not ultimate.cfg.friends[steamId]
+            elseif mouseCode == MOUSE_RIGHT then
+                ultimate.cfg.priorityList[steamId] = not ultimate.cfg.priorityList[steamId]
+            end
+        end
+    end
+end
+
+function ultimate.tabs.Entities()
+    if ultimate.entitySearchPanel then ultimate.entitySearchPanel:Remove() end
+    if ultimate.entityButtons then
+        for _, btn in ipairs(ultimate.entityButtons) do
+            if IsValid(btn) then btn:Remove() end
+        end
+    end
+    ultimate.entityButtons = {}
+
+    local searchPanel = vgui.Create("Panel", ultimate.scrollpanel)
+    searchPanel:SetTall(30)
+    searchPanel:Dock(TOP)
+    ultimate.entitySearchPanel = searchPanel
+
+    local searchBox = vgui.Create("DTextEntry", searchPanel)
+    searchBox:Dock(FILL)
+    searchBox:DockMargin(5, 5, 5, 5)
+    searchBox:SetUpdateOnType(true)
+    searchBox:SetPlaceholderText("Поиск по классу...")
+
+    searchBox:SetTextColor(Color(0, 0, 0))
+    searchBox:SetHighlightColor(Color(0, 0, 0))
+    searchBox:SetCursorColor(Color(0, 0, 0))
+
+    local function RefreshEntityList()
+        for _, btn in ipairs(ultimate.entityButtons) do
+            if IsValid(btn) then btn:Remove() end
+        end
+        ultimate.entityButtons = {}
+
+        local entitylist = ents.GetAll()
+        local classes = {}
+        local search = string.lower(searchBox:GetValue() or "")
+
+        for i = 1, #entitylist do
+            local pEntity = entitylist[i]
+            if not IsValid(pEntity) then continue end
+
+            local class = pEntity:GetClass()
+            if class == "player" then continue end
+
+            if not classes[class] then
+                classes[class] = pEntity
+            end
+        end
+
+        local sortedClasses = {}
+        for class, ent in pairs(classes) do
+            table.insert(sortedClasses, {class = class, ent = ent})
+        end
+        table.SortByMember(sortedClasses, "class", true)
+
+        for _, data in ipairs(sortedClasses) do
+            local class = data.class
+            local pEntity = data.ent
+
+            if search ~= "" and not string.find(string.lower(class), search, 1, true) then
+                continue
+            end
+
+            local pButton = vgui.Create("Panel", ultimate.scrollpanel)
+            pButton:SetTall(25)
+            pButton:Dock(TOP)
+
+            function pButton:Paint(w, h)
+                if not IsValid(pEntity) then self:Remove() return end
+
+                surface.SetFont("DermaSmall")
+
+                if (ultimate.cfg.ents[class]) then
+                    surface.SetTextColor(0, 255, 0)
+                else
+                    surface.SetTextColor(255, 255, 255)
+                end
+
+                surface.SetTextPos(10, 5)
+                surface.DrawText(class)
+
+                surface.SetDrawColor(45, 45, 45)
+                surface.DrawRect(0, h - 1, w, 1)
+            end
+
+            function pButton:OnMousePressed(mouseCode)
+                if not IsValid(pEntity) then self:Remove() return end
+
+                if (mouseCode == MOUSE_LEFT) then
+                    if not ultimate.cfg.ents[class] then
+                        ultimate.cfg.ents[class] = true
+                    else
+                        ultimate.cfg.ents[class] = nil
+                    end
+                end
+            end
+
+            table.insert(ultimate.entityButtons, pButton)
         end
     end
 
+    searchBox.OnValueChange = function()
+        RefreshEntityList()
+    end
+
+    RefreshEntityList()
 end
+
+
+
 
 ultimate.ttable = {}
 
@@ -4283,22 +4067,23 @@ ultimate.ttable["Aimbot"]   = ultimate.tabs.Aimbot
 ultimate.ttable["Rage"]     = ultimate.tabs.Rage
 ultimate.ttable["Visuals"]  = ultimate.tabs.Visuals
 ultimate.ttable["Misc"]     = ultimate.tabs.Misc
-ultimate.ttable["Settings"] = ultimate.tabs.Settings
+ultimate.ttable["Config"] = ultimate.tabs.Config
 ultimate.ttable["Players"]  = ultimate.tabs.Players
+ultimate.ttable["Entities"]  = ultimate.tabs.Entities
 
 function ultimate.initTab(tab)
     if ultimate.scrollpanel != nil then ultimate.scrollpanel:Remove() end
 
-    ultimate.scrollpanel = vgui_Create("UScroll",ultimate.frame)
+    ultimate.scrollpanel = vgui.Create("UScroll",ultimate.frame)
 
     ultimate.pty = { 5, 5, 5 }
     // ultimate.ESPPP:Hide()
     ultimate.ttable[tostring(tab)]()
 end
 
-function ultimate.tabButton(tab,par) 
-    surface_SetFont("tbfont")
-    local w, h = surface_GetTextSize(tab)
+function ultimate.tabButton(tab,par)
+    surface.SetFont("DermaSmall")
+    local w, h = surface.GetTextSize(tab)
 
     local fw = w + 35
 
@@ -4309,52 +4094,50 @@ function ultimate.tabButton(tab,par)
     b:DockMargin(2,0,2,1)
     b:SetWide(fw)
     b:SetText("")
-    
+
     function b:DoClick()
         ultimate.activetab = tab
         ultimate.initTab(tab)
     end
 
     function b:Paint(width,height)
-        local topButton =     string_ToColor(ultimate.cfg.colors["Top Button active"])
-        local topButton2 =    string_ToColor(ultimate.cfg.colors["Top Button vive"])
-        local topButton3 =    string_ToColor(ultimate.cfg.colors["Top Button"])
         if ultimate.activetab == tab or self:OnDepressed() then
-            surface_SetDrawColor(topButton)
-            surface_SetTextColor(245,245,245,255)
+            surface.SetDrawColor(ultimate.Colors[54])
+            surface.SetTextColor(245,245,245,255)
         elseif self:IsHovered() then
-            surface_SetDrawColor(topButton2)
-            surface_SetTextColor(225,225,225,255)
+            surface.SetDrawColor(ultimate.Colors[40])
+            surface.SetTextColor(225,225,225,255)
         else
-            surface_SetDrawColor(topButton3)
-            surface_SetTextColor(200,200,200,255)
+            surface.SetDrawColor(ultimate.Colors[30])
+            surface.SetTextColor(200,200,200,255)
         end
-        
-        surface_DrawRect(0,0,width,height)
 
-        surface_SetFont("tbfont")
-        surface_SetTextPos(tx,ty)
-        surface_DrawText(tab)
+        surface.DrawRect(0,0,width,height)
+
+        surface.SetFont("DermaSmall")
+        surface.SetTextPos(tx,ty)
+        surface.DrawText(tab)
     end
 end
 
-ultimate.tabButton( "Aimbot",        ultimate.frame:GetTopPanel() ) 
-ultimate.tabButton( "Rage",          ultimate.frame:GetTopPanel() ) 
-ultimate.tabButton( "Visuals",       ultimate.frame:GetTopPanel() ) 
-ultimate.tabButton( "Misc",          ultimate.frame:GetTopPanel() ) 
-ultimate.tabButton( "Settings",      ultimate.frame:GetTopPanel() ) 
-ultimate.tabButton( "Players",       ultimate.frame:GetTopPanel() ) 
+ultimate.tabButton( "Aimbot",        ultimate.frame:GetTopPanel() )
+ultimate.tabButton( "Rage",          ultimate.frame:GetTopPanel() )
+ultimate.tabButton( "Visuals",       ultimate.frame:GetTopPanel() )
+ultimate.tabButton( "Misc",          ultimate.frame:GetTopPanel() )
+ultimate.tabButton( "Config",        ultimate.frame:GetTopPanel() )
+ultimate.tabButton( "Players",       ultimate.frame:GetTopPanel() )
+ultimate.tabButton( "Entities",       ultimate.frame:GetTopPanel() )
 
 ultimate.ttable["Aimbot"]()
 
-// Input 
+// Input
 
 function ultimate.IsKeyDown( key )
     if key >= 107 then
-        return input_IsMouseDown( key )
+        return input.IsMouseDown( key )
     end
 
-    return input_IsKeyDown( key )
+    return input.IsKeyDown( key )
 end
 
 /*
@@ -4363,163 +4146,258 @@ end
 
 // cm stuff
 
-ultimate.target             = false  
-ultimate.aimingrn           = false 
+ultimate.target             = false
+ultimate.aimingrn           = false
 
 ultimate.targetVector       = Vector()
 ultimate.predictedVector    = Vector()
 ultimate.backtrackVector    = Vector()
 ultimate.nullVec            = Vector() * -1
 
-ultimate.SilentAngle        = me:EyeAngles()
+ultimate.SilentAngle        = pLocalPlayer:EyeAngles()
 
 ultimate.SkipCommand        = false
 ultimate.SendPacket         = true
 
-ultimate.traceStruct        = { mask = MASK_SHOT, filter = me }
-ultimate.badulteps           = { ["gmod_camera"] = true, ["manhack_welder"] = true, ["weapon_medkit"] = true, ["gmod_tool"] = true, ["weapon_physgun"] = true, ["weapon_physcannon"] = true, ["weapon_bugbait"] = true, }
+ultimate.traceStruct        = { mask = MASK_SHOT, filter = pLocalPlayer }
+ultimate.badSweps           = { ["gmod_camera"] = true, ["manhack_welder"] = true, ["weapon_medkit"] = true, ["gmod_tool"] = true, ["weapon_physgun"] = true, ["weapon_physcannon"] = true, ["weapon_bugbait"] = true, }
 ultimate.badSeqs            = { [ACT_VM_RELOAD] = true, [ACT_VM_RELOAD_SILENCED] = true, [ACT_VM_RELOAD_DEPLOYED] = true, [ACT_VM_RELOAD_IDLE] = true, [ACT_VM_RELOAD_EMPTY] = true, [ACT_VM_RELOADEMPTY] = true, [ACT_VM_RELOAD_M203] = true, [ACT_VM_RELOAD_INSERT] = true, [ACT_VM_RELOAD_INSERT_PULL] = true, [ACT_VM_RELOAD_END] = true, [ACT_VM_RELOAD_END_EMPTY] = true, [ACT_VM_RELOAD_INSERT_EMPTY] = true, [ACT_VM_RELOAD2] = true }
 ultimate.cones              = {}
 ultimate.parsedbones        = {}
 
-ultimate.swbNormal          = bor(CONTENTS_SOLID, CONTENTS_OPAQUE, CONTENTS_MOVEABLE, CONTENTS_DEBRIS, CONTENTS_MONSTER, CONTENTS_HITBOX, 402653442, CONTENTS_WATER)
-ultimate.swbWall            = bor(CONTENTS_TESTFOGVOLUME, CONTENTS_EMPTY, CONTENTS_MONSTER, CONTENTS_HITBOX)
+ultimate.swbNormal          = bit.bor(CONTENTS_SOLID, CONTENTS_OPAQUE, CONTENTS_MOVEABLE, CONTENTS_DEBRIS, CONTENTS_MONSTER, CONTENTS_HITBOX, 402653442, CONTENTS_WATER)
+ultimate.swbWall            = bit.bor(CONTENTS_TESTFOGVOLUME, CONTENTS_EMPTY, CONTENTS_MONSTER, CONTENTS_HITBOX)
 ultimate.swbPen             = {[MAT_SAND] = 0.5, [MAT_DIRT] = 0.8, [MAT_METAL] = 1.1, [MAT_TILE] = 0.9, [MAT_WOOD] = 1.2}
 ultimate.swbShit            = { ["swb_knife"] = true, ["swb_knife_m"] = true }
-ultimate.NotPredictileWep   = { ["rust_dbarrel"] = true, ["rust_spas12"] = true,["rust_waterpipe"] = true,["rust_pumpshotgun"] = true,["rust_pickaxe"] = true,["rust_hatchet"] = true,["rust_boneclub"] = true,["rust_combatknife"] = true,["rust_woodenspear"] = true,["rust_stonespear"] = true,["rust_stonepickaxe"] = true,["rust_stonehatchet"] = true,["rust_salvagedsword"] = true,["rust_salvagedcleaver"] = true,["rust_rock"] = true}
 
 ultimate.m9kPenetration     = { ["SniperPenetratedRound"] = 20, ["pistol"] = 9, ["357"] = 12, ["smg1"] = 14, ["ar2"] = 16, ["buckshot"] = 5, ["slam"] = 5, ["AirboatGun"] = 17, }
 ultimate.m9kMaxRicochet     = { ["SniperPenetratedRound"] = 10, ["pistol"] = 2, ["357"] = 5, ["smg1"] = 4, ["ar2"] = 5, ["buckshot"] = 0, ["slam"] = 0, ["AirboatGun"] = 9, }
 ultimate.m9kCanRicochet     = { ["SniperPenetratedRound"] = true, ["pistol"] = true, ["buckshot"] = true, ["slam"] = true }
 ultimate.m9kPenMaterial     = { [MAT_GLASS] = true, [MAT_PLASTIC] = true, [MAT_WOOD] = true, [MAT_FLESH] = true, [MAT_ALIENFLESH] = true }
 
-ultimate.activeWeapon       = false 
-ultimate.activeWeaponClass  = false 
-ultimate.moveType           = me:GetMoveType() 
-
-ultimate.myaw               = GetConVar("m_yaw"):GetFloat()
+ultimate.activeWeapon       = false
+ultimate.activeWeaponClass  = false
+ultimate.moveType           = pLocalPlayer:GetMoveType()
 
 ultimate.backtracktick      = 0
 
-
-
-
-
-
-
-
-
-
 function ultimate.AutoWall( dir, plyTarget )
-	if not ultimate.activeWeapon or ultimate.swbShit[ ultimate.activeWeaponClass ] then return false end 
+	if not ultimate.activeWeapon or ultimate.swbShit[ ultimate.activeWeaponClass ] then return false end
 
-	local eyePos = me:EyePos()
+	local eyePos = pLocalPlayer:EyePos()
 	local ignoreHeadOnly = ultimate.cfg.vars["Ignores-Head unhitable"]
 
-	local function IsTargetHit(tr)
-		if not tr.Hit or not IsValid(tr.Entity) then return false end
+	local function IsTargetHit( tr )
 		if ignoreHeadOnly then
 			return tr.Entity == plyTarget and tr.HitGroup == 1
 		else
-			return tr.Entity == plyTarget or tr.Entity:GetParent() == plyTarget
+			return tr.Entity == plyTarget
 		end
 	end
 
-	local function DoTrace(startPos, endPos, mask, filter)
+	local function DoTrace( startPos, endPos, mask )
 		ultimate.traceStruct.start = startPos
 		ultimate.traceStruct.endpos = endPos
-		ultimate.traceStruct.filter = filter or me
+		ultimate.traceStruct.filter = pLocalPlayer
 		ultimate.traceStruct.mask = mask
-		return util.TraceLine(ultimate.traceStruct)
+		return util.TraceLine( ultimate.traceStruct )
 	end
-	
-	local function swbAutowall()
-		local weapon = ultimate.activeWeapon
-		local range = weapon.PenetrativeRange or 8192
 
-		local tr = DoTrace(eyePos, eyePos + dir * range, ultimate.swbNormal)
+	local function SWBAutowall()
+		local tr = DoTrace( eyePos, eyePos + dir * ultimate.activeWeapon.PenetrativeRange, ultimate.swbNormal )
+
 		if not tr.Hit or tr.HitSky then return false end
-		if IsTargetHit(tr) then return true end
-		if not weapon.CanPenetrate then return false end
 
-		local dot = math.max(-dir:Dot(tr.HitNormal), 0)
-		if dot < 0.05 then return false end
+		local dot = -dir:Dot( tr.HitNormal )
+		if not ultimate.activeWeapon.CanPenetrate or dot <= 0.26 then return false end
 
-		local penMul = ultimate.swbPen[tr.MatType] or 0.5
-		local penDepth = weapon.PenStr * penMul * weapon.PenMod * dot
+		local penDepth = ultimate.activeWeapon.PenStr * ( ultimate.swbPen[tr.MatType] or 1 ) * ultimate.activeWeapon.PenMod
 
-		local exit = DoTrace(tr.HitPos + dir * penDepth, tr.HitPos - dir * 4, ultimate.swbWall)
-		if exit.StartSolid or exit.Fraction >= 1 then return false end
+		tr = DoTrace( tr.HitPos, tr.HitPos + dir * penDepth, ultimate.swbWall )
 
-		local final = DoTrace(exit.HitPos + dir * 2, exit.HitPos + dir * range, MASK_SHOT)
-		return IsTargetHit(final)
+		tr = DoTrace( tr.HitPos, tr.HitPos + dir * 0.1, ultimate.swbNormal )
+		if tr.Hit then return false end
+
+		tr = DoTrace( tr.HitPos, tr.HitPos + dir * 32768, MASK_SHOT )
+		return IsTargetHit( tr )
 	end
-	
+
 	local function M9KAutowall()
-		local weapon = ultimate.activeWeapon
-		local penetrate_cvar = GetConVar("M9KDisablePenetration")
-		if IsValid(penetrate_cvar) and penetrate_cvar:GetBool() then return false end
-		if not weapon.Penetration then return false end
+		local penetrate_cvar = GetConVar( "M9KDisablePenetration" )
+		if IsValid( penetrate_cvar ) and penetrate_cvar:GetBool() then
+			return false
+		end
 
-		local ammoType = weapon.Primary.Ammo
-		local maxPen = ultimate.m9kPenetration[ammoType] or 14
-		local maxRic = ultimate.m9kMaxRicochet[ammoType] or 0
+		if not ultimate.activeWeapon.Penetration then
+			return false
+		end
 
-		local dmg = weapon.Primary.Damage or 0
-		local pos = eyePos
-		local ric = 0
+		local function GetDamageMultiplier( matType, ammoType )
+			if ammoType == "SniperPenetratedRound" then
+				return 1
+			elseif matType == MAT_CONCRETE or matType == MAT_METAL then
+				return 0.3
+			elseif matType == MAT_WOOD or matType == MAT_PLASTIC or matType == MAT_GLASS then
+				return 0.8
+			elseif matType == MAT_FLESH or matType == MAT_ALIENFLESH then
+				return 0.9
+			end
+			return 0.5
+		end
 
-		for i = 1, 6 do
-			local tr = DoTrace(pos, pos + dir * 32768, MASK_SHOT)
-			if not tr.Hit or tr.HitSky then break end
-			if IsTargetHit(tr) then return dmg > 1 end
-
-			local mat = tr.MatType
-			local penMul = ultimate.m9kPenMaterial[mat] and 1.2 or 1
-			local depth = maxPen * penMul
-
-			local exit = DoTrace(tr.HitPos + dir * depth, tr.HitPos - dir * 4, MASK_SHOT)
-			if exit.StartSolid or exit.Fraction >= 1 then break end
-
-			if mat ~= MAT_GLASS then
-				ric = ric + 1
-				if ric > maxRic then break end
+		local function BulletPenetrate( tr, bounceNum, damage )
+			if damage < 1 or tr.Fraction <= 0 then
+				return false
 			end
 
-			dmg = dmg * (ultimate.m9kDamageMul and (ultimate.m9kDamageMul[mat] or 0.5) or 0.5)
-			if dmg < 1 then break end
+			local ammoType = ultimate.activeWeapon.Primary.Ammo
+			local maxPenetration = ultimate.m9kPenetration[ ammoType ] or 14
+			local maxRicochet = ultimate.m9kMaxRicochet[ ammoType ] or 0
+			local canRicochet = ultimate.m9kCanRicochet[ ammoType ] or false
 
-			pos = exit.HitPos + dir * 2
+			if tr.MatType == MAT_METAL and canRicochet and ammoType != "SniperPenetratedRound" then
+				return false
+			end
+
+			if bounceNum > maxRicochet then
+				return false
+			end
+
+			local penDepth = maxPenetration
+			if ultimate.m9kPenMaterial[ tr.MatType ] then
+				penDepth = maxPenetration * 2
+			end
+			local penetrationDir = tr.Normal * penDepth
+
+			local trace = DoTrace( tr.HitPos + penetrationDir, tr.HitPos, MASK_SHOT )
+
+			if trace.StartSolid or trace.Fraction >= 1 then
+				return false
+			end
+
+			local penTrace = DoTrace( trace.HitPos, trace.HitPos + tr.Normal * 32768, MASK_SHOT )
+
+			if IsTargetHit( penTrace ) then
+				return true
+			end
+
+			local damageMulti = GetDamageMultiplier( tr.MatType, ammoType )
+
+			local newBounceNum = bounceNum + 1
+			if penTrace.MatType == MAT_GLASS then
+				newBounceNum = bounceNum
+			end
+
+			return BulletPenetrate( penTrace, newBounceNum, damage * damageMulti )
+		end
+
+		local trace = DoTrace( eyePos, eyePos + dir * 32768, MASK_SHOT )
+		return BulletPenetrate( trace, 0, ultimate.activeWeapon.Primary.Damage )
+	end
+
+	local function ARC9Autowall()
+		if not ultimate.activeWeapon.Penetration then return false end
+
+		local penetration = ultimate.activeWeapon.Penetration
+		local range = ultimate.activeWeapon.RangeMax or 5000
+		
+		local tr = DoTrace( eyePos, eyePos + dir * range, MASK_SHOT )
+
+		if not tr.Hit or tr.HitSky then return false end
+		if IsTargetHit( tr ) then return true end
+		local function GetMatMult( mat )
+			if mat == MAT_WOOD or mat == MAT_PLASTIC or mat == MAT_GLASS then
+				return 1.8
+			elseif mat == MAT_CONCRETE or mat == MAT_TILE then
+				return 0.5
+			elseif mat == MAT_METAL then
+				return 0.3
+			elseif mat == MAT_FLESH or mat == MAT_ALIENFLESH then
+				return 3.0
+			end
+			return 0.4
+		end
+
+		local function IsSolidAt( pos )
+			local c = util.PointContents( pos )
+			return bit.band( c, CONTENTS_SOLID ) ~= 0 or bit.band( c, CONTENTS_MOVEABLE ) ~= 0
+		end
+
+		local function TraceToExit( startPos, dir, maxDist )
+			local step = 4
+			local dist = 0
+			local pos = startPos
+
+			if not IsSolidAt( pos ) then
+				pos = pos + dir * 1
+			end
+
+			while dist < maxDist do
+				dist = dist + step
+				pos = startPos + dir * dist
+				if not IsSolidAt( pos ) then
+					return true, pos
+				end
+			end
+
+			return false, startPos
+		end
+
+		local remaining = penetration * 1.2
+		local startPos = eyePos
+		local maxLayers = 2
+
+		for i = 1, maxLayers do
+			local hitTrace = DoTrace( startPos, startPos + dir * range, MASK_SHOT )
+			if not hitTrace.Hit or hitTrace.HitSky then return false end
+			if IsTargetHit( hitTrace ) then return true end
+
+			local matMult = GetMatMult( hitTrace.MatType )
+			local maxDist = remaining * matMult
+			if maxDist <= 0 then return false end
+
+			local ok, exitPos = TraceToExit( hitTrace.HitPos + dir * 1, dir, maxDist )
+			if not ok then return false end
+
+			local thickness = hitTrace.HitPos:Distance( exitPos )
+			local cost = thickness / matMult
+			remaining = remaining - cost
+			if remaining <= 0 then return false end
+
+			startPos = exitPos + dir * 1
 		end
 
 		return false
 	end
-	
-	local cls = ultimate.activeWeaponClass
-	if string.find(cls, "m9k_") or string.find(cls, "bender_") then
+
+	local weaponClass = ultimate.activeWeaponClass
+
+	if string.StartWith( weaponClass, "m9k_" ) or string.StartWith( weaponClass, "bender_" ) then
 		return M9KAutowall()
-	elseif string.find(cls, "swb_") then
-		return swbAutowall()
+	elseif string.StartWith( weaponClass, "swb_" ) then
+		return SWBAutowall()
+	elseif string.StartWith( weaponClass, "arc9_" ) then
+		return ARC9Autowall()
 	end
-	
+
 	return false
 end
 
 function ultimate.VisibleCheck( who, where, predticks, awalldir )
-    local start = me:EyePos()
+    local start = pLocalPlayer:EyePos()
 
-    if predticks then start = start + ( me:GetVelocity() * TickInterval ) * predticks end
+    if predticks then start = start + ( pLocalPlayer:GetVelocity() * flTickInterval ) * predticks end
 
     ultimate.traceStruct.start = start
 	ultimate.traceStruct.endpos = where
 	ultimate.traceStruct.mask = MASK_SHOT
-    ultimate.traceStruct.filter = me
+    ultimate.traceStruct.filter = pLocalPlayer
 
     local tr = TraceLine( ultimate.traceStruct )
 
     local canhit = tr.Entity == who or tr.Fraction == 1
 
-    if !canhit and awalldir and ultimate.cfg.vars["Wallz"] then 
+    if !canhit and awalldir and ultimate.cfg.vars["Awall"] then
         return ultimate.AutoWall( awalldir, who )
     end
 
@@ -4528,507 +4406,43 @@ function ultimate.VisibleCheck( who, where, predticks, awalldir )
     return canhit
 end
 
+ultimate.flServerTime = 0
 function ultimate.CanShoot( cmd )
 	if not ultimate.activeWeapon then return false end
 	local seq = ultimate.activeWeapon:GetSequence()
-    
-   
+
     if ultimate.cfg.binds["Aim on key"] != 0 and not ultimate.IsKeyDown( ultimate.cfg.binds["Aim on key"] ) then
         return false
     end
 
-
-
-
-
-    local cfg = ultimate.cfg.vars["Hit Chance Pistol"]
-    local w = me:GetActiveWeapon():GetClass()
-    
-    local Pistol1 = 'weapon_swcs_glock'
-    local Pistol2 = 'weapon_swcs_hkp2000'
-    local Pistol3 = 'weapon_swcs_cz75'
-    local Pistol4 = 'weapon_swcs_elite'
-    local Pistol5 = 'weapon_swcs_fiveseven'
-    local Pistol6 = 'weapon_swcs_p250'
-    local Pistol7 = 'weapon_swcs_usp_silencer'
-    local Pistol8 = 'weapon_swcs_tec9'
-    
-    
-    
-    
-    
-    
-    if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )  or Startultith( w, Pistol8 )  
-    
-    
-    
-    
-    then
-    
-        if cfg == 1 then
-    
-    
-    
-        elseif cfg == 2 then
-        if me:GetVelocity():Length2D() > 200 then
-            return false
-        end
-    
-        elseif cfg == 3 then
-        if me:GetVelocity():Length2D() > 100 then
-            return false
-        end
-        
-        
-        elseif cfg == 4 then
-        if me:GetVelocity():Length2D() > 50 then
-            return false
-        end
-    
-        elseif cfg == 5 then
-        if me:GetVelocity():Length2D() > 20 then
-        return false
-                
-            
-           end
-        end
-    end
-
-
-local cfg = ultimate.cfg.vars["Hit Chance Pistol"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_glock'
-local Pistol2 = 'weapon_swcs_hkp2000'
-local Pistol3 = 'weapon_swcs_cz75'
-local Pistol4 = 'weapon_swcs_elite'
-local Pistol5 = 'weapon_swcs_fiveseven'
-local Pistol6 = 'weapon_swcs_p250'
-local Pistol7 = 'weapon_swcs_usp_silencer'
-local Pistol8 = 'weapon_swcs_tec9'
-
-
-
-
-
-
-if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )  or Startultith( w, Pistol8 )  
-
-
-
-
-then
-
-    if cfg == 1 then
-
-
-
-    elseif cfg == 2 then
-    if me:GetVelocity():Length2D() > 200 then
-        return false
-    end
-
-    elseif cfg == 3 then
-    if me:GetVelocity():Length2D() > 100 then
-        return false
-    end
-    
-    
-    elseif cfg == 4 then
-    if me:GetVelocity():Length2D() > 50 then
-        return false
-    end
-
-    elseif cfg == 5 then
-    if me:GetVelocity():Length2D() > 20 then
-    return false
-            
-        
-       end
-    end
-end
-
-
-local cfg = ultimate.cfg.vars["Hit Chance Heavy Pistol"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_deagle'
-local Pistol2 = 'weapon_swcs_revolver'
-
-
-
-
-
-
-
-if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )
-
-
-
-
-then
-
-    if cfg == 1 then
-
-
-
-    elseif cfg == 2 then
-    if me:GetVelocity():Length2D() > 200 then
-        return false
-    end
-
-    elseif cfg == 3 then
-    if me:GetVelocity():Length2D() > 100 then
-        return false
-    end
-    
-    
-    elseif cfg == 4 then
-    if me:GetVelocity():Length2D() > 50 then
-        return false
-    end
-
-    elseif cfg == 5 then
-    if me:GetVelocity():Length2D() > 20 then
-    return false
-            
-        
-       end
-    end
-end
-
-
-
-
-local cfg = ultimate.cfg.vars["Hit Chance Auto Rifle"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_ak47'
-local Pistol2 = 'weapon_swcs_aug'
-local Pistol3 = 'weapon_swcs_famas'
-local Pistol4 = 'weapon_swcs_galilar'
-local Pistol5 = 'weapon_swcs_m4a1_silencer'
-local Pistol6 = 'weapon_swcs_m4a1'
-local Pistol7 = 'weapon_swcs_sg556'
-
-
-
-
-
-
-
-if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )
-
-
-
-
-then
-
-    if cfg == 1 then
-
-
-
-    elseif cfg == 2 then
-    if me:GetVelocity():Length2D() > 200 then
-        return false
-    end
-
-    elseif cfg == 3 then
-    if me:GetVelocity():Length2D() > 100 then
-        return false
-    end
-    
-    
-    elseif cfg == 4 then
-    if me:GetVelocity():Length2D() > 50 then
-        return false
-    end
-
-    elseif cfg == 5 then
-    if me:GetVelocity():Length2D() > 20 then
-    return false
-            
-        
-       end
-    end
-end
-
-
-
-
-
-
-
-local cfg = ultimate.cfg.vars["Hit Chance Smg"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_mac10'
-local Pistol2 = 'weapon_swcs_mp5sd'
-local Pistol3 = 'weapon_swcs_mp7'
-local Pistol4 = 'weapon_swcs_mp9'
-local Pistol5 = 'weapon_swcs_p90'
-local Pistol6 = 'weapon_swcs_bizon'
-local Pistol7 = 'weapon_swcs_ump45'
-
-
-
-
-
-
-
-if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )
-
-
-
-then
-
-    if cfg == 1 then
-
-
-
-    elseif cfg == 2 then
-    if me:GetVelocity():Length2D() > 200 then
-        return false
-    end
-
-    elseif cfg == 3 then
-    if me:GetVelocity():Length2D() > 100 then
-        return false
-    end
-    
-    
-    elseif cfg == 4 then
-    if me:GetVelocity():Length2D() > 50 then
-        return false
-    end
-
-    elseif cfg == 5 then
-    if me:GetVelocity():Length2D() > 20 then
-    return false
-            
-        
-       end
-    end
-end
-
-local cfg = ultimate.cfg.vars["Hit Chance SSG 08"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_ssg08'
-
-
-
-
-
-
-
-
-if Startultith( w, Pistol1 )
-
-
-
-then
-
-    if cfg == 1 then
-
-
-
-    elseif cfg == 2 then
-    if me:GetVelocity():Length2D() > 200 then
-        return false
-    end
-
-    elseif cfg == 3 then
-    if me:GetVelocity():Length2D() > 100 then
-        return false
-    end
-    
-    
-    elseif cfg == 4 then
-    if me:GetVelocity():Length2D() > 50 then
-        return false
-    end
-
-    elseif cfg == 5 then
-    if me:GetVelocity():Length2D() > 20 then
-    return false
-            
-        
-       end
-    end
-end
-local cfg = ultimate.cfg.vars["Hit Chance AWP"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_awp'
-
-
-
-
-
-
-
-
-if Startultith( w, Pistol1 )
-
-
-
-then
-
-    if cfg == 1 then
-
-
-
-    elseif cfg == 2 then
-    if me:GetVelocity():Length2D() > 200 then
-        return false
-    end
-
-    elseif cfg == 3 then
-    if me:GetVelocity():Length2D() > 100 then
-        return false
-    end
-    
-    
-    elseif cfg == 4 then
-    if me:GetVelocity():Length2D() > 50 then
-        return false
-    end
-
-    elseif cfg == 5 then
-    if me:GetVelocity():Length2D() > 20 then
-    return false
-            
-        
-       end
-    end
-end
-
-local cfg = ultimate.cfg.vars["Hit Chance Auto Sniper"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_g3sg1'
-local Pistol2 = 'weapon_swcs_scar20'
-
-
-
-
-
-
-
-if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )
-
-
-
-then
-
-    if cfg == 1 then
-
-
-
-    elseif cfg == 2 then
-    if me:GetVelocity():Length2D() > 200 then
-        return false
-    end
-
-    elseif cfg == 3 then
-    if me:GetVelocity():Length2D() > 100 then
-        return false
-    end
-    
-    
-    elseif cfg == 4 then
-    if me:GetVelocity():Length2D() > 50 then
-        return false
-    end
-
-    elseif cfg == 5 then
-    if me:GetVelocity():Length2D() > 20 then
-    return false
-            
-        
-       end
-    end
-end
-
-
-
-
-
-
-local cfg = ultimate.cfg.vars["Hit Chance Arccw"]
-local w = me:GetActiveWeapon():GetClass()
-if Startultith( w, "arccw_" ) then
-
-    if cfg == 1 then
-
-
-
-    elseif cfg == 2 then
-    if me:GetVelocity():Length2D() > 200 then
-        return false
-    end
-
-    elseif cfg == 3 then
-    if me:GetVelocity():Length2D() > 100 then
-        return false
-    end
-    
-    
-    elseif cfg == 4 then
-    if me:GetVelocity():Length2D() > 50 then
-        return false
-    end
-
-    elseif cfg == 5 then
-    if me:GetVelocity():Length2D() > 25 then
-    return false
-            
-        
-       end
-    end
-end
-
-
-
-    
-
-
-    
-
-    if ultimate.badulteps[ ultimate.activeWeaponClass ] then
+	if ultimate.badSweps[ ultimate.activeWeaponClass ] then
 		return false
 	end
 
-
+    if ultimate.moveType == MOVETYPE_NOCLIP then
+        return false
+    end
 
     if ultimate.cfg.vars["Auto fire"] and cmd:KeyDown(IN_ATTACK) then
         return false
     end
 
-    
-	if ultimate.cfg.vars["Bullet time"] and ultimate.activeWeapon:GetNextPrimaryFire() >= ded.GetCurTime()-ultimate.cfg.vars["Time"]  then
-		return false
-	end
-    
-    if ultimate.cfg.vars["!BSendPacket Fire"] and !ultimate.SendPacket then
+	if ultimate.cfg.vars["Bullet time"] and ultimate.activeWeapon:GetNextPrimaryFire() >= jopa.GetCurTime()-ultimate.cfg.vars["Time"]  then
 		return false
 	end
 
-
-
-    // print(ded.GetRandomSeed( cmd ))
-    if ultimate.cfg.vars["Wait for seed"] and ded.GetRandomSeed( cmd ) != 134 then
-        return false 
+    // print(jopa.GetRandomSeed( cmd ))
+    if ultimate.cfg.vars["Wait for seed"] and jopa.GetRandomSeed( cmd ) != 134 then
+        return false
     end
 
-	return ultimate.activeWeapon:Clip1() != 0 and !ultimate.badSeqs[ seq ] 
-end 
+	return ultimate.activeWeapon:Clip1() != 0 and !ultimate.badSeqs[ seq ]
+end
 
 function ultimate.Spread( cmd, ang, spread )
 	if not ultimate.activeWeapon or not ultimate.cones[ ultimate.activeWeaponClass ] then return ang end
 
-	local dir = ded.PredictSpread( cmd, spread )
+	local dir = jopa.PredictSpread( cmd, spread )
 
 	local newangle = ang + dir:Angle()
 	newangle:Normalize()
@@ -5037,86 +4451,198 @@ function ultimate.Spread( cmd, ang, spread )
 end
 
 /*
-    Nospread 
+    Nospread
 */
 
 ultimate.CustomSpread = {}
 
-function ultimate.CustomSpread.swb( cmd, ang )
-    
-    local vel = me:GetVelocity():Length()
-    local dir = ang:Forward()
-    
-    if !me.LastView then
+function ultimate.CustomSpread.swb(cmd, ang)
+    if not ultimate or not ultimate.activeWeapon or not me then return ang end
+
+    if ultimate.cfg.vars["HvHNoSpread"] then
+        if not ultimate.activeWeapon.AddSpread then ultimate.activeWeapon.AddSpread = 0 end
+        if not ultimate.activeWeapon.AddSpreadSpeed then ultimate.activeWeapon.AddSpreadSpeed = 0 end
+        if not ultimate.activeWeapon.MaxSpreadInc then ultimate.activeWeapon.MaxSpreadInc = 0 end
+        if not ultimate.activeWeapon.VelocitySensitivity then ultimate.activeWeapon.VelocitySensitivity = 0 end
+        if not ultimate.activeWeapon.meMobilitySpreadMod then ultimate.activeWeapon.meMobilitySpreadMod = 1 end
+        if not ultimate.activeWeapon.ShotgunReload then ultimate.activeWeapon.ShotgunReload = false end
+        if not ultimate.activeWeapon.FireDelay or ultimate.activeWeapon.FireDelay <= 0 then ultimate.activeWeapon.FireDelay = 1 end
+
+        vel = me:GetVelocity():Length()
+        dir = ang:Forward()
+
+        if ultimate.activeWeapon.dt and (ultimate.activeWeapon.dt.State == SWB_AIMING or ultimate.activeWeapon.dt.State == swb_AIMING) and ultimate.activeWeapon.AimSpread then
+            ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.AimSpread
+            if ultimate.activeWeapon.Owner and ultimate.activeWeapon.Owner.Expertise and ultimate.activeWeapon.Owner.Expertise["steadyme"] and ultimate.activeWeapon.Owner.Expertise["steadyme"].val then
+                ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * (1 - ultimate.activeWeapon.Owner.Expertise["steadyme"].val * 0.0015)
+            end
+        else
+            ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.HipSpread or 0
+            if ultimate.activeWeapon.Owner and ultimate.activeWeapon.Owner.Expertise and ultimate.activeWeapon.Owner.Expertise["wepprof"] and ultimate.activeWeapon.Owner.Expertise["wepprof"].val then
+                ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * (1 - ultimate.activeWeapon.Owner.Expertise["wepprof"].val * 0.0015)
+            end
+        end
+
+        if me:Crouching() then
+            ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * ((ultimate.activeWeapon.dt and (ultimate.activeWeapon.dt.State == SWB_AIMING or ultimate.activeWeapon.dt.State == swb_AIMING)) and 0.9 or 0.75)
+        end
+
+        updatetime = ultimate.activeWeapon.GetSpreadUpdateTime and ultimate.activeWeapon.GetSpreadUpdateTime(unpredicted) or 0
+        value = ultimate.activeWeapon.GetSpreadUpdateValue and ultimate.activeWeapon.GetSpreadUpdateValue(unpredicted) or 0
+
+        if updatetime > 0 then
+            value = math.Clamp(value - 0.1333 * (CurTime() - updatetime), 0, ultimate.activeWeapon.MaxSpreadInc)
+        end
+
+        viewaff = ultimate.activeWeapon.GetViewAffinity and ultimate.activeWeapon.GetViewAffinity(unpredicted) or 0
+        viewafftime = ultimate.activeWeapon.GetViewAffinityTime and ultimate.activeWeapon.GetViewAffinityTime() or CurTime()
+
+        value2 = math.Clamp(viewaff - (ultimate.activeWeapon.ShotgunReload and 0.13 or 0.18) * (CurTime() - viewafftime) / ultimate.activeWeapon.FireDelay, 0, 2)
+
+        ultimate.activeWeapon.CurCone = math.Clamp(
+            (ultimate.activeWeapon.BaseCone or 0)
+            + value
+            + (vel / 10000 * ultimate.activeWeapon.VelocitySensitivity)
+            * ((ultimate.activeWeapon.dt and (ultimate.activeWeapon.dt.State == SWB_AIMING or ultimate.activeWeapon.dt.State == swb_AIMING)) and ultimate.activeWeapon.meMobilitySpreadMod or 1)
+            + value2,
+            0, 0.09 + (ultimate.activeWeapon.MaxSpreadInc or 0)
+        )
+
+        math.randomseed(cmd:CommandNumber())
+
+        cone = ultimate.activeWeapon.CurCone
+        if not cone then return ang end
+
+        dir1 = Angle(math.Rand(-cone, cone), math.Rand(-cone, cone), 0) * 25
+        dir2 = dir1
+
+        if ultimate.activeWeapon.ClumpSpread and ultimate.activeWeapon.ClumpSpread > 0 then
+            dir2 = dir1 + Angle(math.Rand(-1, 1), math.Rand(-1, 1), math.Rand(-1, 1)) * ultimate.activeWeapon.ClumpSpread
+        end
+
+        return ang - dir2
+    end
+
+    if not ultimate.activeWeapon.AddSpread then ultimate.activeWeapon.AddSpread = 0 end
+    if not ultimate.activeWeapon.AddSpreadSpeed then ultimate.activeWeapon.AddSpreadSpeed = 0 end
+    if not ultimate.activeWeapon.MaxSpreadInc then ultimate.activeWeapon.MaxSpreadInc = 0 end
+    if not ultimate.activeWeapon.VelocitySensitivity then ultimate.activeWeapon.VelocitySensitivity = 0 end
+    if not ultimate.activeWeapon.meMobilitySpreadMod then ultimate.activeWeapon.meMobilitySpreadMod = 1 end
+    if not ultimate.activeWeapon.FireDelay or ultimate.activeWeapon.FireDelay <= 0 then ultimate.activeWeapon.FireDelay = 1 end
+
+    vel = me:GetVelocity():Length()
+    dir = ang:Forward()
+
+    if not me.LastView then
         me.LastView = dir
         me.ViewAff = 0
     else
-        me.ViewAff = Lerp( 0.25, me.ViewAff, ( dir - me.LastView ):Length() * 0.5 )
+        me.ViewAff = Lerp(0.25, me.ViewAff or 0, (dir - me.LastView):Length() * 0.5)
     end
-    
-    if ultimate.activeWeapon.dt and ultimate.activeWeapon.meSpread and ultimate.activeWeapon.dt.State == swb_AIMING then
+
+    if ultimate.activeWeapon.dt and (ultimate.activeWeapon.dt.State == SWB_AIMING or ultimate.activeWeapon.dt.State == swb_AIMING) and ultimate.activeWeapon.meSpread then
         ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.meSpread
-        
-        if ultimate.activeWeapon.Owner.Expertise then
-            ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * ( 1 - ultimate.activeWeapon.Owner.Expertise["steadyme"].val * 0.0015 )
+        if ultimate.activeWeapon.Owner and ultimate.activeWeapon.Owner.Expertise and ultimate.activeWeapon.Owner.Expertise["steadyme"] and ultimate.activeWeapon.Owner.Expertise["steadyme"].val then
+            ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * (1 - ultimate.activeWeapon.Owner.Expertise["steadyme"].val * 0.0015)
         end
     else
-        ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.HipSpread
-        
-        if ultimate.activeWeapon.Owner.Expertise then
-            ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * ( 1 - ultimate.activeWeapon.Owner.Expertise["wepprof"].val * 0.0015 )
+        ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.HipSpread or 0
+        if ultimate.activeWeapon.Owner and ultimate.activeWeapon.Owner.Expertise and ultimate.activeWeapon.Owner.Expertise["wepprof"] and ultimate.activeWeapon.Owner.Expertise["wepprof"].val then
+            ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * (1 - ultimate.activeWeapon.Owner.Expertise["wepprof"].val * 0.0015)
         end
     end
-    
+
     if me:Crouching() then
-        ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * ( ultimate.activeWeapon.dt.State == swb_AIMING and 0.9 or 0.75 )
+        ultimate.activeWeapon.BaseCone = ultimate.activeWeapon.BaseCone * ((ultimate.activeWeapon.dt and (ultimate.activeWeapon.dt.State == SWB_AIMING or ultimate.activeWeapon.dt.State == swb_AIMING)) and 0.9 or 0.75)
     end
-    
-    ultimate.activeWeapon.CurCone = math_Clamp( ultimate.activeWeapon.BaseCone + ultimate.activeWeapon.AddSpread + ( vel / 10000 * ultimate.activeWeapon.VelocitySensitivity ) * ( ultimate.activeWeapon.dt.State == swb_AIMING and ultimate.activeWeapon.meMobilitySpreadMod or 1 ) + me.ViewAff, 0, 0.09 + ultimate.activeWeapon.MaxSpreadInc )
-    
-    if CurTime() > ultimate.activeWeapon.SpreadWait then
-        ultimate.activeWeapon.AddSpread = math_Clamp( ultimate.activeWeapon.AddSpread - 0.005 * ultimate.activeWeapon.AddSpreadSpeed, 0, ultimate.activeWeapon.MaxSpreadInc )
-        ultimate.activeWeapon.AddSpreadSpeed = math_Clamp( ultimate.activeWeapon.AddSpreadSpeed + 0.05, 0, 1 )
+
+    ultimate.activeWeapon.CurCone = math.Clamp(
+        (ultimate.activeWeapon.BaseCone or 0)
+        + (ultimate.activeWeapon.AddSpread or 0)
+        + (vel / 10000 * ultimate.activeWeapon.VelocitySensitivity)
+        * ((ultimate.activeWeapon.dt and (ultimate.activeWeapon.dt.State == SWB_AIMING or ultimate.activeWeapon.dt.State == swb_AIMING)) and ultimate.activeWeapon.meMobilitySpreadMod or 1)
+        + (me.ViewAff or 0),
+        0, 0.09 + (ultimate.activeWeapon.MaxSpreadInc or 0)
+    )
+
+    if CurTime() > (ultimate.activeWeapon.SpreadWait or 0) then
+        ultimate.activeWeapon.AddSpread = math.Clamp((ultimate.activeWeapon.AddSpread or 0) - 0.005 * (ultimate.activeWeapon.AddSpreadSpeed or 0), 0, ultimate.activeWeapon.MaxSpreadInc or 0)
+        ultimate.activeWeapon.AddSpreadSpeed = math.Clamp((ultimate.activeWeapon.AddSpreadSpeed or 0) + 0.05, 0, 1)
     end
-    
 
-    local cone = ultimate.activeWeapon.CurCone
-    if !cone then return ang end
-
+    cone = ultimate.activeWeapon.CurCone
+    if not cone then return ang end
     if me:Crouching() then
         cone = cone * 0.85
     end
 
-    math_randomseed( cmd:CommandNumber() )
-    return ang - Angle( math_Rand(-cone, cone), math_Rand(-cone, cone), 0 ) * 25
+    math.randomseed(cmd:CommandNumber())
+    return ang - Angle(math.Rand(-cone, cone), math.Rand(-cone, cone), 0) * 25
 end
+
 
 function ultimate.CustomSpread.cw( cmd, ang )
     local cone = ultimate.activeWeapon.CurCone
     if !cone then return ang end
 
-    math_randomseed( cmd:CommandNumber() )
-    return ang - Angle( math_Rand(-cone, cone), math_Rand(-cone, cone), 0 ) * 25
+    math.randomseed( cmd:CommandNumber() )
+    return ang - Angle( math.Rand(-cone, cone), math.Rand(-cone, cone), 0 ) * 25
 end
 
 function ultimate.CustomSpread.fas2( cmd, ang )
-    math_randomseed( CurTime() )
+    math.randomseed( CurTime() )
 
-    local dir = Angle( math_Rand( -ultimate.activeWeapon.CurCone, ultimate.activeWeapon.CurCone ), math_Rand( -ultimate.activeWeapon.CurCone, ultimate.activeWeapon.CurCone ), 0 ) * 25
-    local dir2 = dir 
-            
+    local dir = Angle( math.Rand( -ultimate.activeWeapon.CurCone, ultimate.activeWeapon.CurCone ), math.Rand( -ultimate.activeWeapon.CurCone, ultimate.activeWeapon.CurCone ), 0 ) * 25
+    local dir2 = dir
+
     if ultimate.activeWeapon.ClumpSpread and ultimate.activeWeapon.ClumpSpread > 0 then
-        dir2 = dir + Vector( math_Rand(-1, 1), math_Rand(-1, 1), math_Rand(-1, 1)) * ultimate.activeWeapon.ClumpSpread
+        dir2 = dir + Vector( math.Rand(-1, 1), math.Rand(-1, 1), math.Rand(-1, 1)) * ultimate.activeWeapon.ClumpSpread
     end
 
     return ang - dir2
 end
 
-function ultimate.CustomSpread.tfa( cmd, ang )
+function ultimate.CustomSpread.tfa(cmd, ang)
+    local activeWeapon = ultimate.activeWeapon
+    if not activeWeapon then return ang end
 
-    
-    return ang
+    local cone = activeWeapon.GetCone and activeWeapon:GetCone() or activeWeapon.CurCone or 0
+    if cone <= 0 then return ang end
+
+    math.randomseed(activeWeapon.Cone.Seed + activeWeapon:Clip1() + activeWeapon:Ammo1())
+
+    local spread = math.Clamp(math.Rand(-cone, cone) * 0.1, -cone, cone)
+
+    return ang - Angle(spread, -spread, 0)
 end
+
+
+function ultimate.CustomSpread.arcw( cmd, ang )
+    local angDir = ang:Forward()
+
+	local seed1 = ultimate.activeWeapon:GetBurstCount()
+	local seed2 = !game.SinglePlayer() and cmd:CommandNumber() or CurTime()
+
+	local randSeed = util.SharedRandom(seed1, -1337, 1337, seed2) * (ultimate.activeWeapon:EntIndex() % 30241)
+	math_randomseed(math_Round(randSeed))
+
+	local spread = ArcCW.MOAToAcc * ultimate.activeWeapon:GetBuff("AccuracyMOA")
+	local disp = ultimate.activeWeapon:GetDispersion() * ArcCW.MOAToAcc / 10
+
+	angDir:Rotate(Angle(0, -ArcCW.StrafeTilt(ultimate.activeWeapon), 0))
+	angDir = angDir - VectorRand() * disp
+
+	local randSeed = util.SharedRandom(1, -1337, 1337, seed2) * (ultimate.activeWeapon:EntIndex() % 30241)
+	math_randomseed(math_Round(randSeed)) 
+	angDir = angDir - VectorRand() * spread
+
+	return angDir:Angle()
+end
+
+function ultimate.CustomSpread.mg( cmd, ang )
+end
+
+
 
 ultimate.SpreadComps = {}
 
@@ -5124,7 +4650,7 @@ ultimate.SpreadComps["swb"]     = ultimate.CustomSpread.swb
 ultimate.SpreadComps["cw"]      = ultimate.CustomSpread.cw
 ultimate.SpreadComps["fas2"]    = ultimate.CustomSpread.fas2
 ultimate.SpreadComps["tfa"]     = ultimate.CustomSpread.tfa
-
+ultimate.SpreadComps["arcw"]    = ultimate.CustomSpread.arcw
 
 
 
@@ -5142,42 +4668,37 @@ function ultimate.NoSpread(cmd, ang)
         ang = ultimate.SpreadComps[ base ]( cmd, ang )
     elseif ultimate.cones[ ultimate.activeWeaponClass ] then
         local spread = ultimate.cones[ ultimate.activeWeaponClass ]
-        return ultimate.Spread( cmd, ang, spread ) 
+        return ultimate.Spread( cmd, ang, spread )
     end
 
     return ang
 end
 
-function ultimate.NoRecoil( ang )  
-	if Startultith( ultimate.activeWeaponClass,"m9k_" ) or Startultith( ultimate.activeWeaponClass,"bb_" ) or Startultith( ultimate.activeWeaponClass,"unclen8_" ) then
+function ultimate.NoRecoil( ang )
+	if ultimate.activeWeaponClass == "weapon_pistol" or string.StartWith( ultimate.activeWeaponClass,"m9k_" ) or string.StartWith( ultimate.activeWeaponClass,"bb_" ) or string.StartWith( ultimate.activeWeaponClass,"unclen8_" ) then
 		return ang
 	else
-	    ang = ang - me:GetViewPunchAngles()
+	    ang = ang - pLocalPlayer:GetViewPunchAngles()
     end
 
 	return ang
 end
 
-/*
-ultimate.ui.ComboBox( p, "Hitscan mode", { "Damage", "Safety", "Scale" }, "Hitscan mode" )
-
-*/
-
 function ultimate.ParseBones( ply, bone )
     local mdl = ply:GetModel()
 
-    if ultimate.parsedbones[ mdl ] and ultimate.parsedbones[ mdl ][ bone ] then 
+    if ultimate.parsedbones[ mdl ] and ultimate.parsedbones[ mdl ][ bone ] then
         return ultimate.parsedbones[ mdl ][ bone ]
     end
 
     if not ultimate.parsedbones[ mdl ] then
         ultimate.parsedbones[ mdl ] = {}
     end
-        
+
     local set = ply:GetHitboxSet()
     local bonecount = ply:GetBoneCount()
 
-    for i = 0, bonecount - 1 do 
+    for i = 0, bonecount - 1 do
 		local group = ply:GetHitBoxHitGroup( i, set )
 
         if group == nil then continue end
@@ -5189,7 +4710,7 @@ function ultimate.ParseBones( ply, bone )
         end
 	end
 
-    for i = 0, bonecount - 1 do 
+    for i = 0, bonecount - 1 do
         local group = ply:GetHitBoxHitGroup( i, set )
 
         if group == nil then continue end
@@ -5212,11 +4733,11 @@ function ultimate.MultipointGroupCheck( group )
     if group == 6 or group == 7 and not ultimate.cfg.vars["Multipoint groups-Legs"] then return false end
     if group == 0 and not ultimate.cfg.vars["Multipoint groups-Generic"] then return false end
 
-    return true 
+    return true
 end
 
 function ultimate.GetBones( ply )
-    local scale = math_gRandom{ultimate.cfg.vars["Multipoint scale min"],ultimate.cfg.vars["Multipoint scale max"]}
+    local scale = ultimate.cfg.vars["Multipoint scale"]
     local pos = ply:LocalToWorld( ply:OBBCenter() )
     local set = ply:GetHitboxSet()
 
@@ -5226,7 +4747,7 @@ function ultimate.GetBones( ply )
 
         pos = {}
 
-        for i = 0, bonecount - 1 do 
+        for i = 0, bonecount - 1 do
             local group = ply:GetHitBoxHitGroup( i, set )
 
             if group == nil then continue end
@@ -5249,18 +4770,18 @@ function ultimate.GetBones( ply )
             local bone = pos[ i ].bone
             local hitboxbone = ply:GetHitBoxBone( bone, set )
 
-            if hitboxbone == nil then 
-                continue 
-            end 
+            if hitboxbone == nil then
+                continue
+            end
 
             local mins, maxs = ply:GetHitBoxBounds( bone, set )
 
-            if not mins or not maxs then 
+            if not mins or not maxs then
                 continue
-            end 
+            end
 
             local bonepos, ang = ply:GetBonePosition( hitboxbone )
-            
+
             if ultimate.cfg.vars["Multipoint"] and ultimate.MultipointGroupCheck( pos[ i ].hitgroup ) then
                 local points = {
                     ( ( mins + maxs ) * 0.5 ),
@@ -5278,12 +4799,12 @@ function ultimate.GetBones( ply )
                     points[ i ]:Rotate( ang )
                     points[ i ] = points[ i ] + bonepos
 
-                    if i == 1 then continue end 
+                    if i == 1 then continue end
 
                     points[ i ] = ( ( points[ i ] - points[1] ) * scale ) + points[ 1 ]
                     valid[ #valid + 1 ] = points[ i ]
                 end
-            end 
+            end
 
             mins:Rotate( ang )
             maxs:Rotate( ang )
@@ -5293,21 +4814,21 @@ function ultimate.GetBones( ply )
 
         return valid
     else
-        local bone = ultimate.ParseBones( ply, ultimate.cfg.vars["Hitbox selection"] ) 
+        local bone = ultimate.ParseBones( ply, ultimate.cfg.vars["Hitbox selection"] )
 
         local hitboxbone = ply:GetHitBoxBone( bone, set )
 
-        if hitboxbone == nil then 
-            return { pos }  
-        end 
+        if hitboxbone == nil then
+            return { pos }
+        end
 
         local mins, maxs = ply:GetHitBoxBounds( bone, set )
 
-        if not mins or not maxs then 
-            return { pos } 
-        end 
+        if not mins or not maxs then
+            return { pos }
+        end
 
-        local bonepos, ang = ply:GetBonePosition( hitboxbone )  
+        local bonepos, ang = ply:GetBonePosition( hitboxbone )
 
         if ultimate.cfg.vars["Multipoint"] then
             local points = {
@@ -5326,13 +4847,13 @@ function ultimate.GetBones( ply )
                 points[ i ]:Rotate( ang )
                 points[ i ] = points[ i ] + bonepos
 
-                if i == 1 then continue end 
+                if i == 1 then continue end
 
                 points[ i ] = ( ( points[ i ] - points[1] ) * scale ) + points[ 1 ]
             end
 
             return points
-        else 
+        else
             mins:Rotate( ang )
             maxs:Rotate( ang )
 
@@ -5344,74 +4865,87 @@ function ultimate.GetBones( ply )
 end
 
 function ultimate.GetSortedPlayers( mode, selfpred, plypred, vischeck )
-    local players   = player_GetAll()   // all players
-    local eyepos    = me:EyePos()       // i will call it multiple time so why not
-    local valid     = {}                // sorted lady and gentleman goes here ( niggers and faggots goes to hell )
+    local players   = player.GetAll()
+    local eyepos    = pLocalPlayer:EyePos()
+    local valid     = {}
 
 	if selfpred then
-		eyepos = eyepos + (me:GetVelocity() * TickInterval) * selfpred
+		eyepos = eyepos + (pLocalPlayer:GetVelocity() * flTickInterval) * selfpred
 	end
 
+    local iTeamLocal = ultimate.GetTeam( pLocalPlayer )
+
     for i = 1, #players do
-        local sus = players[i] 
+        local v = players[i]
 
-        if sus == me then continue end 
-        if not sus:Alive() or sus:IsDormant() then continue end 
-        if ultimate.cfg.vars["Ignores-Bots"] and sus:IsBot() then continue end 
-        if ultimate.cfg.vars["Ignores-Friends"] and ultimate.cfg.friends[sus:SteamID64()] then continue end 
-        if ultimate.cfg.vars["Ignores-Steam friends"] and sus:GetFriendStatus() == "friend" then continue end 
-        if ultimate.cfg.vars["Ignores-Admins"] and sus:IsAdmin() then continue end 
-        if ultimate.cfg.vars["Ignores-Frozen"] and sus:IsFlagSet( FL_FROZEN ) then continue end 
-        if ultimate.cfg.vars["Ignores-Nodraw"] and sus:IsEffectActive( EF_NODRAW ) then continue end 
-        if ultimate.cfg.vars["Ignores-God time"] and sus:GetColor().a < 255 then continue end 
-        if ultimate.cfg.vars["Ignores-Driver"] and sus:InVehicle() then continue end 
+        if v == pLocalPlayer then
+            continue
+        end
 
+        if not v:Alive() or v:IsDormant() then
+            continue
+        end
 
-        local st = sus:Team()
+        if ultimate.cfg.vars["Ignores-Bots"] and v:IsBot() then continue end
+        if ultimate.cfg.vars["Ignores-Friends"] and ultimate.cfg.friends[v:SteamID()] then continue end
+        if ultimate.cfg.vars["Ignores-Steam friends"] and v:GetFriendStatus() == "friend" then continue end
+        if ultimate.cfg.vars["Ignores-Admins"] and v:IsAdmin() then continue end
+        if ultimate.cfg.vars["Ignores-Frozen"] and v:IsFlagSet( FL_FROZEN ) then continue end
+        if ultimate.cfg.vars["Ignores-Nodraw"] and v:IsEffectActive( EF_NODRAW ) then continue end
+        if ultimate.cfg.vars["Ignores-God time"] and (type(v.HasGodMode) == "function" and v:HasGodMode()) then continue end
+        if ultimate.cfg.vars["Ignores-Driver"] and v:InVehicle() then continue end
+        if ultimate.cfg.vars["Target-Priority-Only"] and not ultimate.cfg.priorityList[v:SteamID()] then continue end
 
-        if st == TEAM_SPECTATOR or ultimate.cfg.vars["Ignores-Teammates"] and st == me:Team() then continue end 
-        if ultimate.cfg.vars["Ignores-Nocliping"] and sus:IsEFlagSet(EFL_NOCLIP_ACTIVE) then continue end 
+        local iTeamEnemy = ultimate.GetTeam( v )
+
+        if st == TEAM_SPECTATOR or ultimate.cfg.vars["Ignores-Teammates"] and iTeamLocal == iTeamEnemy then
+            continue
+        end
+
+        if ultimate.cfg.vars["Ignores-Nocliping"] and v:GetMoveType() == MOVETYPE_NOCLIP then
+            continue
+        end
 
         if vischeck then
-			local bone = ultimate.GetBones( sus )[1]
-			local dir = me:GetShootPos() - bone
+			local bone = ultimate.GetBones( v )[1]
+			local dir = pLocalPlayer:GetShootPos() - bone
 			dir:Normalize()
 
-			if !ultimate.VisibleCheck( sus, bone, selfpred, dir ) then
+			if !ultimate.VisibleCheck( v, bone, selfpred, dir ) then
 				continue
 			end
 		end
 
-        local pos = sus:GetPos()
-        if plypred then 
-            pos = pos + (sus:GetVelocity() * TickInterval) * plypred
+        local pos = v:GetPos()
+        if plypred then
+            pos = pos + (v:GetVelocity() * flTickInterval) * plypred
         end
 
-        valid[#valid+1] = { sus, pos }
+        valid[#valid+1] = { v, pos }
     end
 
     if mode == 1 then
-        table_sort(valid, function( a, b )
-            return ( a[2] - eyepos ):LengthSqr() < ( b[2] - eyepos ):LengthSqr()       
+        table.sort(valid, function( a, b )
+            return ( a[2] - eyepos ):LengthSqr() < ( b[2] - eyepos ):LengthSqr()
         end)
     elseif mode == 2 then
-        table_sort(valid, function( a, b )
+        table.sort(valid, function( a, b )
             local aScr, bScr = a[2]:ToScreen(), b[2]:ToScreen()
 
             local aDist
             do
-                local dx = scrwc - aScr.x
-                local dy = scrhc - aScr.y
+                local dx = ( screenWidth * 0.5 ) - aScr.x
+                local dy = ( screenHeight * 0.5 ) - aScr.y
                 aDist = dx * dx + dy * dy
             end
-    
+
             local bDist
             do
-                local dx = scrwc - bScr.x
-                local dy = scrhc - bScr.y
+                local dx = ( screenWidth * 0.5 ) - bScr.x
+                local dy = ( screenHeight * 0.5 ) - bScr.y
                 bDist = dx * dx + dy * dy
             end
-    
+
             return aDist < bDist
         end)
     end
@@ -5422,9 +4956,9 @@ function ultimate.GetSortedPlayers( mode, selfpred, plypred, vischeck )
 end
 
 function ultimate.IsTickHittable( ply, cmd, tick )
-    if ded.GetLatency(0) > 1 then return false end
+    if jopa.GetLatency(0) > 1 then return false end
 
-    local serverArriveTick = ded.GetCurTime() + ded.GetLatency(0) + ded.GetLatency(1)
+    local serverArriveTick = ultimate.flServerTime + jopa.GetLatency(0) + jopa.GetLatency(1)
     local diff = serverArriveTick - ultimate.btrecords[ ply ][ tick ].simulationtime
 
     if diff > ultimate.cfg.vars["Backtrack time"] / 1000 then return false end
@@ -5461,15 +4995,15 @@ do
     local lastdist, lasttick = 1337, 1
 
     function ultimate.FindClosestHittableTicks( ply, cmd )
-        local mypos = me:EyePos()
+        local mypos = pLocalPlayer:EyePos()
         local records = ultimate.btrecords[ ply ]
         local firstticks = ultimate.FindFirstHittableTicks( ply, cmd )
         local tickcount = #records
 
         if !tickcount or !firstticks then return 1 end
 
-        lastdist = math_huge
-    
+        lastdist = math.huge
+
         for i = 1, tickcount - firstticks do
             local mt = i + firstticks
 
@@ -5488,7 +5022,7 @@ function ultimate.SelectTarget( cmd )
     ultimate.target     = false
 
 
-    if !plys then return end 
+    if !plys then return end
 
     local maxplys       = ultimate.cfg.vars["Max targets"]
     local curplys       = #plys
@@ -5497,30 +5031,39 @@ function ultimate.SelectTarget( cmd )
         curplys = maxplys
     end
 
+    local vEyePos = pLocalPlayer:EyePos()
+
     local aimAng
     for i = 1, curplys do
 		local ply = plys[i][1]
 
-        if not ultimate.cfg.vars["Always backtrack"] then
+
+
+
+
+
+
+     if not ultimate.cfg.vars["Always backtrack"] then
             local bones = ultimate.GetBones( ply )
 
             for o = 1, #bones do
                 local bone = bones[o]
-                aimAng = ( bone - me:EyePos() ):Angle()
+                aimAng = ( bone - pLocalPlayer:EyePos() ):Angle()
 
                 if ultimate.VisibleCheck( ply, bone, nil, aimAng:Forward() ) then 
                     ultimate.target = ply
                     return ply, bone, aimAng, false, 0
                 end
             end
-    /*    elseif ultimate.cfg.vars["Extrapolation"] and ultimate.predicted[ ply ] then
+
+        elseif ultimate.cfg.vars["Extrapolation"] and ultimate.predicted[ ply ] then
             if not ultimate.predicted[ ply ].pos then return end
 
-            aimAng = ( ultimate.predicted[ ply ].pos - me:EyePos() ):Angle()
+            aimAng = ( ultimate.predicted[ ply ].pos - pLocalPlayer:EyePos() ):Angle()
 
-            ultimate.traceStruct.start = me:EyePos()
+            ultimate.traceStruct.start = pLocalPlayer:EyePos()
             ultimate.traceStruct.endpos = ultimate.predicted[ ply ].pos
-            ultimate.traceStruct.filter = me
+            ultimate.traceStruct.filter = pLocalPlayer
             ultimate.traceStruct.mask = MASK_SHOT
 
             local tr = TraceLine( ultimate.traceStruct )
@@ -5528,23 +5071,24 @@ function ultimate.SelectTarget( cmd )
             if !tr.Hit or tr.Entity == ply then
                 ultimate.target = ply
                 return ply, ultimate.predicted[ ply ].pos, aimAng, false, 0
-            end*/
+            end
         end
+
         if ultimate.cfg.vars["Backtrack"] then
             local ticks = ultimate.FindBacktrack( cmd, ply )
 
-            if ultimate.btrecords[ ply ] and not ply.break_lc then 
-                local ts = 0 
-                
+            if ultimate.btrecords[ ply ] and not ply.break_lc then
+                local ts = 0
+
                 if ultimate.cfg.vars["Backtrack mode"] == 3 then
                     for p = 1, #ticks do
                         if not ultimate.btrecords[ ply ][ p ] then continue end
 
-                        aimAng = ( ultimate.btrecords[ ply ][ p ].aimpos - me:EyePos() ):Angle()
+                        aimAng = ( ultimate.btrecords[ ply ][ p ].aimpos - pLocalPlayer:EyePos() ):Angle()
 
-                        ultimate.traceStruct.start = me:EyePos()
+                        ultimate.traceStruct.start = pLocalPlayer:EyePos()
                         ultimate.traceStruct.endpos = ultimate.btrecords[ ply ][ p ].aimpos
-                        ultimate.traceStruct.filter = me
+                        ultimate.traceStruct.filter = pLocalPlayer
                         ultimate.traceStruct.mask = MASK_SHOT
 
                         local tr = TraceLine( ultimate.traceStruct )
@@ -5568,11 +5112,11 @@ function ultimate.SelectTarget( cmd )
 
                 if not ultimate.btrecords[ ply ][ ts ] then return end
 
-                aimAng = ( ultimate.btrecords[ ply ][ ts ].aimpos - me:EyePos() ):Angle()
+                aimAng = ( ultimate.btrecords[ ply ][ ts ].aimpos - pLocalPlayer:EyePos() ):Angle()
 
-                ultimate.traceStruct.start = me:EyePos()
+                ultimate.traceStruct.start = pLocalPlayer:EyePos()
                 ultimate.traceStruct.endpos = ultimate.btrecords[ ply ][ ts ].aimpos
-                ultimate.traceStruct.filter = me
+                ultimate.traceStruct.filter = pLocalPlayer
                 ultimate.traceStruct.mask = MASK_SHOT
 
                 local tr = TraceLine( ultimate.traceStruct )
@@ -5591,53 +5135,72 @@ end
 function ultimate.IsMovementKeysDown( cmd )
 
     if cmd:KeyDown( IN_MOVERIGHT ) then
-        return true 
-    end 
-    
+        return true
+    end
+
     if cmd:KeyDown( IN_MOVELEFT ) then
-        return true 
-    end 
+        return true
+    end
 
     if cmd:KeyDown( IN_FORWARD ) then
-        return true 
-    end 
+        return true
+    end
 
     if cmd:KeyDown( IN_BACK ) then
-        return true 
-    end 
+        return true
+    end
 
     return false
 end
 
 function ultimate.MovementFix( cmd, wish_yaw )
 
-	local pitch = math_NormalizeAngle( cmd:GetViewAngles().x )
+	local pitch = math.NormalizeAngle( cmd:GetViewAngles().x )
 	local inverted = -1
-	
+
 	if ( pitch > 89 || pitch < -89 ) then
 		inverted = 1
 	end
 
-	local ang_diff = math_rad( math_NormalizeAngle( ( cmd:GetViewAngles().y - wish_yaw ) * inverted ) )
+	local ang_diff = math.rad( math.NormalizeAngle( ( cmd:GetViewAngles().y - wish_yaw ) * inverted ) )
 
 	local forwardmove = cmd:GetForwardMove()
 	local sidemove = cmd:GetSideMove()
 
-	local new_forwardmove = forwardmove * -math_cos( ang_diff ) * inverted + sidemove * math_sin( ang_diff )
-	local new_sidemove = forwardmove * math_sin( ang_diff ) * inverted + sidemove * math_cos( ang_diff )
+	local new_forwardmove = forwardmove * -math.cos( ang_diff ) * inverted + sidemove * math.sin( ang_diff )
+	local new_sidemove = forwardmove * math.sin( ang_diff ) * inverted + sidemove * math.cos( ang_diff )
 
 	cmd:SetForwardMove( new_forwardmove )
 	cmd:SetSideMove( new_sidemove )
 end
 
-function ultimate.SilentAngles(cmd)
-	if !ultimate.SilentAngle then ultimate.SilentAngle = cmd:GetViewAngles() end
+function ultimate.DoSilentAngleUpdate( UserCmd )
+    local pWeapon = pLocalPlayer:GetActiveWeapon()
 
-	ultimate.SilentAngle = ultimate.SilentAngle + Angle( cmd:GetMouseY() * ultimate.myaw, cmd:GetMouseX() * -ultimate.myaw, 0)
-	ultimate.SilentAngle.p = math_Clamp( ultimate.SilentAngle.p, -89, 89 )
-    ultimate.SilentAngle.r = 0
-    
-    ultimate.SilentAngle:Normalize()
+    if ( IsValid( pWeapon ) ) then
+        if ( pWeapon.FreezeMovement and pWeapon:FreezeMovement() ) then
+            return
+        end
+
+        local bIsInUse = UserCmd:KeyDown( IN_USE ) or pLocalPlayer:KeyDown(IN_USE)
+
+        if ( pWeapon:GetClass() == "weapon_physgun" and IsValid( pWeapon:GetInternalVariable( "m_hGrabbedEntity" ) ) and bIsInUse ) then
+            return
+        end
+    end
+
+    local mYaw = GetConVar( "m_yaw" ):GetFloat()
+    local mPitch = GetConVar( "m_pitch" ):GetFloat()
+
+    local silentAngle = ultimate.SilentAngle
+
+    silentAngle.x = math.Clamp( silentAngle.x + UserCmd:GetMouseY() * mPitch, -89, 89 )
+    silentAngle.y = silentAngle.y + UserCmd:GetMouseX() * -mYaw
+    silentAngle.r = 0
+
+    silentAngle:Normalize()
+
+    return silentAngle
 end
 
 
@@ -5649,7 +5212,7 @@ end
 
 
 
-    
+
 
 
 
@@ -5671,11 +5234,11 @@ ultimate.knifes[1] = {
 
     leftdmg = 25,
     leftdmgb = 90,
-    leftdist = 70*70,
+    leftdist = 64*64,
 
     rightdmg = 65,
     rightdmgb = 180,
-    rightdist = 68*68,
+    rightdist = 48*48,
 }
 
 ultimate.knifes[2] = {
@@ -5685,15 +5248,15 @@ ultimate.knifes[2] = {
 
     leftdmg = 10,
     leftdmgb = 10,
-    leftdist = 70*70,
+    leftdist = 50*50,
 
     rightdmg = 40,
     rightdmgb = 40,
-    rightdist = 70*70,
+    rightdist = 50*50,
 }
 
 ultimate.knifes[3] = {
-    str = "weapon_crowbar",
+    str = "weapon_crowba",
 
     canbackstab = false,
 
@@ -5703,126 +5266,39 @@ ultimate.knifes[3] = {
 
     rightdmg = 10,
     rightdmgb = 10,
-    rightdist = 0*0,
+    rightdist = 75*75,
 }
+
 ultimate.knifes[4] = {
-    str = "m9k_knife",
+    str = "hvh_kn",
 
-    canbackstab = false,
+    canbackstab = true,
 
-    leftdmg = 10,
-    leftdmgb = 10,
-    leftdist = 55*55,
+    leftdmg = 25,
+    leftdmgb = 90,
+    leftdist = 64*64,
 
-    rightdmg = 10,
-    rightdmgb = 10,
-    rightdist = 50*50,
+    rightdmg = 65,
+    rightdmgb = 180,
+    rightdist = 48*48,
 }
 
---other
 ultimate.knifes[5] = {
-    str = "tacrp_m_",
+    str = "umb_",
 
     canbackstab = false,
 
-    leftdmg = 10,
-    leftdmgb = 10,
-    leftdist = 135*135,
+    leftdmg = 1000,
+    leftdmgb = 1000,
+    leftdist = 300*300,
 
-    rightdmg = 10,
-    rightdmgb = 10,
-    rightdist = 89*89,
+    rightdmg = 1000,
+    rightdmgb = 1000,
+    rightdist = 300*300,
 }
-
-ultimate.knifes[6] = {
-    str = "weapon_swcs_knife_",
-
-    canbackstab = false,
-
-    leftdmg = 10,
-    leftdmgb = 10,
-    leftdist = 67*67,
-
-    rightdmg = 10,
-    rightdmgb = 10,
-    rightdist = 50*50,
-}
-
-ultimate.knifes[7] = {
-    str = "sab_best_stunstick",
-
-    canbackstab = false,
-
-    leftdmg = 10,
-    leftdmgb = 10,
-    leftdist = 67*67,
-
-    rightdmg = 10,
-    rightdmgb = 10,
-    rightdist = 0*0,
-}
-
-
-
-
---Grust
-ultimate.knifes[8] = {
-    str = "rust_rock",
-
-    canbackstab = false,
-
-    leftdmg = 10,
-    leftdmgb = 10,
-    leftdist = 67*67,
-
-    rightdmg = 10,
-    rightdmgb = 10,
-    rightdist = 0*0,
-}
-ultimate.knifes[9] = {
-    str = "rust_stone_spear",
-
-    canbackstab = false,
-
-    leftdmg = 10,
-    leftdmgb = 10,
-    leftdist = 75*75,
-
-    rightdmg = 10,
-    rightdmgb = 10,
-    rightdist = 0*0,
-}
-ultimate.knifes[10] = {
-    str = "rust_wooden_spear",
-
-    canbackstab = false,
-
-    leftdmg = 10,
-    leftdmgb = 10,
-    leftdist = 75*75,
-
-    rightdmg = 10,
-    rightdmgb = 10,
-    rightdist = 0*0,
-}
-ultimate.knifes[11] = {
-    str = "rust_combat_knife",
-
-    canbackstab = false,
-
-    leftdmg = 10,
-    leftdmgb = 10,
-    leftdist = 75*75,
-
-    rightdmg = 10,
-    rightdmgb = 10,
-    rightdist = 0*0,
-}
-
-
 
 function ultimate:EntityFaceBack( ent )
-    local angle = me:GetAngles().y - ent:GetAngles().y
+    local angle = pLocalPlayer:GetAngles().y - ent:GetAngles().y
 
     if angle < -180 then angle = 360 + angle end
 
@@ -5832,18 +5308,18 @@ function ultimate:EntityFaceBack( ent )
 end
 
 function ultimate.CanStab( ent, pos, health )
-    local mypos = me:GetShootPos()
+    local mypos = pLocalPlayer:GetShootPos()
     local tbl = ultimate.knifes[1]
-    local wc = me:GetActiveWeapon():GetClass()
-    local canuse = false 
+    local wc = pLocalPlayer:GetActiveWeapon():GetClass()
+    local canuse = false
 
     for i = 1, #ultimate.knifes do
-        if Startultith(wc,ultimate.knifes[i].str) then
-            canuse = true 
+        if string.StartWith(wc,ultimate.knifes[i].str) then
+            canuse = true
             tbl = ultimate.knifes[i]
             break
         end
-    end 
+    end
 
     if not canuse then return false, false end
 
@@ -5854,13 +5330,13 @@ function ultimate.CanStab( ent, pos, health )
     local backstab = tbl.canbackstab and ultimate:EntityFaceBack( ent ) or false
     local dist = mypos:DistToSqr( pos )
     local mode = ultimate.cfg.vars["Knifebot mode"]
-    
+
     if mode == 1 then // Damage mode - tries to inflict biggest possible damage
         if backstab and dist < tbl.rightdist then
             return true, true
         elseif dist < tbl.leftdist and ( ( backstab and health - tbl.leftdmgb <= 0 ) or ( health - tbl.leftdmg <= 0 ) ) then
             return true, false
-        elseif dist < tbl.rightdist or  ( dist < tbl.rightdist and health - tbl.leftdmg > 0 )  then 
+        elseif dist < tbl.rightdist or  ( dist < tbl.rightdist and health - tbl.leftdmg > 0 )  then
             return true, true
         end
     elseif mode == 2 then // Fast - tries to hit fast as possible
@@ -5880,19 +5356,7 @@ function ultimate.CanStab( ent, pos, health )
     return false, false
 end
 
-function ultimate.simtimeCheck( v )
-    if not ultimate.cfg.vars["Wait for simtime update"] then return true end
-
-    return v.simtime_updated
-end
-function ultimate.simtimeCheck( v )
-    if not ultimate.cfg.vars["Wait Break LC Disable"] then return true end
-
-    return !v.break_lc
-end
-
-
-// Crossbow prediction 
+// Crossbow prediction
 
 function ultimate.CrossbowPred( cmd )
     if not ultimate.CanShoot( cmd ) then return end
@@ -5904,7 +5368,7 @@ function ultimate.CrossbowPred( cmd )
     for i = 1, #plys do
         local ply = plys[i][1]
 
-        local eyePos        = me:EyePos()
+        local eyePos        = pLocalPlayer:EyePos()
 
         local plyPos        = ply:GetPos()
         local plyCenter     = ply:OBBCenter()
@@ -5918,32 +5382,32 @@ function ultimate.CrossbowPred( cmd )
         local distance      = eyePos:Distance( aimPos )
         local travelTime    = distance / 3500
 
-        // Movement simulation 
-        local predTime      = ( ded.GetLatency( 0 ) + ded.GetLatency( 1 ) ) + travelTime
+        // Movement simulation
+        local predTime      = ( jopa.GetLatency( 0 ) + jopa.GetLatency( 1 ) ) + travelTime
 
-        if predTime > ultimate.cfg.vars["Simulation limit"] then continue end
+        --if predTime > ultimate.cfg.vars["Simulation limit"] then continue end
 
-        ded.StartSimulation( ply:EntIndex() )
+        jopa.StartSimulation( ply:EntIndex() )
 
         for i = 1, ultimate.TIME_TO_TICKS( predTime ) do
-            ded.SimulateTick()
+            jopa.SimulateTick()
         end
 
-        local data          = ded.GetSimulationData()
+        local data          = jopa.GetSimulationData()
 
         aimPos              = data.m_vecAbsOrigin + plyCenter
         distance            = eyePos:Distance( aimPos )
         travelTime          = distance / 3500
 
-        ded.FinishSimulation()
+        jopa.FinishSimulation()
 
         // Gravity simulation
         local gravity       = GetConVar("sv_gravity"):GetFloat() * 0.05
-        gravity             = ( gravity * TickInterval ) * ultimate.TIME_TO_TICKS( travelTime )
+        gravity             = ( gravity * flTickInterval ) * ultimate.TIME_TO_TICKS( travelTime )
 
         aimPos.z            = aimPos.z + gravity
 
-        // Aimbot 
+        // Aimbot
 
         local finalVec = Vector( aimPos.x, aimPos.y, aimPos.z )
         local finalAng = ( finalVec - eyePos ):Angle()
@@ -5955,12 +5419,365 @@ function ultimate.CrossbowPred( cmd )
     end
 end
 
+local sv_airaccelerate = GetConVar( "sv_airaccelerate" )
+
+function ultimate.PredictVelocityExtrapolate( vel, yaw, fmove, smove, accel, maxspeed )
+
+	local viewangles = Angle( 0, yaw, 0 )
+
+	local forward = viewangles:Forward()
+	local right = viewangles:Right()
+ 
+	forward.z = 0
+	right.z = 0
+ 
+	forward:Normalize()
+	right:Normalize()
+ 
+	local wishdir = Vector( forward.x*fmove + right.x*smove, forward.y*fmove + right.y*smove, 0 )
+	local wishspeed = wishdir:Length()
+ 
+	wishdir:Normalize()
+ 
+	if ( wishspeed != 0 && wishspeed > maxspeed ) then
+		wishspeed = maxspeed
+	end
+ 
+	local wishspd = wishspeed
+ 
+	if ( wishspd > 30 ) then
+		wishspd = 30
+	end
+ 
+	local currentspeed = vel:Dot( wishdir )
+	local addspeed = wishspd - currentspeed
+ 
+	if ( addspeed <= 0 ) then
+		return
+	end
+ 
+	local accelspeed = accel * wishspeed
+ 
+	if ( accelspeed > addspeed ) then
+		accelspeed = addspeed
+	end
+
+	local newvel = wishdir * accelspeed
+ 
+	vel:Add( newvel )
+	
+end
+
+
+function ultimate.PredictMovementExtrapolate( target_ply, extrapolation_ticks )
+    local sv_gravity = GetConVar( "sv_gravity" )
+    local sv_sticktoground = GetConVar( "sv_sticktoground" )
+
+	local pm
+	
+	local vel_yaw
+	local vel_yaw_delta
+	
+	local frametime = TickInterval
+	local maxspeed = target_ply:GetMaxSpeed()
+	local jump_power = target_ply:GetJumpPower()
+	local accel = sv_airaccelerate:GetFloat() * frametime
+	local half_gravity = sv_gravity:GetFloat() * frametime * 0.5
+	local stick_to_ground = sv_sticktoground:GetBool()
+	local origin = target_ply:GetPos()
+	local velocity = target_ply:GetAbsVelocity()
+	local mins, maxs = target_ply:GetCollisionBounds()
+	local on_ground = target_ply:IsFlagSet( FL_ONGROUND )
+	local ducking = target_ply:IsFlagSet( FL_DUCKING )
+	local strafe_type = target_ply.m_nStrafeType
+	local angle = target_ply.m_flAirAngle
+	
+	local fmove = 0
+	local smove
+	
+	if ( strafe_type == STRAFE_LEFT ) then
+		smove = -cl_sidespeed
+	elseif ( strafe_type == STRAFE_RIGHT ) then
+		smove = cl_sidespeed
+	else
+		smove = 0
+	end
+
+	for i = 1, extrapolation_ticks do
+	
+		velocity.z = velocity.z - half_gravity
+	
+		if ( on_ground ) then
+		
+			if ( ducking ) then
+				velocity.z = jump_power
+			else
+				velocity.z = velocity.z + jump_power
+			end
+			
+			velocity.z = velocity.z - half_gravity
+			
+		end
+
+		if ( strafe_type == STRAFE_STRAIGHT ) then
+		
+			vel_yaw = math.NormalizeAngle( math.deg( math.atan2( velocity.y, velocity.x ) ) )
+			vel_yaw_delta = math.NormalizeAngle( angle - vel_yaw )
+			smove = ( vel_yaw_delta > 0 ) && -cl_sidespeed || cl_sidespeed
+		
+		else
+		
+			vel_yaw = math.NormalizeAngle( math.deg( math.atan2( velocity.y, velocity.x ) ) + angle )
+		
+		end
+ 
+		ultimate.PredictVelocityExtrapolate( velocity, vel_yaw, fmove, smove, accel, maxspeed )
+ 
+		local endpos = origin + ( velocity * frametime )
+ 
+		pm = util.TraceHull( {
+			start = origin,
+			endpos = endpos,
+			maxs = maxs,
+			mins = mins,
+			filter = target_ply,
+			mask = MASK_PLAYERSOLID,
+			collisiongroup = COLLISION_GROUP_PLAYER_MOVEMENT
+		} )
+ 
+		if ( pm.Fraction != 1 ) then
+ 
+			local time_left = frametime
+ 
+			for j = 1, 2 do
+ 
+				time_left = time_left - ( time_left * pm.Fraction )
+ 
+				local dot = velocity:Dot( pm.HitNormal )
+ 
+				velocity = velocity - ( pm.HitNormal * dot )
+ 
+				dot = velocity:Dot( pm.HitNormal )
+ 
+				if ( dot < 0 ) then
+					velocity = velocity - ( pm.HitNormal * dot )
+				end
+ 
+				endpos = pm.HitPos + ( velocity * time_left )
+ 
+				pm = util.TraceHull( {
+					start = pm.HitPos,
+					endpos = endpos,
+					maxs = maxs,
+					mins = mins,
+					filter = target_ply,
+					mask = MASK_PLAYERSOLID,
+					collisiongroup = COLLISION_GROUP_PLAYER_MOVEMENT
+				} )
+
+				if ( pm.Fraction == 1 ) then
+					break
+				end
+ 
+			end
+ 
+		end
+ 
+		origin = pm.HitPos
+ 
+		if ( !stick_to_ground && velocity.z > 140 ) then
+ 
+			on_ground = false
+ 
+		else
+ 
+			pm = util.TraceHull( {
+				start =  Vector( origin.x, origin.y, origin.z + 2 ),
+				endpos = Vector( origin.x, origin.y, origin.z - 1 ),
+				maxs = Vector( maxs.x, maxs.y, maxs.z * 0.5 ),
+				mins = mins,
+				filter = target_ply,
+				mask = MASK_PLAYERSOLID,
+				collisiongroup = COLLISION_GROUP_PLAYER_MOVEMENT
+			} )
+ 
+			on_ground = ( pm.Entity != NULL && pm.HitNormal.z >= 0.7 )
+ 
+		end
+ 
+		if ( on_ground ) then
+			velocity.z = 0
+		else
+			velocity.z = velocity.z - half_gravity
+		end
+	
+	end
+	
+	return origin
+
+end
+
+function ultimate.PredictPolynomialExtrapolate(ply, extrapolation_ticks)
+    local history = ply.m_PositionHistory
+    if not history or #history < 2 then
+        return ply:GetPos() + (ply:GetAbsVelocity() * engine.TickInterval() * extrapolation_ticks)
+    end
+
+    local dt = engine.TickInterval()
+    local t = extrapolation_ticks * dt
+    local p0 = history[1].pos
+    local p1 = history[2].pos
+
+    if #history >= 3 then
+        local p2 = history[3].pos
+        -- v1 = (p0 - p1) / dt_1
+        -- v2 = (p1 - p2) / dt_2
+        -- a = (v1 - v2) / dt_avg
+        
+        local dt1 = history[1].time - history[2].time
+        local dt2 = history[2].time - history[3].time
+        
+        if dt1 > 0 and dt2 > 0 then
+            local v1 = (p0 - p1) / dt1
+            local v2 = (p1 - p2) / dt2
+            local accel = (v1 - v2) / ((dt1 + dt2) * 0.5)
+            
+            -- P(t) = p0 + v1*t + 0.5*accel*t^2
+            return p0 + v1 * t + accel * (0.5 * t * t)
+        end
+    end
+
+    local dt1 = history[1].time - history[2].time
+    if dt1 > 0 then
+        local v1 = (p0 - p1) / dt1
+        return p0 + v1 * t
+    end
+
+    return p0 + (ply:GetAbsVelocity() * t)
+end
+
+function ultimate.FindBestAirAngle( vel_start, vel_end, sim_ticks, accel, maxspeed )
+
+    local find_air_angle_step = 0.1
+    local find_air_angle_limit = 10
+
+    local cl_forwardspeed = 10000
+    local cl_sidespeed = 10000
+
+    local STRAFE_NONE = 0
+    local STRAFE_LEFT = 1
+    local STRAFE_RIGHT = 2
+    local STRAFE_STRAIGHT = 3
+
+	local strafe_type = STRAFE_NONE
+	local best_angle = 0
+	
+	if ( sim_ticks <= 0 || sim_ticks > 24 ) then
+		return strafe_type, best_angle
+	end
+	
+	local vel_delta = vel_end - vel_start
+	local vel_delta_len_sqr = vel_delta:Length2DSqr()
+
+	if ( vel_delta_len_sqr < 0.01 ) then
+		return strafe_type, best_angle
+	end
+	
+	local vel_yaw_start = math.NormalizeAngle( math.deg( math.atan2( vel_start.y, vel_start.x ) ) )
+	local vel_yaw_end = math.NormalizeAngle( math.deg( math.atan2( vel_end.y, vel_end.x ) ) )
+	local vel_yaw_delta = math.NormalizeAngle( vel_yaw_end - vel_yaw_start )
+	local vel_yaw_avg = math.NormalizeAngle( vel_yaw_start + ( vel_yaw_delta / 2 ) )
+	
+	local fmove = 0
+	local smove = ( vel_yaw_delta > 0 ) && -cl_sidespeed || cl_sidespeed
+	
+	local strafe_dir = ( vel_yaw_delta > 0 ) && STRAFE_LEFT || STRAFE_RIGHT
+	local angle_step = find_air_angle_step
+	local min_vel_delta_len_sqr = vel_delta_len_sqr
+	
+	for i = 1, 2 do
+	
+		local angle = 0
+
+		while ( math.abs( angle ) <= find_air_angle_limit ) do
+		
+			local pred_vel = vel_start
+		
+			for j = 1, sim_ticks do
+			
+				local pred_vel_yaw = math.NormalizeAngle( math.deg( math.atan2( pred_vel.y, pred_vel.x ) ) + angle )
+
+				ultimate.PredictVelocityExtrapolate( pred_vel, pred_vel_yaw, fmove, smove, accel, maxspeed )
+			
+			end
+			
+			vel_delta = vel_end - pred_vel
+			vel_delta_len_sqr = vel_delta:Length2DSqr()
+
+			if ( vel_delta_len_sqr < min_vel_delta_len_sqr ) then
+			
+				min_vel_delta_len_sqr = vel_delta_len_sqr
+				strafe_type = strafe_dir
+				best_angle = angle
+			
+			end
+		
+			angle = angle + angle_step
+		
+		end
+		
+		angle_step = angle_step * -1
+	
+	end
+	
+	for i = 1, 2 do
+	
+		local angle = 0
+
+		while ( math.abs( angle ) <= find_air_angle_limit ) do
+		
+			local pred_vel = vel_start
+		
+			for j = 1, sim_ticks do
+			
+				local pred_vel_yaw = math.NormalizeAngle( math.deg( math.atan2( pred_vel.y, pred_vel.x ) ) )
+				local pred_vel_yaw_delta = math.NormalizeAngle( vel_yaw_avg + angle - pred_vel_yaw )
+				smove = ( pred_vel_yaw_delta > 0 ) && -cl_sidespeed || cl_sidespeed
+
+				ultimate.PredictVelocityExtrapolate( pred_vel, pred_vel_yaw, fmove, smove, accel, maxspeed )
+			
+			end
+			
+			vel_delta = vel_end - pred_vel
+			vel_delta_len_sqr = vel_delta:Length2DSqr()
+
+			if ( vel_delta_len_sqr < min_vel_delta_len_sqr ) then
+			
+				min_vel_delta_len_sqr = vel_delta_len_sqr
+				strafe_type = STRAFE_STRAIGHT
+				best_angle = vel_yaw_avg + angle
+			
+			end
+		
+			angle = angle + angle_step
+		
+		end
+		
+		angle_step = angle_step * -1
+	
+	end
+	
+	return strafe_type, best_angle
+
+end 
+
+
 // Propkill aimbot
 
-ultimate.grabbingEnt = false 
+ultimate.grabbingEnt = false
 
-function ultimate.DrawPhysgunBeamFunc( ply, wep, e, tar, bone, hitpos )
-    if ply != me then return end 
+function ultimate.DrawPhysgunBeam( ply, wep, e, tar, bone, hitpos )
+    if ply != pLocalPlayer then return end
 
     ultimate.grabbingEnt = IsValid( tar ) and tar or false
 end
@@ -5978,13 +5795,13 @@ function ultimate.PropAim( cmd )
     for i = 1, #plys do
         local ply           = plys[i][1]
 
-        local eyePos        = me:EyePos() 
+        local eyePos        = pLocalPlayer:EyePos()
 
         local plyPos        = ply:GetPos()
         local plyVel        = ply:GetVelocity()
         local plyCenter     = ply:OBBCenter()
         local plySpeed      = plyVel:Length()
-        //local plyPred       = plyPos + plyVel * TickInterval
+        //local plyPred       = plyPos + plyVel * flTickInterval
 
         local propPos       = ultimate.grabbingEnt:GetPos()
         local propVel       = ultimate.grabbingEnt:GetVelocity()
@@ -5996,25 +5813,25 @@ function ultimate.PropAim( cmd )
         if plydist >= 4096 then continue end
 
         local travelTime    = distance / propSpeed
-        //local predTime      = ( ded.GetLatency( 0 ) + ded.GetLatency( 1 ) ) + travelTime
+        //local predTime      = ( jopa.GetLatency( 0 ) + jopa.GetLatency( 1 ) ) + travelTime
 
-        if travelTime > ultimate.cfg.vars["Simulation limit"] then continue end // predTime
+        --if travelTime > ultimate.cfg.vars["Simulation limit"] then continue end // predTime
 
         // Prediction
 
-        ded.StartSimulation( ply:EntIndex() )
+        jopa.StartSimulation( ply:EntIndex() )
 
         for i = 1, ultimate.TIME_TO_TICKS( travelTime ) do // predTime
-            ded.SimulateTick()
+            jopa.SimulateTick()
         end
 
-        local data          = ded.GetSimulationData()
+        local data          = jopa.GetSimulationData()
         local aimPos        = data.m_vecAbsOrigin + plyCenter
 
         distance            = aimPos:Distance( propPos )
         travelTime          = distance / propSpeed
 
-        ded.FinishSimulation()
+        jopa.FinishSimulation()
 
         // Mouse wheel shit
 
@@ -6023,10 +5840,10 @@ function ultimate.PropAim( cmd )
 
         // Aim
 
-        local aimAng        = ( aimPos - me:EyePos() ):Angle()
+        local aimAng        = ( aimPos - pLocalPlayer:EyePos() ):Angle()
         aimAng:Normalize()
 
-        cmd:SetMouseWheel( scrollDelta ) 
+        cmd:SetMouseWheel( scrollDelta )
         cmd:SetViewAngles( aimAng )
 
         /* Method 1
@@ -6046,22 +5863,22 @@ function ultimate.PropAim( cmd )
 
 
 
-        
-        local predticks = ultimate.TIME_TO_TICKS( ded.GetLatency(0) + ded.GetLatency(1) ) + 1
 
-        ded.StartSimulation( ply:EntIndex() )
+        local predticks = ultimate.TIME_TO_TICKS( jopa.GetLatency(0) + jopa.GetLatency(1) ) + 1
+
+        jopa.StartSimulation( ply:EntIndex() )
 
         for i = 1, predticks do
-            ded.SimulateTick()
+            jopa.SimulateTick()
         end
 
-        local data = ded.GetSimulationData()
+        local data = jopa.GetSimulationData()
 
         pos = data.m_vecAbsOrigin + ply:OBBCenter()
 
-        ded.FinishSimulation()
+        jopa.FinishSimulation()
 
-        local dist = pos:DistToSqr( me:EyePos() )
+        local dist = pos:DistToSqr( pLocalPlayer:EyePos() )
 
         local clr = dist < 16777216 and Color( 0, 255, 0 ) or Color( 255, 0, 0 )
 
@@ -6070,7 +5887,7 @@ function ultimate.PropAim( cmd )
 
         if dist >= 16777216 then continue end
 
-        local aimAng = ( pos - me:EyePos() ):Angle()
+        local aimAng = ( pos - pLocalPlayer:EyePos() ):Angle()
         local ppd = ultimate.grabbingEnt:GetPos():DistToSqr( pos )
 
         local cd = ultimate.cfg.vars["PA thrower dist"]
@@ -6078,11 +5895,11 @@ function ultimate.PropAim( cmd )
             cmd:RemoveKey( IN_ATTACK )
         end
 
-        local bmd = math_sqrt( dist - ppd )
+        local bmd = math.sqrt( dist - ppd )
 
-        if ( dist - ppd ) < 0 then bmd = 0 end 
+        if ( dist - ppd ) < 0 then bmd = 0 end
 
-        local scrollDelta = math_ceil( bmd > 0 and -ppd or ppd )
+        local scrollDelta = math.ceil( bmd > 0 and -ppd or ppd )
 
         if scrollDelta > 5000 then
             scrollDelta = 5000
@@ -6098,50 +5915,162 @@ function ultimate.PropAim( cmd )
     end
 end
 
+function ultimate.ResolveSequence(ply)
+    local simtime = jopa.GetSimulationTime(ply)
+    if not ultimate.cfg.vars["Sequence resolver"] then return simtime end
+    
+    local curtime = CurTime()
+    if math.abs(simtime - curtime) > 1.0 then
+        local diff = simtime - curtime
+        local seconds = math.floor(diff)
+        simtime = simtime - seconds
+    end
+
+    return simtime
+end
+
 function ultimate.Aim(cmd)
     ultimate.AntiAim(cmd)
 
+    local tickrate = ultimate.TIME_TO_TICKS(1)
+    local latency = jopa.GetLatency(0)
+    local latency_ticks = ultimate.TIME_TO_TICKS(latency)
+    local corrected_latency = math_Clamp(latency, 0, 1)
+
     if ultimate.SendPacket then
         ultimate.fakeAngles.angle = cmd:GetViewAngles()
-        ultimate.fakeAngles.movex = me:GetPoseParameter("move_x")
-        ultimate.fakeAngles.movey = me:GetPoseParameter("move_y")
+        ultimate.fakeAngles.movex = pLocalPlayer:GetPoseParameter("move_x")
+        ultimate.fakeAngles.movey = pLocalPlayer:GetPoseParameter("move_y")
 
         local layers = {}
 
         for i = 0, 13 do
-            if me:IsValidLayer(i) then
+            if pLocalPlayer:IsValidLayer(i) then
                 layers[i] = {
-                    cycle = me:GetLayerCycle(i),
-                    sequence = me:GetLayerSequence(i),
-                    weight = me:GetLayerWeight(i)
+                    cycle = pLocalPlayer:GetLayerCycle(i),
+                    sequence = pLocalPlayer:GetLayerSequence(i),
+                    weight = pLocalPlayer:GetLayerWeight(i)
                 }
             end
         end
 
-        ultimate.fakeAngles.origin = me:GetNetworkOrigin()
-        ultimate.fakeAngles.seq = me:GetSequence()
-        ultimate.fakeAngles.cycle = me:GetCycle()
+        ultimate.fakeAngles.origin = pLocalPlayer:GetNetworkOrigin()
+        ultimate.fakeAngles.seq = pLocalPlayer:GetSequence()
+        ultimate.fakeAngles.cycle = pLocalPlayer:GetCycle()
     else
         ultimate.realAngle = cmd:GetViewAngles()
     end
 
     local ply, bone, aimang, backtracking, bttick = ultimate.SelectTarget(cmd)
 
-    ultimate.targetVector = bone 
+    local w = me:GetActiveWeapon()
+
+    ultimate.targetVector = bone
 
     if not aimang then return end
 
-    aimang:Normalize()  
+    aimang:Normalize()
 
     if not ultimate.cfg.vars["Enable aimbot"] or not ply then return end
 
-    /*local targetTime = ded.GetSimulationTime( ply )
-    local timeOffset = ded.GetCurTime() - targetTime
+    local targetTime = ultimate.ResolveSequence(ply) 
+    local timeOffset = jopa.GetCurTime() - targetTime
 
-    local serverArriveTick = ded.GetCurTime() + ded.GetLatency(0) + ded.GetLatency(1)
+    local serverArriveTick = jopa.GetCurTime() + jopa.GetLatency(0) + jopa.GetLatency(1)
     local diff = serverArriveTick - targetTime
 
-    if diff > 1 and ultimate.cfg.vars["Adjust tickcount"] then return end*/
+    --if diff > 1 and ultimate.cfg.vars["Adjust tickcount"] then return end
+
+    local ent_time = jopa.GetSimulationTime( ply )
+    local valid = math.abs( corrected_latency - ( ultimate.TICKS_TO_TIME( engine.TickCount() ) + latency - ent_time ) ) <= 0.2
+
+    local oldAimAng = aimang
+    local finalAngle = aimang
+
+    local ExtrPos = bone
+    local Extrapolate = false
+
+    local saved_pos = ply:GetPos()
+
+    local extrapolated_pos = saved_pos
+
+    local nullvelocity = ply:GetVelocity():Length() > 2
+
+    if ultimate.cfg.vars["Extrapolation"] and ( !valid ) and nullvelocity then    
+        
+        if ply.m_needStrafeCalc and ply.m_nSimulationTicks and ply.m_nSimulationTicks > 0 then
+            ply.m_nStrafeType, ply.m_flAirAngle = ultimate.FindBestAirAngle(
+                ply.m_vecOldVelocity,
+                ply:GetAbsVelocity(),
+                ply.m_nSimulationTicks,
+                sv_airaccelerate:GetFloat() * engine.TickInterval(),
+                ply:GetMaxSpeed()
+            )
+            ply.m_needStrafeCalc = false
+        end
+        
+        if ( ply.m_nSimulationTicks > 0 ) then		
+            local delta_ticks = math_max( 0, engine.TickCount() - ply.m_nLastUpdateTick )
+            local extrapolation_ticks = math_floor( ( delta_ticks + latency_ticks ) / ply.m_nSimulationTicks ) * ply.m_nSimulationTicks	
+            if ( extrapolation_ticks >= ply.m_nSimulationTicks && extrapolation_ticks <= tickrate ) then	
+                
+                if ply.m_nStrafeType != 0 then
+                    extrapolated_pos = ultimate.PredictMovementExtrapolate(ply, extrapolation_ticks)
+                else
+                    extrapolated_pos = ultimate.PredictPolynomialExtrapolate(ply, extrapolation_ticks)
+                end
+                
+                ply:SetPos( extrapolated_pos )
+                valid = false		
+                Extrapolate = true
+            end			
+        end			
+    end	
+
+    jopa.InvalidateBoneCache( ply )
+    ply:SetupBones()
+
+    if ultimate.cfg.vars["Extrapolation"] and Extrapolate and not backtracking then
+    
+        local bone_index = ultimate.ParseBones( ply, ultimate.cfg.vars["Hitbox selection"] )
+        
+        local bone_matrix = ply:GetBoneMatrix( ply:GetHitBoxBone( bone_index, ply:GetHitboxSet() ) )
+        local mins, maxs = ply:GetHitBoxBounds( bone_index, ply:GetHitboxSet() )
+
+        mins = bone_matrix * mins
+        maxs = bone_matrix * maxs
+        
+        local center = (mins + maxs) * 0.5
+    
+        ExtrPos = center
+        finalAngle = (ExtrPos - me:EyePos()):Angle()
+        finalAngle:Normalize()
+        
+        local start = me:GetShootPos()
+        local dir = center - start
+        dir:Normalize()
+        local endpos = start + dir * 8192
+        
+        ultimate.traceStruct.start = start
+        ultimate.traceStruct.endpos = endpos
+        ultimate.traceStruct.filter = me
+        ultimate.traceStruct.mask = MASK_SHOT
+
+        local tr = TraceLine( ultimate.traceStruct )
+
+        ply:SetPos( saved_pos )
+
+        if ultimate.cfg.vars["Show extrapolation line"] then
+            debugoverlay.Line(saved_pos, extrapolated_pos, 0.1, Color(255, 255, 0), true)
+            debugoverlay.Cross(saved_pos, 5, 0.1, Color(0, 255, 0), true)
+            debugoverlay.Cross(extrapolated_pos, 5, 0.1, Color(255, 0, 0), true)
+            debugoverlay.Cross(ExtrPos, 3, 0.1, Color(0, 0, 255), true) 
+        end
+
+        if ( tr.Entity != ply ) then
+            return
+        end
+    end
 
     local oldangs = Angle(aimang)
 
@@ -6155,27 +6084,40 @@ function ultimate.Aim(cmd)
 
 		ang:Normalize()
 
-		ang = math_sqrt(ang.x * ang.x + ang.y * ang.y)
+		ang = math.sqrt(ang.x * ang.x + ang.y * ang.y)
 
         if ang > fov then
             ultimate.targetVector = false
-		    return 
+		    return
         end
     end
 
-    if not ultimate.CanShoot(cmd) or not ultimate.simtimeCheck( ply ) then return end
+    if not ultimate.CanShoot(cmd) then return end
+
+    if ultimate.cfg.vars["Wait For Simulation"] then
+        local simtime = ultimate.cfg.vars["dedulation"]
+        if ply:GetVelocity():Length() ~= 0 then
+            if simtime == 1 and not ply.simtime_updated then
+                return
+            elseif simtime == 2 and not me.simtime_updated and ply.simtime_updated then
+                return
+            end
+        end
+    end
+
     if not ultimate.cfg.vars["Aimbot smoothing"] and ultimate.SkipCommand then return end
 
     ultimate.aimingrn = true
 
-    // Knife bot 
+    // Knife bot
     local altfire = false
     local canstab, rightstab = ultimate.CanStab( ply, bone, ply:Health() )
 
+    
     if ultimate.cfg.vars["Knifebot"] and canstab then
         altfire = rightstab
     elseif ultimate.cfg.vars["Knifebot"] and not canstab then
-        return 
+        return
     end
 
     local oldAimAng = aimang
@@ -6186,7 +6128,7 @@ function ultimate.Aim(cmd)
     end
 
     if ultimate.cfg.vars["Force seed"] then
-        //ded.ForceSeed( cmd )
+        //jopa.ForceSeed( cmd )
     end
 
     if ultimate.cfg.vars["Nospread"] then
@@ -6197,7 +6139,7 @@ function ultimate.Aim(cmd)
         finalAngle.p = -finalAngle.p - 180
         finalAngle.y = finalAngle.y + 180
     end
-    
+
     if ultimate.cfg.vars["Facestab"] then
         local angles = ply:EyeAngles()
 
@@ -6213,193 +6155,114 @@ function ultimate.Aim(cmd)
 
         local rat = ultimate.cfg.vars["Smoothing"] * 100
         local ret = LerpAngle( FrameTime()*rat, va, finalAngle )
-        
+
         finalAngle = ret
     end
 
-    if ultimate.cfg.vars["Граст"] then
-        local w = me:GetActiveWeapon()
-        if not w or not IsValid(w) then return end
-
-        ded.NetSetConVar("cl_interp","0")
-        ded.NetSetConVar("cl_interpolate","0")
-        ded.SetCommandTick( cmd, ultimate.TIME_TO_TICKS( ded.GetSimulationTime( ultimate.target ) ) )
-
-        local PredPos = ultimate.targetVector
-
-        if ultimate.NotPredictileWep[ w:GetClass() ] then 
-            PredPos = ultimate.targetVector
-        else
-            local Velocity = 5000
-            local MaxPredTime = 1
-
-            if string.StartsWith(w:GetClass(), "rust_huntingbow") then
-                Velocity = 4000
-                MaxPredTime = 0.5
-            elseif string.StartsWith(w:GetClass(), "rust_assaultrifle") or string.StartsWith(w:GetClass(), "rust_boltrifle") then
-                Velocity = 10000
-            elseif string.StartsWith(w:GetClass(), "rust_revolver") then
-                Velocity = 4000 
-            elseif string.StartsWith(w:GetClass(), "rust_nailgun") then 
-                Velocity = 2500
-            end
-
-            local Distance = me:GetShootPos():Distance( PredPos )
-
-            if Distance < 80 then return end
-
-            local TravelTime = Distance / Velocity
-            local PredTime = ( ded.GetLatency( 0 ) + ded.GetLatency( 1 ) ) + TravelTime 
-
-            ded.StartSimulation( ultimate.target )
-                for i = 1, ultimate.TIME_TO_TICKS( PredTime ) do
-                    ded.SimulateTick()
-                end
-                local ModuleData = ded.GetSimulationData()
-                PredPos = ModuleData.m_vecAbsOrigin + (ultimate.targetVector - ultimate.target:GetPos())
-            ded.FinishSimulation()
-
-            Distance = me:GetShootPos():Distance( PredPos )
-            TravelTime = Distance / Velocity
-
-            local Gravity = (9.81 * 51.4285714 ) * (TravelTime^2) / 2
-            PredPos.z = PredPos.z + Gravity
-
-            ultimate.traceStruct.start = me:GetShootPos() 
-            ultimate.traceStruct.endpos = PredPos 
-            ultimate.traceStruct.filter = me
-            ultimate.traceStruct.mask = MASK_SHOT 
-        
-            local Trace = TraceLine( ultimate.traceStruct )
-
-            if Trace.Hit and not Trace.Entity:IsPlayer() then return end
-        end
-
-        debugoverlay.Cross( PredPos, 3, 0.1, color_white, true )
-
-        finalAngle = ( Vector( PredPos ) - me:GetShootPos() ):Angle()
-        finalAngle:Normalize()
-
-        if ultimate.cfg.vars["Auto fire"] then
-            cmd:AddKey( IN_ATTACK )
-        end
-
-        ultimate.targetVector = PredPos
-    end
-
     if ultimate.cfg.vars["Projectile aimbot"] then
-        local predTime = math.ceil( ( me:EyePos() ):DistToSqr( ply:GetPos() ) / 3600 )
+        local predTime = math.ceil( ( pLocalPlayer:EyePos() ):DistToSqr( ply:GetPos() ) / 3600 )
 
-        print( predTime )
+        //print( predTime )
 
         //if predTime > 15 then return end
 
-        ded.StartSimulation( ply:EntIndex() )
+        jopa.StartSimulation( ply:EntIndex() )
 
         for tick = 1, predTime do
-            ded.SimulateTick()
+            jopa.SimulateTick()
         end
 
-        local data = ded.GetSimulationData()
+        local data = jopa.GetSimulationData()
         local vec = data.m_vecAbsOrigin
 
-        ded.FinishSimulation()
+        jopa.FinishSimulation()
 
         local g = predTime * 0.111
 
         print( vec.z, g )
 
-        vec.z = vec.z + g 
+        vec.z = vec.z + g
 
-        finalAngle = ( vec - me:EyePos() ):Angle()
-        finalAngle:Normalize()  
+        finalAngle = ( vec - pLocalPlayer:EyePos() ):Angle()
+        finalAngle:Normalize()
     end
 
-    //ded.SetContextMenu( cmd, ultimate.cfg.vars["pSilent"] or ultimate.cfg.vars["Facestab"] )
     if ultimate.cfg.vars["Facestab"] then
         cmd:SetViewAngles( finalAngle )
-        ded.SetContextVector( cmd, oldAimAng:Forward(), true )
+        jopa.SetContextVector( cmd, oldAimAng:Forward(), true )
     elseif ultimate.cfg.vars["pSilent"] then
-        ded.SetContextVector( cmd, oldAimAng:Forward(), true )
+        jopa.SetContextVector( cmd, finalAngle:Forward(), true )
     else
         cmd:SetViewAngles( finalAngle )
     end
-        --ded paste 1 x 1
-    
-    if ultimate.cfg.vars["Extrapolation"]then
-        if backtracking then
-         targetTime = ultimate.btrecords[ply][bttick].simulationtime
-         timeOffset = ded.GetCurTime() - targetTime
 
-         serverArriveTick = ded.GetCurTime() + ded.GetLatency(0) + ded.GetLatency(1)
-         diff = serverArriveTick - ultimate.btrecords[ply][bttick].simulationtime
+    if backtracking then
+        targetTime = ultimate.btrecords[ply][bttick].simulationtime
+        local serverArriveTick = ultimate.flServerTime + jopa.GetLatency(0) + jopa.GetLatency(1)
+        local diff = serverArriveTick - targetTime
+
 
         if diff < 0.2 then
-            ded.NetSetConVar("cl_interpolate","0")
-            ded.NetSetConVar("cl_interp","0")
-            local tick = ultimate.TIME_TO_TICKS(targetTime + GetLerpTime())
-            ded.SetCommandTick(cmd, tick)
+            jopa.NetSetConVar("cl_interpolate","0")
+            jopa.NetSetConVar("cl_interp","0")
+            jopa.SetCommandTick(cmd, ultimate.TIME_TO_TICKS(targetTime))
         else
-            ded.NetSetConVar("cl_interpolate","1")
-            ded.NetSetConVar("cl_interp",tostring(ded.GetCurTime() - targetTime))
-            local tick = ultimate.TIME_TO_TICKS(ded.GetCurTime())
-            ded.SetCommandTick(cmd, tick - 1)
+            jopa.NetSetConVar("cl_interpolate","1")
+            local interp = math.Clamp(diff, 0, 0.1)
+            jopa.NetSetConVar("cl_interp", tostring(interp))
+            local tick = ultimate.TIME_TO_TICKS(ultimate.flServerTime)
+            jopa.SetCommandTick(cmd, tick - 1)
         end
     else
-
-        local simTime = ded.GetSimulationTime(ply)
-        if ultimate.cfg.vars["Forwardtrack"]  then
-            
-            local predTime = (ded.GetLatency(0) + ded.GetLatency(1)) * ultimate.cfg.vars["Forwardtrack time"]
-            simTime = simTime + predTime
-        end
-
-        local tick = ultimate.TIME_TO_TICKS(simTime + GetLerpTime())
-        ded.SetCommandTick(cmd, tick)
+        jopa.NetSetConVarUnreliable( "cl_lagcompensation", "1" )
+        jopa.NetSetConVar("cl_interpolate","0")
+        jopa.NetSetConVar("cl_interp","0")
+        jopa.SetCommandTick(cmd, ultimate.TIME_TO_TICKS( ent_time ) )
     end
-end
+
     if ultimate.cfg.vars["Auto fire"] then
-
-        local w = me:GetActiveWeapon():GetClass()
-
-        if Startultith( w, "m9k_" ) then
-            cmd:RemoveKey( IN_SPEED )               
+        if string.StartWith( ultimate.activeWeaponClass, "m9k_" ) then
+            cmd:RemoveKey( IN_SPEED )
         end
-        
-
-
-        
-        
-        
-        
-        
-        
-   
-
-
-       
 
         ultimate.SendPacket = true
-        me.simtime_updated = true
+        pLocalPlayer.simtime_updated = true
+        jopa.UpdateClientAnimation( pLocalPlayer )
 
-        if ultimate.cfg.vars["Resolver"] then 
+        if ultimate.cfg.vars["Resolver"] then
             ply.aimshots = (ply.aimshots or 0) + 1
         end
 
-        cmd:AddKey( altfire and IN_ATTACK2 or IN_ATTACK ) 
+        local isAutomatic = true
 
-        ultimate.SkipCommand = true 
+        if ultimate.activeWeapon.Primary then
+            isAutomatic = ultimate.activeWeapon.Primary.Automatic
+        else
+            if ultimate.activeWeaponClass == "weapon_pistol" then
+                isAutomatic = false
+            end
+        end
+
+        if altfire or ( ultimate.cfg.vars["Alt Rapid fire"] and cmd:CommandNumber() % 2 == 0 ) then
+            cmd:AddKey(IN_ATTACK2)
+        else
+            if isAutomatic or ( ultimate.cfg.vars["Rapid fire"] and cmd:CommandNumber() % 2 == 0 ) then
+                cmd:AddKey(IN_ATTACK)
+            end
+        end
+
+        ultimate.SkipCommand = true
     end
 end
 
 function ultimate.autoReload(cmd)
     if !ultimate.cfg.vars["Auto reload"] then return end
 
-	local wep = me:GetActiveWeapon()
+	local wep = pLocalPlayer:GetActiveWeapon()
 
 	if IsValid(wep) then
 		if wep.Primary then
-			if wep:Clip1() == 0 and wep:GetMaxClip1() > 0 and me:GetAmmoCount(wep:GetPrimaryAmmoType()) > 0 then
+			if wep:Clip1() == 0 and wep:GetMaxClip1() > 0 and pLocalPlayer:GetAmmoCount(wep:GetPrimaryAmmoType()) > 0 then
 				cmd:AddKey(IN_RELOAD)
 			end
 		end
@@ -6415,107 +6278,107 @@ function ultimate.PredictVelocity( velocity, viewangles, dir, maxspeed, accel )
 
 	local forward = viewangles:Forward()
 	local right = viewangles:Right()
-	
+
 	local fmove = 0
 	local smove = ( dir == 1 ) && -10000 || 10000
-	
+
 	forward.z = 0
 	right.z = 0
-	
+
 	forward:Normalize()
 	right:Normalize()
 
 	local wishdir = Vector( forward.x*fmove + right.x*smove, forward.y*fmove + right.y*smove, 0 )
 	local wishspeed = wishdir:Length()
-	
+
 	wishdir:Normalize()
-	
+
 	if ( wishspeed != 0 && wishspeed > maxspeed ) then
 		wishspeed = maxspeed
 	end
-	
+
 	local wishspd = wishspeed
-	
+
 	if ( wishspd > 30 ) then
 		wishspd = 30
 	end
-	
+
 	local currentspeed = velocity:Dot( wishdir )
 	local addspeed = wishspd - currentspeed
-	
+
 	if ( addspeed <= 0 ) then
 		return velocity
 	end
-	
-	local accelspeed = accel * wishspeed * TickInterval
-	
+
+	local accelspeed = accel * wishspeed * flTickInterval
+
 	if ( accelspeed > addspeed ) then
 		accelspeed = addspeed
 	end
-	
+
 	return velocity + ( wishdir * accelspeed )
 
 end
-    
+
 function ultimate.PredictMovement( viewangles, dir, angle )
 
 	local pm
 
 	local sv_airaccelerate = GetConVarNumber( "sv_airaccelerate" )
 	local sv_gravity = GetConVarNumber( "sv_gravity" )
-	local maxspeed = me:GetMaxSpeed()
-	local jump_power = me:GetJumpPower()
+	local maxspeed = pLocalPlayer:GetMaxSpeed()
+	local jump_power = pLocalPlayer:GetJumpPower()
 
-	local origin = me:GetNetworkOrigin()
-	local velocity = me:GetAbsVelocity()
-	
-	local mins = me:OBBMins()
-	local maxs = me:OBBMaxs()
+	local origin = pLocalPlayer:GetNetworkOrigin()
+	local velocity = pLocalPlayer:GetAbsVelocity()
 
-    local pticks = math_Round(ultimate.cfg.vars["CStrafe ticks"])
-	
-	local on_ground = me:IsFlagSet( FL_ONGROUND )
-	
+	local mins = pLocalPlayer:OBBMins()
+	local maxs = pLocalPlayer:OBBMaxs()
+
+    local pticks = math.Round(ultimate.cfg.vars["CStrafe ticks"])
+
+	local on_ground = pLocalPlayer:IsFlagSet( FL_ONGROUND )
+
 	for i = 1, pticks do
 
-		viewangles.y = math_NormalizeAngle( math_deg( math_atan2( velocity.y, velocity.x ) ) + angle )
+		viewangles.y = math.NormalizeAngle( math.deg( math.atan2( velocity.y, velocity.x ) ) + angle )
 
-		velocity.z = velocity.z - ( sv_gravity * TickInterval * 0.5 )
+		velocity.z = velocity.z - ( sv_gravity * flTickInterval * 0.5 )
 
 		if ( on_ground ) then
-		
+
 			velocity.z = jump_power
-			velocity.z = velocity.z - ( sv_gravity * TickInterval * 0.5 )
-			
+			velocity.z = velocity.z - ( sv_gravity * flTickInterval * 0.5 )
+
 		end
 
 		velocity = ultimate.PredictVelocity( velocity, viewangles, dir, maxspeed, sv_airaccelerate )
-		
-		local endpos = origin + ( velocity * TickInterval )
+
+		local endpos = origin + ( velocity * flTickInterval )
 
 		pm = TraceHull( {
 			start = origin,
 			endpos = endpos,
-			filter = me,
+			filter = pLocalPlayer,
 			maxs = maxs,
 			mins = mins,
 			mask = MASK_PLAYERSOLID
 		} )
-		
+
 		if ( ( pm.Fraction != 1 && pm.HitNormal.z <= 0.9 ) || pm.AllSolid || pm.StartSolid ) then
 			return false
 		end
-		
+
 		if ( pm.Fraction != 1 ) then
-		
-			local time_left = TickInterval
+
+			local time_left = flTickInterval
 
 			for j = 1, 2 do
-			
+
 				time_left = time_left - ( time_left * pm.Fraction )
 
 				local dot = velocity:Dot( pm.HitNormal )
-				
+
 				velocity = velocity - ( pm.HitNormal * dot )
 
 				dot = velocity:Dot( pm.HitNormal )
@@ -6529,7 +6392,7 @@ function ultimate.PredictMovement( viewangles, dir, angle )
 				pm = TraceHull( {
 					start = pm.HitPos,
 					endpos = endpos,
-					filter = me,
+					filter = pLocalPlayer,
 					maxs = maxs,
 					mins = mins,
 					mask = MASK_PLAYERSOLID
@@ -6538,30 +6401,30 @@ function ultimate.PredictMovement( viewangles, dir, angle )
 				if ( pm.Fraction == 1 || pm.AllSolid || pm.StartSolid ) then
 					break
 				end
-			
+
 			end
-			
+
 		end
-		
+
 		origin = pm.HitPos
-		
-		if ( ( ultimate.last_ground_pos - origin.z ) > math_Round(ultimate.cfg.vars["CStrafe ground diff"]) ) then
+
+		if ( ( ultimate.last_ground_pos - origin.z ) > math.Round(ultimate.cfg.vars["CStrafe ground diff"]) ) then
 			return false
 		end
-		
+
 		pm = TraceHull( {
 			start =  Vector( origin.x, origin.y, origin.z + 2 ),
 			endpos = Vector( origin.x, origin.y, origin.z - 1 ),
-			filter = me,
+			filter = pLocalPlayer,
 			maxs = Vector( maxs.x, maxs.y, maxs.z * 0.5 ),
 			mins = mins,
 			mask = MASK_PLAYERSOLID
 		} )
-		
+
 		on_ground = ( ( pm.Fraction < 1 || pm.AllSolid || pm.StartSolid ) && pm.HitNormal.z >= 0.7 )
-		
-		velocity.z = velocity.z - ( sv_gravity * TickInterval * 0.5 )
-		
+
+		velocity.z = velocity.z - ( sv_gravity * flTickInterval * 0.5 )
+
 		if ( on_ground ) then
 			velocity.z = 0
 		end
@@ -6581,19 +6444,19 @@ function ultimate.CircleStrafe( cmd )
 	
 		angle = 0
 		local path_found = false
-		local step = ( ultimate.cstrafe_dir == 1 ) && math_Round(ultimate.cfg.vars["CStrafe angle step"]) || -math_Round(ultimate.cfg.vars["CStrafe angle step"])
+		local step = ( ultimate.cstrafe_dir == 1 ) && math.Round(ultimate.cfg.vars["CStrafe angle step"]) || -math.Round(ultimate.cfg.vars["CStrafe angle step"])
 		
 		while ( true ) do
 		
 			if ( ultimate.cstrafe_dir == 1 ) then
 			
-				if ( angle > math_Round(ultimate.cfg.vars["CStrafe angle max step"]) ) then
+				if ( angle > math.Round(ultimate.cfg.vars["CStrafe angle max step"]) ) then
 					break
 				end
 			
 			else
 			
-				if ( angle < -math_Round(ultimate.cfg.vars["CStrafe angle max step"]) ) then
+				if ( angle < -math.Round(ultimate.cfg.vars["CStrafe angle max step"]) ) then
 					break
 				end
 			
@@ -6620,10 +6483,10 @@ function ultimate.CircleStrafe( cmd )
 	
 	if ( ultimate.cstrafe_dir < 2 ) then
 	
-		local velocity = me:GetAbsVelocity()
+		local velocity = pLocalPlayer:GetAbsVelocity()
 		local viewangles = cmd:GetViewAngles()
 		
-		viewangles.y = math_NormalizeAngle( math_deg( math_atan2( velocity.y, velocity.x ) ) + angle )
+		viewangles.y = math.NormalizeAngle( math.deg( math.atan2( velocity.y, velocity.x ) ) + angle )
 		
 		cmd:SetViewAngles( viewangles )
 		cmd:SetSideMove( ( ultimate.cstrafe_dir == 1 ) && -10000 || 10000 )
@@ -6634,6 +6497,456 @@ function ultimate.CircleStrafe( cmd )
 	
 	end
 
+end
+
+
+ultimate.bhop_ai_dir = 1
+ultimate.last_bhop_switch = 0
+ultimate.bhop_ai_target_yaw = 0
+ultimate.cstrafe_predict_ticks = 64
+ultimate.cstrafe_angle_step = 1
+ultimate.cstrafe_angle_maxstep = 15
+
+function ultimate.PredictVelocityBhop( velocity, viewangles, dir, maxspeed, accel, friction, interval_per_tick )
+
+	local forward = viewangles:Forward()
+	local right = viewangles:Right()
+
+	local fmove = 0
+	local smove = ( dir == 1 ) and -10000 or 10000
+ 
+	forward.z = 0
+	right.z = 0
+ 
+	forward:Normalize()
+	right:Normalize()
+ 
+	local wishdir = Vector( forward.x*fmove + right.x*smove, forward.y*fmove + right.y*smove, 0 )
+	local wishspeed = wishdir:Length()
+ 
+	wishdir:Normalize()
+ 
+	if ( wishspeed != 0 and wishspeed > maxspeed ) then
+		wishspeed = maxspeed
+	end
+ 
+	local wishspd = wishspeed
+ 
+	if ( wishspd > 30 ) then
+		wishspd = 30
+	end
+ 
+	local currentspeed = velocity:Dot( wishdir )
+	local addspeed = wishspd - currentspeed
+ 
+	if ( addspeed <= 0 ) then
+		return
+	end
+ 
+	local accelspeed = accel * interval_per_tick * wishspeed * friction
+ 
+	if ( accelspeed > addspeed ) then
+		accelspeed = addspeed
+	end
+ 
+	local new_vel = wishdir * accelspeed
+ 
+	velocity:Add( new_vel )
+
+end
+
+function ultimate.PredictMovementBhop( viewangles, dir, angle, collect, fast_check )
+ 
+	local pm
+ 
+	local maxspeed = pLocalPlayer:GetMaxSpeed()
+	local jump_power = pLocalPlayer:GetJumpPower()
+	local interval_per_tick = TickInterval
+	local gravity_per_tick = GetConVarNumber( "sv_gravity" ) * interval_per_tick
+	local accel = GetConVarNumber( "sv_airaccelerate" )
+	local stick_to_ground = GetConVarNumber( "sv_sticktoground" ) == 1
+	local friction = pLocalPlayer:GetInternalVariable( "m_surfaceFriction" ) or 1
+	local origin = pLocalPlayer:GetNetworkOrigin()
+	local velocity = pLocalPlayer:GetAbsVelocity()
+	local mins = pLocalPlayer:OBBMins()
+	local maxs = pLocalPlayer:OBBMaxs()
+	local on_ground = pLocalPlayer:IsFlagSet( FL_ONGROUND )
+ 
+	local start_origin = origin
+	local total_dist = 0
+	local total_fraction = 0
+	local min_fraction = 1
+
+	local ticks = fast_check and 15 or ultimate.cstrafe_predict_ticks
+
+	for i = 1, ticks do
+ 
+		viewangles.y = math_NormalizeAngle( math_deg( math_atan2( velocity.y, velocity.x ) ) + angle )
+ 
+		velocity.z = velocity.z - ( gravity_per_tick * 0.5 )
+ 
+		if ( on_ground ) then
+ 
+			velocity.z = velocity.z + jump_power
+			velocity.z = velocity.z - ( gravity_per_tick * 0.5 )
+ 
+		end
+ 
+		ultimate.PredictVelocityBhop( velocity, viewangles, dir, maxspeed, accel, friction, interval_per_tick )
+ 
+		local endpos = origin + ( velocity * interval_per_tick )
+ 
+		pm = TraceHull( {
+			start = origin,
+			endpos = endpos,
+			filter = pLocalPlayer,
+			maxs = maxs,
+			mins = mins,
+			mask = MASK_PLAYERSOLID
+		} )
+ 
+		total_fraction = total_fraction + pm.Fraction
+		if pm.Fraction < min_fraction then min_fraction = pm.Fraction end
+
+		if ( ( pm.Fraction != 1 && pm.HitNormal.z <= 0.9 ) || pm.AllSolid || pm.StartSolid ) then
+			return false, 0
+		end
+ 
+		if ( pm.Fraction != 1 ) then
+ 
+			local time_left = interval_per_tick
+ 
+			for j = 1, 2 do
+ 
+				time_left = time_left - ( time_left * pm.Fraction )
+ 
+				local dot = velocity:Dot( pm.HitNormal )
+ 
+				velocity = velocity - ( pm.HitNormal * dot )
+ 
+				dot = velocity:Dot( pm.HitNormal )
+ 
+				if ( dot < 0 ) then
+					velocity = velocity - ( pm.HitNormal * dot )
+				end
+ 
+				endpos = pm.HitPos + ( velocity * time_left )
+ 
+				pm = TraceHull( {
+					start = pm.HitPos,
+					endpos = endpos,
+					filter = pLocalPlayer,
+					maxs = maxs,
+					mins = mins,
+					mask = MASK_PLAYERSOLID
+				} )
+ 
+				if ( ( pm.Fraction != 1 && pm.HitNormal.z <= 0.9 ) || pm.AllSolid || pm.StartSolid ) then
+					return false, 0
+				end
+ 
+				if ( pm.Fraction == 1 ) then
+					break
+				end
+ 
+			end
+ 
+		end
+ 
+		origin = pm.HitPos
+		total_dist = total_dist + ( origin - pm.StartPos ):Length2D()
+ 
+		friction = 1
+ 
+		if ( velocity.z > 140 && !stick_to_ground ) then
+ 
+			on_ground = false
+ 
+		else
+ 
+			pm = TraceHull( {
+				start =  Vector( origin.x, origin.y, origin.z + 2 ),
+				endpos = Vector( origin.x, origin.y, origin.z - 1 ),
+				filter = pLocalPlayer,
+				maxs = Vector( maxs.x, maxs.y, maxs.z * 0.5 ),
+				mins = mins,
+				mask = MASK_PLAYERSOLID
+			} )
+ 
+			on_ground = ( ( pm.Fraction < 1 || pm.AllSolid || pm.StartSolid ) && pm.HitNormal.z >= 0.7 )
+ 
+			if ( !on_ground && velocity.z > 0 ) then
+ 
+				friction = 0.25
+ 
+			end
+ 
+		end
+ 
+		velocity.z = velocity.z - ( gravity_per_tick * 0.5 )
+ 
+		if ( on_ground ) then
+			velocity.z = 0
+		end
+ 
+	end
+ 
+	local straight_dist = ( origin - start_origin ):Length2D()
+	local dist_efficiency = straight_dist / ( total_dist + 0.001 )
+	
+	local score = ( total_fraction / ticks ) * 100 * math_Clamp( dist_efficiency, 0.1, 1 )
+	
+	local forward_check = TraceHull({
+		start = origin,
+		endpos = origin + velocity:GetNormalized() * 50,
+		mins = mins,
+		maxs = maxs,
+		filter = pLocalPlayer,
+		mask = MASK_PLAYERSOLID
+	})
+	
+	if forward_check.Fraction < 1 then
+		score = score * forward_check.Fraction
+	end
+
+	return true, score
+ 
+end
+
+function ultimate.CStrafe( UserCMD )
+
+	if ( !IsValid( pLocalPlayer ) ) then return end
+	if pLocalPlayer:WaterLevel() >= 2 or pLocalPlayer:GetMoveType() == MOVETYPE_LADDER then return end
+
+	local velocity = pLocalPlayer:GetAbsVelocity()
+	local speed = velocity:Length2D()
+	
+	local vel_yaw = math_deg( math_atan2( velocity.y, velocity.x ) )
+	local look_yaw = UserCMD:GetViewAngles().y
+
+	local left_dist = 0
+	local right_dist = 0
+	local scan_rays = 8
+	local scan_angle = 120
+
+	local base_yaw = ( speed < 150 ) and look_yaw or vel_yaw
+	if speed >= 150 and speed < 300 then
+		local frac = ( speed - 150 ) / 150
+		base_yaw = math_NormalizeAngle( look_yaw + math_NormalizeAngle( vel_yaw - look_yaw ) * frac )
+	end
+
+	for i = 1, scan_rays do
+		local ang = base_yaw + ( ( i / scan_rays ) * scan_angle )
+		local tr = TraceHull({
+			start = pLocalPlayer:GetNetworkOrigin() + Vector(0, 0, 35),
+			endpos = pLocalPlayer:GetNetworkOrigin() + Vector(0, 0, 35) + Angle(0, ang, 0):Forward() * 250,
+			mins = Vector(-16, -16, -16),
+			maxs = Vector(16, 16, 16),
+			filter = pLocalPlayer,
+			mask = MASK_PLAYERSOLID
+		})
+		local weight = 1.5 - ( ( i - 1 ) / scan_rays )
+		left_dist = left_dist + ( tr.Fraction * weight )
+	end
+
+	for i = 1, scan_rays do
+		local ang = base_yaw - ( ( i / scan_rays ) * scan_angle )
+		local tr = TraceHull({
+			start = pLocalPlayer:GetNetworkOrigin() + Vector(0, 0, 35),
+			endpos = pLocalPlayer:GetNetworkOrigin() + Vector(0, 0, 35) + Angle(0, ang, 0):Forward() * 250,
+			mins = Vector(-16, -16, -16),
+			maxs = Vector(16, 16, 16),
+			filter = pLocalPlayer,
+			mask = MASK_PLAYERSOLID
+		})
+		local weight = 1.5 - ( ( i - 1 ) / scan_rays )
+		right_dist = right_dist + ( tr.Fraction * weight )
+	end
+
+	local switch_threshold = math_Clamp( 0.3 + ( speed / 2000 ), 0.3, 0.8 )
+	
+	local hysteresis_time = ( speed < 300 ) and 0.2 or 0.4
+	if ( CurTime() - ( ultimate.last_bhop_switch or 0 ) ) > hysteresis_time then
+		if left_dist > right_dist + switch_threshold then
+			ultimate.bhop_ai_dir = 1
+			ultimate.last_bhop_switch = CurTime()
+		elseif right_dist > left_dist + switch_threshold then
+			ultimate.bhop_ai_dir = 0
+			ultimate.last_bhop_switch = CurTime()
+		end
+	end
+
+	local best_angle = 0
+	local best_path_score = -1
+	
+	local directions = { ultimate.bhop_ai_dir, ( ultimate.bhop_ai_dir == 1 ) and 0 or 1 }
+	
+	local search_stages = { 
+		{ max = ultimate.cstrafe_angle_maxstep, step = ultimate.cstrafe_angle_step },
+		{ max = 45, step = 2 }
+	}
+
+	for _, stage in ipairs( search_stages ) do
+		for _, dir in ipairs( directions ) do
+			local current_angle = 0
+			local step = ( dir == 1 ) and stage.step or -stage.step
+			local max_angle = stage.max
+
+			while ( math_abs( current_angle ) <= max_angle ) do
+				local success, score = ultimate.PredictMovementBhop( UserCMD:GetViewAngles(), dir, current_angle, false, true )
+				if ( success ) then
+					local combined_score = score - math_abs( current_angle ) * 1.5
+					
+					if combined_score > best_path_score then
+						best_angle = current_angle
+						best_path_score = combined_score
+						ultimate.bhop_ai_dir = dir
+					end
+					
+					if combined_score > 90 then break end
+				end
+
+				current_angle = current_angle + step
+			end
+			
+			if ( best_path_score > 85 ) then break end
+		end
+		
+		if ( best_path_score > 0 ) then break end
+	end
+
+	if best_path_score <= 0 then
+		best_angle = ( ultimate.bhop_ai_dir == 1 ) and 30 or -30
+	end
+
+	local target_yaw = math_NormalizeAngle( ( speed < 100 and look_yaw or vel_yaw ) + best_angle )
+
+	UserCMD:SetForwardMove( 0 )
+	UserCMD:SetSideMove( ( ultimate.bhop_ai_dir == 1 ) and -10000 or 10000 )
+	
+	ultimate.bhop_ai_target_yaw = target_yaw
+	
+	return target_yaw
+end
+
+
+function ultimate.DrawCStrafePath()
+	if not ultimate.cfg.vars["Adaptive CStrafe Path"] then return end
+	
+	local CStrafeActive = ultimate.IsKeyDown(ultimate.cfg.binds["Adaptive CStrafe"]) and ultimate.cfg.vars["Adaptive CStrafe"]
+	if not CStrafeActive then return end
+	
+	if not IsValid(pLocalPlayer) or not pLocalPlayer:Alive() then return end
+	
+	local velocity = pLocalPlayer:GetAbsVelocity()
+	local speed = velocity:Length2D()
+	if speed < 10 then return end
+	
+
+	local origin = pLocalPlayer:GetPos()
+	local vel = Vector(velocity.x, velocity.y, velocity.z)
+	local maxspeed = pLocalPlayer:GetMaxSpeed()
+	local accel = GetConVarNumber("sv_airaccelerate")
+	local interval = TickInterval
+	local friction = pLocalPlayer:GetInternalVariable("m_surfaceFriction") or 1
+	
+	local curvePoints = {}
+	local numTicks = 20
+	
+
+	local groundTrace = TraceLine({
+		start = origin,
+		endpos = origin - Vector(0, 0, 100),
+		filter = pLocalPlayer,
+		mask = MASK_PLAYERSOLID
+	})
+	
+	table_insert(curvePoints, groundTrace.HitPos + Vector(0, 0, 2))
+	
+
+	for i = 1, numTicks do
+
+		local vel_yaw = math_deg(math_atan2(vel.y, vel.x))
+		
+
+		local sidemove = (ultimate.bhop_ai_dir == 1) and -10000 or 10000
+		
+
+		local viewangles = Angle(0, vel_yaw, 0)
+		local right = viewangles:Right()
+		
+		right.z = 0
+		right:Normalize()
+		
+
+		local wishdir = Vector(right.x * sidemove, right.y * sidemove, 0)
+		local wishspeed = wishdir:Length()
+		wishdir:Normalize()
+		
+		if wishspeed > maxspeed then wishspeed = maxspeed end
+		
+		local wishspd = wishspeed
+		if wishspd > 30 then wishspd = 30 end
+		
+
+		local currentspeed = vel:Dot(wishdir)
+		local addspeed = wishspd - currentspeed
+		
+		if addspeed > 0 then
+			local accelspeed = accel * interval * wishspeed * friction
+			if accelspeed > addspeed then accelspeed = addspeed end
+			
+			vel.x = vel.x + wishdir.x * accelspeed
+			vel.y = vel.y + wishdir.y * accelspeed
+		end
+		
+
+		origin = origin + vel * interval
+		
+
+		local trace = TraceLine({
+			start = origin + Vector(0, 0, 50),
+			endpos = origin - Vector(0, 0, 150),
+			filter = pLocalPlayer,
+			mask = MASK_PLAYERSOLID
+		})
+		
+		table_insert(curvePoints, trace.HitPos + Vector(0, 0, 2))
+	end
+	
+	if #curvePoints < 2 then return end
+	
+
+	render_SetMaterial(ultimate.Materials["Gradient"])
+	
+	local count = #curvePoints
+	local time = CurTime()
+	
+
+	local pathColor = string.ToColor(ultimate.cfg.colors["Adaptive CStrafe Path"])
+	local r = pathColor.r
+	local g = pathColor.g
+	local b = pathColor.b
+	local a = pathColor.a
+	
+	for i = 1, count - 1 do
+		local startPos = curvePoints[i]
+		local endPos = curvePoints[i + 1]
+		
+
+		local progress = (count - i) / count
+		
+
+		local pulse = math_sin(time * 5 - i * 0.15) * 0.1 + 1
+		
+
+		local midThickness = math_max(0.3, 2.5 * progress)
+		render_DrawBeam(startPos, endPos, midThickness, 0, 1, Color(r, g, b, (a * 0.7) * progress))
+		
+
+		local coreThickness = math_max(0.2, 1.0 * progress)
+		render_DrawBeam(startPos, endPos, coreThickness, 0, 1, Color(r, g, b, a * progress))
+	end
 end
 
 do
@@ -6648,14 +6961,21 @@ do
         
             ultimate.CircleStrafe( cmd )
     
-        elseif ( ultimate.IsKeyDown(ultimate.cfg.binds["Z Hop"]) and ultimate.cfg.vars["Z Hop"] ) and not me:IsFlagSet( FL_ONGROUND ) then
-            local handler = ztick / 5.14 
+        elseif ( ultimate.IsKeyDown(ultimate.cfg.binds["Adaptive CStrafe"]) and ultimate.cfg.vars["Adaptive CStrafe"] ) then
+        
+            local target_yaw = ultimate.CStrafe( cmd )
+            if target_yaw then
+                ultimate.MovementFix( cmd, target_yaw )
+            end
+    
+        elseif ( ultimate.IsKeyDown(ultimate.cfg.binds["Z Hop"]) and ultimate.cfg.vars["Z Hop"] ) then
+            local handler = ztick / 3.14
             
-            cmd:SetSideMove( 2000 * math_sin(handler) ) 
+            cmd:SetSideMove( 5000 * math.sin(handler) )
         elseif ultimate.cfg.vars["Air strafer"] and ultimate.cfg.vars["Strafe mode"] == 3 then
     
             local get_velocity_degree = function(velocity)
-                local tmp = math_deg(math_atan(50.0 / velocity))
+                local tmp = math.deg(math.atan(30.0 / velocity))
                     
                 if (tmp > 90.0) then
                     return 90.0
@@ -6668,7 +6988,7 @@ do
     
             local M_RADPI = 57.295779513082
             local side_speed = 10000
-            local velocity = me:GetVelocity()
+            local velocity = pLocalPlayer:GetVelocity()
             velocity.z = 0.0
     
             local forwardmove = cmd:GetForwardMove()
@@ -6691,13 +7011,13 @@ do
                 cmd:SetForwardMove(0)
                 cmd:SetSideMove(0)
     
-                local turn_angle = math_atan2(-sidemove, forwardmove)
+                local turn_angle = math.atan2(-sidemove, forwardmove)
                 viewangles.y = viewangles.y + (turn_angle * M_RADPI)
             elseif (forwardmove) then
                 cmd:SetForwardMove(0)
             end
     
-            local strafe_angle = math_deg(math_atan(15 / velocity:Length2D()))
+            local strafe_angle = math.deg(math.atan(15 / velocity:Length2D()))
     
             if (strafe_angle > 90) then
                 strafe_angle = 90
@@ -6706,18 +7026,18 @@ do
             end
     
             local temp = Vector(0, viewangles.y - old_yaw, 0)
-            temp.y = math_NormalizeAngle(temp.y)
+            temp.y = math.NormalizeAngle(temp.y)
     
             local yaw_delta = temp.y
             old_yaw = viewangles.y
     
-            local abs_yaw_delta = math_abs(yaw_delta)
+            local abs_yaw_delta = math.abs(yaw_delta)
     
             if (abs_yaw_delta <= strafe_angle || abs_yaw_delta >= 30) then
                 local velocity_angles = velocity:Angle()
     
                 temp = Vector(0, viewangles.y - velocity_angles.y, 0)
-                temp.y = math_NormalizeAngle(temp.y)
+                temp.y = math.NormalizeAngle(temp.y)
     
                 local velocityangle_yawdelta = temp.y
                 local velocity_degree = get_velocity_degree(velocity:Length2D() * 128)
@@ -6748,60 +7068,25 @@ do
             local normalized_x = math.modf(ultimate.SilentAngle.x + 180, 360) - 180
             local normalized_y = math.modf(ultimate.SilentAngle.y + 180, 360) - 180
     
-            local yaw = math_rad(normalized_y - viewangles.y + angles_move.y)
+            local yaw = math.rad(normalized_y - viewangles.y + angles_move.y)
     
             if (normalized_x >= 90 || normalized_x <= -90 || ultimate.SilentAngle.x >= 90 && ultimate.SilentAngle.x <= 200 || ultimate.SilentAngle.x <= -90 && ultimate.SilentAngle.x <= 200) then
-                cmd:SetForwardMove(-math_cos(yaw) * speed)
+                cmd:SetForwardMove(-math.cos(yaw) * speed)
             else
-                cmd:SetForwardMove(math_cos(yaw) * speed)
+                cmd:SetForwardMove(math.cos(yaw) * speed)
             end
     
-            cmd:SetSideMove(math_sin(yaw) * speed)
+            cmd:SetSideMove(math.sin(yaw) * speed)
 
         elseif ultimate.cfg.vars["Air strafer"] and ultimate.cfg.vars["Strafe mode"] == 2 then
             cmd:SetForwardMove(0)
 
-            if me:IsFlagSet( FL_ONGROUND ) then
+            if pLocalPlayer:IsFlagSet( FL_ONGROUND ) then
                 cmd:SetForwardMove(10000)
             else
-                cmd:SetForwardMove(5850 / me:GetVelocity():Length2D())
+                cmd:SetForwardMove(5850 / pLocalPlayer:GetVelocity():Length2D())
                 cmd:SetSideMove((cmd:CommandNumber() % 2 == 0) && -400 || 400)
-            end
-
-            /*
-
-local ang_diff = math_NormalizeAngle( ultimate.SilentAngle.y - prev_yaw )
-            
-            if ( math_abs( ang_diff ) > 0 ) then
-            
-                if ( ang_diff > 0 ) then
-                    cmd:SetSideMove( -10000 )
-                else
-                    cmd:SetSideMove( 10000 )
-                end
-            
-            else
-            
-                local vel = me:GetAbsVelocity()
-                local vel_yaw = math_NormalizeAngle( math_deg( math_atan2( vel.y, vel.x ) ) )
-                local vel_yaw_diff = math_NormalizeAngle( ultimate.SilentAngle.y - vel_yaw )
-                
-                if ( vel_yaw_diff > 0 ) then
-                    cmd:SetSideMove( -10000 )
-                else
-                    cmd:SetSideMove( 10000 )
-                end
-    
-                local viewangles = cmd:GetViewAngles() //ultimate.SilentAngle //Angle( ultimate.SilentAngle.x, ultimate.SilentAngle.y, 0 )
-                viewangles.y = vel_yaw
-                cmd:SetViewAngles( viewangles )
-                
-            end
-    
-            prev_yaw = ultimate.SilentAngle.y
-            */
-            
-            
+            end            
         end
     end
 end
@@ -6813,12 +7098,28 @@ end
 
 ultimate.aatarget = nil
 
-function ultimate.PredictedPos(ply)
-    return ply:GetPos() + ply:GetVelocity() * TickInterval
+function ultimate.PredictedPos(ply, ticks)
+    ticks = ticks or 1
+
+    local dt  = engine.TickInterval() * ticks
+    local pos = ply:GetNetworkOrigin()
+    local vel = ply:GetAbsVelocity()
+
+    if not ply.m_vecOldVelocity then
+        return pos + vel * dt
+    end
+
+    local accel = (vel - ply.m_vecOldVelocity) / engine.TickInterval()
+
+    if accel:LengthSqr() > 4000 * 4000 then
+        return pos + vel * dt
+    end
+
+    return pos + vel * dt + accel * (0.5 * dt * dt)
 end
 
 function ultimate.PredictedEyePos()
-    return me:EyePos() + me:GetVelocity() * TickInterval
+    return pLocalPlayer:EyePos() + pLocalPlayer:GetVelocity() * flTickInterval
 end
 
 function ultimate.GetBaseYaw()
@@ -6826,38 +7127,38 @@ function ultimate.GetBaseYaw()
         return ultimate.SilentAngle.y
     end
 
-    return math_NormalizeAngle( (ultimate.PredictedPos(ultimate.aatarget) - ultimate.PredictedEyePos()):Angle().y )
+    return math.NormalizeAngle( (ultimate.PredictedPos(ultimate.aatarget) - ultimate.PredictedEyePos()):Angle().y )
 end
 
 function ultimate.Freestand(cmd)
 	if !IsValid(ultimate.aatarget) then return false end
 
-	local headpos = me:GetBonePosition(me:LookupBone("ValveBiped.Bip01_Head1"))
+	local headpos = pLocalPlayer:GetBonePosition(pLocalPlayer:LookupBone("ValveBiped.Bip01_Head1"))
 	if !headpos then return end
 
-	local selfpos = me:GetPos()
+	local selfpos = pLocalPlayer:GetPos()
 	local headoffset = Vector(selfpos.x, selfpos.y, headpos.z):Distance(headpos) + 5
 
 	local found = true
 
 	local pos = ultimate.aatarget:WorldToLocal(selfpos)
-	local bearing = math_deg(-math_atan2(pos.y, pos.x)) + 180 + 90
+	local bearing = math.deg(-math.atan2(pos.y, pos.x)) + 180 + 90
 	local left, right = bearing - 180 - 90, bearing - 180 + 90
 
 	local function CheckYaw(yaw)
-		yaw = math_rad(yaw)
-		local x, y = math_sin(yaw), math_cos(yaw)
+		yaw = math.rad(yaw)
+		local x, y = math.sin(yaw), math.cos(yaw)
 
 		local headoffsetvec = Vector(x, y, 0) * headoffset
 		headoffsetvec.z = headpos.z - selfpos.z
 
 		local tr = TraceLine({
-			start = ultimate.aatarget:EyePos() + ultimate.aatarget:GetVelocity() * TickInterval * 4,
+			start = ultimate.aatarget:EyePos() + ultimate.aatarget:GetVelocity() * flTickInterval * 4,
 			endpos = selfpos + headoffsetvec,
 			filter = ultimate.aatarget
 		})
 
-		return tr.Fraction < 1 and tr.Entity != me
+		return tr.Fraction < 1 and tr.Entity != pLocalPlayer
 	end
 
 	local function Normalize(ang) return 360 - ang + 90 end
@@ -6867,7 +7168,7 @@ function ultimate.Freestand(cmd)
 	left, right = Normalize(left), Normalize(right)
 
 	do
-		local headlocal = me:WorldToLocal(headpos)
+		local headlocal = pLocalPlayer:WorldToLocal(headpos)
 		if headlocal.x > 0 then
 			left, right = right, left
 		end
@@ -6884,122 +7185,106 @@ function ultimate.Freestand(cmd)
 	return false
 end
 
-ultimate.realAngle = me:EyeAngles()
+ultimate.realAngle = pLocalPlayer:EyeAngles()
 ultimate.inverted = false
 ultimate.oldYaw = 0
-ultimate.swaySide = 1
+ultimate.SwaySide = 1
 
 local baseyaw = 0
 
 ultimate.CalcYaw = {
     // Backward
-    [1] = function( cmd ) 
-        return baseyaw - 178 
-    end, 
+    [1] = function( cmd )
+        return baseyaw - 178
+    end,
     // Fake forward
     [2] = function( cmd )
-        return ultimate.SendPacket and baseyaw or baseyaw + 178 
-    end, 
+        return ultimate.SendPacket and baseyaw or baseyaw + 178
+    end,
     // Legit Delta
-    [3] = function( cmd )     
+    [3] = function( cmd )
         return ultimate.SendPacket and baseyaw or baseyaw + ( ultimate.inverted and 43 or - 43 )
     end,
-    // Sideways 
-    [4] = function( cmd )     
+    // Sideways
+    [4] = function( cmd )
         local delta = ultimate.inverted and 89 or -89
-        return baseyaw - ( ultimate.SendPacket and delta or -delta ) 
+        return baseyaw - ( ultimate.SendPacket and delta or -delta )
     end,
     // Half Sideways
-    [5] = function( cmd )     
+    [5] = function( cmd )
         local delta = ultimate.inverted and 89 or -89
-        return baseyaw - ( ultimate.SendPacket and delta or 178 ) 
+        return baseyaw - ( ultimate.SendPacket and delta or 178 )
     end,
     // Fake Spin
-    [6] = function( cmd )     
-        local add = math_NormalizeAngle( CurTime() * ultimate.cfg.vars["Spin speed"] * 10 )
+    [6] = function( cmd )
+        local add = math.NormalizeAngle( CurTime() * ultimate.cfg.vars["Spin speed"] * 10 )
         return ultimate.SendPacket and ( ultimate.inverted and ( baseyaw - 178 ) or add ) or ( ultimate.inverted and add or ( baseyaw - 178 ) )
     end,
-    // Sin sway
-    [9] = function( cmd )     
+    // Sin Sway
+    [7] = function( cmd )
         local add = ultimate.cfg.vars["Sin add"]
-        local sin = math_sin( CurTime() ) * ultimate.cfg.vars["Sin delta"]
+        local sin = math.sin( CurTime() ) * ultimate.cfg.vars["Sin delta"]
         return ultimate.SendPacket and baseyaw + sin + add or baseyaw - sin - add
     end,
-    // Pendulum sway
-    [10] = function( cmd )
+    // Pendulum Sway
+    [8] = function( cmd )
         local ct = CurTime()
         local delta = ultimate.cfg.vars["Sin delta"]
         local ct1 = ( ct % 0.9 )
         local ct2 = ( ct % 2 )
 
-        local x1 = ct2 * math_sin(ct1)
-        local y1 = ct2 * -1 * math_cos(ct1)
-    
-        local x2 = x1 + ct1 * math_sin(ct2)
-        local y2 = y1 - ct1 * math_cos(ct2)
+        local x1 = ct2 * math.sin(ct1)
+        local y1 = ct2 * -1 * math.cos(ct1)
+
+        local x2 = x1 + ct1 * math.sin(ct2)
+        local y2 = y1 - ct1 * math.cos(ct2)
 
         local sin = ultimate.SendPacket and x2 * delta or y2 * delta
         return baseyaw + sin
     end,
-    // Lag sway
-    [11] = function( cmd )     
+    // Lag Sway
+    [9] = function( cmd )
         local swaySpeed = (ultimate.fakeLagTicks + 1) / 12 * math.pi
-        local swayAmount = math_sin(CurTime() * swaySpeed) * 45
-    
-        return ( baseyaw - 180 ) + 55 * ultimate.swaySide + swayAmount * ultimate.swaySide * -1
+        local swayAmount = math.sin(CurTime() * swaySpeed) * 45
+
+        return ( baseyaw - 180 ) + 55 * ultimate.SwaySide + swayAmount * ultimate.SwaySide * -1
     end,
     // Fake Jitter
-    [12] = function( cmd )     
+    [10] = function( cmd )
         local delta = ultimate.cfg.vars["Jitter delta"]
-        
-        local a = ultimate.SendPacket and baseyaw - 178 or baseyaw - 178 + math_random( -delta, delta )
-        local b = ultimate.SendPacket and baseyaw - 178 + math_random( -delta, delta ) or baseyaw - 178
+
+        local a = ultimate.SendPacket and baseyaw - 178 or baseyaw - 178 + math.random( -delta, delta )
+        local b = ultimate.SendPacket and baseyaw - 178 + math.random( -delta, delta ) or baseyaw - 178
 
         return ultimate.inverted and a or b
     end,
-    // Kappa Jitter 
-    [13] = function( cmd )    
+    // Kappa Jitter
+    [11] = function( cmd )
         local delta = ultimate.cfg.vars["Jitter delta"]
 
-        local a = ultimate.SendPacket and baseyaw - 178 or baseyaw + ( delta * ultimate.swaySide )
-        local b = ultimate.SendPacket and baseyaw + ( delta * ultimate.swaySide ) or baseyaw - 178
+        local a = ultimate.SendPacket and baseyaw - 178 or baseyaw + ( delta * ultimate.SwaySide )
+        local b = ultimate.SendPacket and baseyaw + ( delta * ultimate.SwaySide ) or baseyaw - 178
 
         return ultimate.inverted and a or b
     end,
-    // Abu Jitter 
-    [14] = function( cmd )   
-        local ctjit = math_sin( CurTime() * 30 ) * 25
+    // Abu Jitter
+    [12] = function( cmd )
+        local ctjit = math.sin( CurTime() * 30 ) * 25
 
-        return ctjit + ( ultimate.SendPacket and baseyaw - 160 * ultimate.swaySide or baseyaw - 160 * -ultimate.swaySide )
+        return ctjit + ( ultimate.SendPacket and baseyaw - 160 * ultimate.SwaySide or baseyaw - 160 * -ultimate.SwaySide )
     end,
-    // Satanic spinner 
-    [15] = function( cmd ) 
+    // Satanic spinner
+    [13] = function( cmd )
         local side = ultimate.inverted and 1 or -1
-        local satanicvalue = math_sin( CurTime() * 666 ) * 666
+        local satanicvalue = math.sin( CurTime() * 666 ) * 666
 
-        return math_NormalizeAngle( ultimate.SendPacket and satanicvalue * side or satanicvalue * -side )
+        return math.NormalizeAngle( ultimate.SendPacket and satanicvalue * side or satanicvalue * -side )
     end,
     // Custom aa
-    [16] = function( cmd )   
+    [14] = function( cmd )
         return ultimate.SendPacket and baseyaw + ultimate.cfg.vars["Custom real"] or baseyaw + ultimate.cfg.vars["Custom fake"]
-    end,
-    // Switch 
-    [17] = function( cmd )  
-        return ultimate.SendPacket and baseyaw + math_gRandom{ultimate.cfg.vars["Switch real 1"],ultimate.cfg.vars["Switch real 2"]} or baseyaw + math_gRandom{ultimate.cfg.vars["Switch fake 1"],ultimate.cfg.vars["Switch fake 2"]}
-
-
-
-    end,
-    
-    // Multi Return spin
-    [18] = function( cmd )  
-        return ultimate.SendPacket and baseyaw + ultimate.cfg.vars["Custom real"] + CurTime() * ultimate.cfg.vars["Spin Real Spead"] % ultimate.cfg.vars["Spin Real"]  or baseyaw + ultimate.cfg.vars["Custom fake"] + CurTime() * ultimate.cfg.vars["Spin Fake Spead"] % ultimate.cfg.vars["Spin Fake"] 
-
-
-
-
-    end,
-} 
+    end
+}
 
 
 
@@ -7008,9 +7293,9 @@ ultimate.CalcYaw = {
 
 
 do
-    local pitch, yaw = 0, 0 
+    local pitch, yaw = 0, 0
 
-    local pitches = { 
+    local pitches = {
         [1] = 89,
         [2] = -89,
         [3] = 0,
@@ -7024,7 +7309,7 @@ do
 
 
 
- 
+
 
 
 
@@ -7046,13 +7331,13 @@ do
         if ultimate.SendPacket then
             pitchflip = not pitchflip
         end
-        
+
         if cfg == 6 then
             x = pitchflip and 180 or -180
         elseif cfg == 7 then
             x = ultimate.SendPacket and 89 or -180
         elseif cfg == 8 then
-            x = ultimate.cfg.vars["Custom pitch"] 
+            x = ultimate.cfg.vars["Custom pitch"]
         end
 
         return x
@@ -7064,54 +7349,55 @@ do
 
 
         elseif cfg == 7 then
-            
+
         elseif cfg == 8 then
-            
+
         elseif cfg == 9 then
-            local sin = math_sin( CurTime() ) * 89
+            local sin = math.sin( CurTime() ) * 89
             y = ultimate.SendPacket and baseyaw + sin or baseyaw - sin
         elseif cfg == 10 then
-            local side = ded.GetPreviousTick() % 2 == 1
+            local side = jopa.GetPreviousTick() % 2 == 1
 
-            y = ultimate.SendPacket and baseyaw - 180 or baseyaw + ( side and -89 or 89 )    
+            y = ultimate.SendPacket and baseyaw - 180 or baseyaw + ( side and -89 or 89 )
         elseif cfg == 11 then
 
         elseif cfg == 12 then
             y = baseyaw + ( ultimate.SendPacket && ultimate.cfg.vars["Custom fake"] || ultimate.cfg.vars["Custom real"] )
         end
 
-"Backward", 
-        "Fake forward", 
-        "Sideways", 
-        "Half sideways", 
-        "Fake spin", 
-        "Kappa", 
-        "sway",
+"Backward",
+        "Fake forward",
+        "Sideways",
+        "Half sideways",
+        "Fake spin",
+        "LBY",
+        "Kappa",
+        "Sway",
         "VDiff",
-        "Ш§Щ„Щ‚Ш¶ЩЉШЁ Ш§Щ„Ш·Щ€ЩЉЩ„",
+        "القضيب الطويل",
         "Lisp",
         "Custom",
 
 if ultimate.cfg.vars["Jitter"] == 2 and ultimate.SendPacket then
-            local r = math_random(-45,45)
-            local lbydiff = ded.GetTargetLBY(me:EntIndex()) - ded.GetCurrentLBY(me:EntIndex())
+            local r = math.random(-45,45)
+            local lbydiff = jopa.GetTargetLBY(pLocalPlayer:EntIndex()) - jopa.GetCurrentLBY(pLocalPlayer:EntIndex())
 
-            if y + r > ded.GetTargetLBY(me:EntIndex()) then
-                y = y + math_random(-lbydiff,lbydiff)
+            if y + r > jopa.GetTargetLBY(pLocalPlayer:EntIndex()) then
+                y = y + math.random(-lbydiff,lbydiff)
             else
                 y = y + r
             end
-             
+
         elseif ultimate.cfg.vars["Jitter"] == 3 and ultimate.SendPacket then
-            y = y + math_random(ded.GetCurrentLBY(me:EntIndex()),ded.GetTargetLBY(me:EntIndex()))
+            y = y + math.random(jopa.GetCurrentLBY(pLocalPlayer:EntIndex()),jopa.GetTargetLBY(pLocalPlayer:EntIndex()))
         end
 
         */
-        
+
     local function micromovement(cmd)
         if !ultimate.cfg.vars["Micromovement"] then return end
-        if !me:Alive() then return end
-        if cmd:KeyDown(IN_JUMP) then return end
+        if !pLocalPlayer:Alive() then return end
+        if !pLocalPlayer:IsFlagSet( FL_ONGROUND ) then return end
         if cmd:KeyDown(IN_BACK) or cmd:KeyDown(IN_FORWARD) or cmd:KeyDown(IN_MOVELEFT) or cmd:KeyDown(IN_MOVERIGHT) then return end
 
         cmd:SetSideMove(mm_side and -15.0 or 15.0)
@@ -7129,18 +7415,18 @@ if ultimate.cfg.vars["Jitter"] == 2 and ultimate.SendPacket then
             return false
         end
 
-        return true 
+        return true
     end
 
     function ultimate.AntiAim(cmd)
-        local freestandsucc, freestandsafe, freestandunsafe 
+        local freestandsucc, freestandsafe, freestandunsafe
 
         if ultimate.cfg.vars["Freestanding"] then
             freestandsucc, freestandsafe, freestandunsafe = ultimate.Freestand(cmd)
         end
 
         if ultimate.SendPacket then
-            ultimate.swaySide = ultimate.swaySide * -1 
+            ultimate.SwaySide = ultimate.SwaySide * -1
         end
 
         baseyaw = ultimate.GetBaseYaw()
@@ -7148,8 +7434,8 @@ if ultimate.cfg.vars["Jitter"] == 2 and ultimate.SendPacket then
         yaw = ultimate.CalcYaw[ultimate.cfg.vars["Yaw"] ](cmd)
 
         if ultimate.cfg.vars["Yaw randomisation"] then
-            yaw = yaw + math_random( -0.9, 0.9 ) 
-        end 
+            yaw = yaw + math.random( -0.9, 0.9 )
+        end
 
         if freestandsucc then
             yaw = ultimate.SendPacket and freestandunsafe or freestandsafe
@@ -7167,7 +7453,7 @@ if ultimate.cfg.vars["Jitter"] == 2 and ultimate.SendPacket then
 end
 
 /*
-    Fake lag  
+    Fake lag
 */
 ultimate.fakeLagTicks = 0
 ultimate.fakeLagfactor = 0
@@ -7177,19 +7463,45 @@ ultimate.peeked = false
 ultimate.peeking = false 
 
 function ultimate.FakeLagOnPeek()
-    ultimate.fakeLagTicks = ultimate.cfg.vars["On peek Factor"] - ultimate.chokedTicks - 1 
-    
-    if ultimate.chokedTicks >= ultimate.cfg.vars["On peek Factor"] then
+    ultimate.fakeLagTicks = 21 - ultimate.chokedTicks - 1 
+
+    if ultimate.chokedTicks >= 20 then
         ultimate.peeked = true
 		ultimate.peeking = false
 		ultimate.SendPacket = true
-        me.simtime_updated = true
+        pLocalPlayer.simtime_updated = true
+        --jopa.UpdateClientAnimation( pLocalPlayer:EntIndex() )
 		return
     end
 end
 
+
+if ultimate.cfg.vars["Lag fix"] then
+    if ultimate.cfg.vars["Backshoot"] then
+        local targetTime = jopa.GetSimulationTime( ply )
+        local timeOffset = jopa.GetServerTime(cmd) - targetTime
+
+        local serverArriveTick = jopa.GetServerTime(cmd) + jopa.GetLatency(0) + jopa.GetLatency(1)
+        local diff = serverArriveTick - ply.aimshots.sw_backshoot_data.simTime
+        if diff < 0.2 then 
+            local tick = math.floor(0.5 + (targetTime + ultimate.GetLerpTime()) / flTickInterval)
+            jopa.SetCommandTick(cmd, tick)
+        else
+            jopa.SetTargetInterp(jopa.GetServerTime(cmd) - targetTime)
+
+            local tick = math.floor(0.5 + jopa.GetServerTime(cmd) / flTickInterval)
+            jopa.SetCommandTick(cmd, tick - 1)
+        end
+    else
+        local simTime = jopa.GetSimulationTime(ply)
+        local tick = math.floor(0.5 + (simTime + ultimate.GetLerpTime()) / flTickInterval)
+        jopa.SetCommandTick(cmd, tick)
+    end
+end
+
+
 function ultimate.WarpOnPeek()
-	-- ded.StartShifting( true )
+	jopa.StartShifting( true )
 
 	ultimate.peeked = true
 	ultimate.peeking = false
@@ -7212,13 +7524,12 @@ function ultimate.CheckPeeking()
 	end
 
 	if ultimate.peeking and !ultimate.peeked then
-		if false and ultimate.cfg.vars["Warp on peek"] then -- !ded.GetIsShifting() and ded.GetCurrentCharge() >= ultimate.cfg.vars["Shift ticks"]
+		if !jopa.GetIsShifting() and jopa.GetCurrentCharge() >= ultimate.cfg.vars["Shift ticks"] and ultimate.cfg.vars["Warp on peek"] then
 			ultimate.WarpOnPeek()
-        elseif ultimate.cfg.vars["Freeze on peek"]then
-            ded.SetOutSequenceNr( ded.GetOutSequenceNr() + ultimate.maxFreezeTicks - 1 ) 
-
-	    elseif ultimate.cfg.vars["Fake lag options-On peek"] then
-			ultimate.FakeLagOnPeek()
+        elseif ultimate.cfg.vars["Freeze on peek"] then
+            jopa.SetOutSequenceNr( jopa.GetOutSequenceNr() + ultimate.maxFreezeTicks - 1 ) 
+		//elseif ultimate.cfg.vars["Fake lag options-On peek"] then
+		//	ultimate.FakeLagOnPeek()
 		end
 	end
 end
@@ -7230,11 +7541,12 @@ do
     
     local function shouldlag(cmd)
         if not ultimate.cfg.vars["Fake lag"] then return false end
-        if not me:Alive() then return false end
-        if false and ultimate.cfg.vars["Fakelag comp"] == 1 then return false end -- ded.GetCurrentCharge() > 0
+        if not pLocalPlayer:Alive() then return false end
+        if ultimate.cfg.vars["Fakelag comp"] == 1 and jopa.GetCurrentCharge() > 0 then return false end
         if ultimate.cfg.vars["Fake lag options-Disable on ladder"] and ultimate.moveType == MOVETYPE_LADDER then return false end
         if ultimate.cfg.vars["Fake lag options-Disable in attack"] and cmd:KeyDown(IN_ATTACK) then return false end
-        if ultimate.cfg.vars["Allah fly"] and not me:IsFlagSet( FL_ONGROUND ) then
+
+        if ultimate.cfg.vars["Allah fly"] and not pLocalPlayer:IsFlagSet( FL_ONGROUND ) then
             return false
         end
 
@@ -7242,15 +7554,15 @@ do
     end
 
     function ultimate.FakeLag(cmd)
-        local factor = math_Round(ultimate.cfg.vars["Lag limit"])
+        local factor = math.Round(ultimate.cfg.vars["Lag limit"])
 
         if ultimate.cfg.vars["Fake lag options-Randomise"] then 
-            factor =  math_random(ultimate.cfg.vars["Lag randomisation"],factor) 
+            factor =  math.random(ultimate.cfg.vars["Lag randomisation"],factor) 
         end
 
-        local velocity = me:GetVelocity():Length2D()
-        local pertick = velocity * TickInterval
-        local adaptive_factor = math_Clamp(math_ceil(64 / pertick),1,factor)
+        local velocity = pLocalPlayer:GetVelocity():Length2D()
+        local pertick = velocity * flTickInterval
+        local adaptive_factor = math.Clamp(math.ceil(64 / pertick),1,factor)
 
         if ultimate.cfg.vars["Lag mode"] == 1 or ultimate.cfg.vars["Lag mode"] == 3 then
             ultimate.fakeLagfactor = factor
@@ -7258,14 +7570,10 @@ do
             ultimate.fakeLagfactor = adaptive_factor
         end
 
-        if ultimate.cfg.vars["Allah walk"] and me:IsFlagSet( FL_ONGROUND ) and ultimate.IsKeyDown(ultimate.cfg.binds["allahwalk"]) then
+        if ultimate.cfg.vars["Allah walk"] and pLocalPlayer:IsFlagSet( FL_ONGROUND ) and ultimate.IsKeyDown(ultimate.cfg.binds["allahwalk"]) then
             ultimate.fakeLagfactor = 21
         end
 
-        //if ultimate.cfg.vars["Fakelag comp"] == 2 and ded.GetCurrentCharge() > 0 then 
-        //    local nfactor = ultimate.fakeLagfactor - ded.GetMaxShiftTicks() - 1
-        //    ultimate.fakeLagfactor = math_Clamp( nfactor, 0, 21 )
-        //end
 
         if shouldlag(cmd) then
             ultimate.SendPacket = false
@@ -7273,7 +7581,8 @@ do
             if ultimate.fakeLagTicks <= 0 then
                 ultimate.fakeLagTicks = ultimate.fakeLagfactor
                 ultimate.SendPacket = true
-                me.simtime_updated = true
+                pLocalPlayer.simtime_updated = true
+               --jopa.UpdateClientAnimation( pLocalPlayer:EntIndex() )
             else
                 ultimate.fakeLagTicks = ultimate.fakeLagTicks - 1
             end
@@ -7281,7 +7590,8 @@ do
         else
             if ultimate.fakeLagfactor > 0 then ultimate.fakeLagfactor = 0 end
             ultimate.SendPacket = true
-            me.simtime_updated = true
+            pLocalPlayer.simtime_updated = true
+            --jopa.UpdateClientAnimation( pLocalPlayer:EntIndex() )
         end
     end
 end
@@ -7289,15 +7599,15 @@ end
 function ultimate.ClampMovementSpeed(cmd, speed)
 	local final_speed = speed;
 
-	local squirt = math_sqrt((cmd:GetForwardMove() * cmd:GetForwardMove()) + (cmd:GetSideMove() * cmd:GetSideMove()));
+	local squirt = math.sqrt((cmd:GetForwardMove() * cmd:GetForwardMove()) + (cmd:GetSideMove() * cmd:GetSideMove()));
 
 	if (squirt > speed) then
-		local squirt2 = math_sqrt((cmd:GetForwardMove() * cmd:GetForwardMove()) + (cmd:GetSideMove() * cmd:GetSideMove()));
+		local squirt2 = math.sqrt((cmd:GetForwardMove() * cmd:GetForwardMove()) + (cmd:GetSideMove() * cmd:GetSideMove()));
 
 		local cock1 = cmd:GetForwardMove() / squirt2;
 		local cock2 = cmd:GetSideMove() / squirt2;
 
-		local Velocity = me:GetVelocity():Length2D();
+		local Velocity = pLocalPlayer:GetVelocity():Length2D();
 
 		if (final_speed + 1.0 <= Velocity) then
 			cmd:SetForwardMove(0)
@@ -7311,30 +7621,17 @@ end
 
 function ultimate.FastWalk( cmd )
     if not ultimate.cfg.vars["Ground strafer"] then return end 
-    if math_abs(cmd:GetSideMove()) > 1 or math_abs(cmd:GetForwardMove()) < 1 then return end 
-    if not me:IsFlagSet( FL_ONGROUND ) then return end
+    if math.abs(cmd:GetSideMove()) > 1 or math.abs(cmd:GetForwardMove()) < 1 then return end 
+    if not pLocalPlayer:IsFlagSet( FL_ONGROUND ) then return end
 
     if ultimate.moveType == MOVETYPE_NOCLIP or ultimate.moveType == MOVETYPE_LADDER then return end
 
-    local waterLevel = me:WaterLevel()
+    local waterLevel = pLocalPlayer:WaterLevel()
 
     if waterLevel >= 2 then return end
     
 	cmd:SetSideMove(cmd:CommandNumber() % 2 == 0 and -5250 or 5250)
 end
-
-
-local directionalMove = { IN_BACK, IN_MOVERIGHT, IN_MOVELEFT }
- 
-local function grustmovementdemon( cmd )
-    if not ultimate.cfg.vars["grustmovementdemon"] then return end
-    for i = 1, #directionalMove do
-        cmd:RemoveKey( directionalMove[ i ] )
-    end
-end
- 
-hook.Add( "CreateMove", "MovementFix", grustmovementdemon )
-
 
 function ultimate.validMoveType()
     return ultimate.moveType != MOVETYPE_LADDER and ultimate.moveType != MOVETYPE_NOCLIP and ultimate.moveType != MOVETYPE_OBSERVER 
@@ -7349,13 +7646,13 @@ function ultimate.isMoving(cmd)
 end
 
 function ultimate.Stop(cmd)
-    if ultimate.validMoveType() and me:IsFlagSet( FL_ONGROUND ) then
+    if ultimate.validMoveType() and pLocalPlayer:IsFlagSet( FL_ONGROUND ) then
 
         local moving = ultimate.isMoving(cmd)
 
         if not moving then
 
-            local vel = me:GetVelocity()
+            local vel = pLocalPlayer:GetVelocity()
             local dir = vel:Angle()
                 
             dir.yaw = ultimate.SilentAngle.y - dir.yaw
@@ -7370,7 +7667,7 @@ function ultimate.Stop(cmd)
     end
 end
 
-// Slidewalk 
+// Slidewalk
 
 function ultimate.SlideWalk( cmd )
     local ticksToStop = ultimate.fakeLagfactor
@@ -7388,14 +7685,14 @@ end
 
 
 
-// Auto peak 
+// Auto peak
 
-ultimate.startedPeeking = false 
+ultimate.startedPeeking = false
 ultimate.needToMoveBack = false
 ultimate.startPeekPosition = Vector(0,0,0)
 
 function ultimate.MoveTo( cmd, pos )
-    local ang = ( pos - me:GetPos() ):Angle().y
+    local ang = ( pos - pLocalPlayer:GetPos() ):Angle().y
 
     cmd:SetForwardMove(1000)
     cmd:SetSideMove(0)
@@ -7406,11 +7703,11 @@ function ultimate.MoveTo( cmd, pos )
 end
 
 function ultimate.checkAutopeak( cmd )
-    if ultimate.startedPeeking and cmd:KeyDown(IN_ATTACK) then 
+    if ultimate.startedPeeking and cmd:KeyDown(IN_ATTACK) then
         ultimate.needToMoveBack = true
     elseif !ultimate.startedPeeking and !cmd:KeyDown(IN_ATTACK) then
         ultimate.needToMoveBack = false
-    end  
+    end
 end
 
 do
@@ -7423,23 +7720,23 @@ do
 
     function ultimate.drawAutopeak()
         local col = ultimate.needToMoveBack and colorA or colorB
-    
-        cam_Start3D2D( ultimate.startPeekPosition, nullangle, 0.5 )
-            cam_IgnoreZ( true )
 
-            surface_SetDrawColor( col )
-            surface_SetMaterial( apmat )
-            surface_DrawTexturedRect( -32, -32, 64, 64 )
+        cam.Start3D2D( ultimate.startPeekPosition, nullangle, 0.5 )
+            cam.IgnoreZ( true )
 
-            cam_IgnoreZ( false )
-        cam_End3D2D()
+            surface.SetDrawColor( col )
+            surface.SetMaterial( apmat )
+            surface.DrawTexturedRect( -32, -32, 64, 64 )
+
+            cam.IgnoreZ( false )
+        cam.End3D2D()
     end
 end
 
 function ultimate.autopeakThink()
     if ultimate.IsKeyDown(ultimate.cfg.binds["Auto peak"]) then
         if not ultimate.startedPeeking then
-            ultimate.startPeekPosition = me:GetPos()     
+            ultimate.startPeekPosition = pLocalPlayer:GetPos()
         end
 
         ultimate.startedPeeking = true
@@ -7454,49 +7751,16 @@ end
 
 
 
-/*// Movement 
-ultimate.holdingOnGround = false 
-ultimate.badMoveTypes = { 
-    ["MOVETYPE_NOCLIP"] = true, ["MOVETYPE_LADDER"] = true, ["MOVETYPE_OBSERVER"] = true 
-}
 
-function ultimate.BunnyHop(cmd)
-    local moveType = me:GetMoveType()
-    local waterLevel = me:WaterLevel()
-
-    if ultimate.badMoveaTypes[moveType] then return end 
-
-    if me:IsFlagSet( FL_ONGROUND ) then
-
-        --[[if ultimate.holdingOnGround then 
-            ultimate.holdingOnGround = false
-
-            cmd:RemoveKey(IN_JUMP)
-        end
-
-        if cmd:KeyDown(IN_JUMP) then
-            ultimate.holdingOnGround = true 
-        end
-
-        return ]]
-    else 
-        cmd:RemoveKey(IN_JUMP)
-        return
-    end
-
-    //if waterLevel >= 2 then return end 
-end
-*/
-
-// Sequence Manipulation 
+// Sequence Manipulation
 
 ultimate.freezedTicks = 0
-ultimate.maxFreezeTicks = math_Round( 1 / TickInterval ) 
+ultimate.maxFreezeTicks = math.Round( 1 / flTickInterval )
 function ultimate.AnimationFreezer()
     if not ultimate.IsKeyDown( ultimate.cfg.binds["Animation freezer"] ) then return end
 
     if ultimate.freezedTicks < ultimate.maxFreezeTicks then
-        ded.SetOutSequenceNr( ded.GetOutSequenceNr() + ultimate.maxFreezeTicks - 1 ) 
+        jopa.SetOutSequenceNr( jopa.GetOutSequenceNr() + ultimate.maxFreezeTicks - 1 )
 
         ultimate.freezedTicks = ultimate.freezedTicks + 1
     else
@@ -7504,26 +7768,67 @@ function ultimate.AnimationFreezer()
     end
 end
 
-ultimate.seqshit = false
+ultimate.seqRunning = false
 function ultimate.SequenceShit(cmd)
-    if not ultimate.cfg.vars["Sequence manip"] or not ultimate.IsKeyDown(ultimate.cfg.binds["Sequence manip"]) then
-        
-        if ultimate.seqshit then
-            ultimate.seqshit = false 
+    local enabled = ultimate.cfg.vars["Sequence manip"] and (ultimate.cfg.binds["Sequence manip"] == 0 or ultimate.IsKeyDown(ultimate.cfg.binds["Sequence manip"]))
+    
+    if not enabled or cmd:KeyDown(IN_ATTACK) then
+        if ultimate.seqRunning then
+            ultimate.seqRunning = false
         end
-
-        return 
+        return
     end
 
-    local amt = ultimate.cfg.vars["Sequence min random"] and math_random(ultimate.cfg.vars["Sequence min"],ultimate.cfg.vars["OutSequence"]) or ultimate.cfg.vars["OutSequence"] 
+    local mode = ultimate.cfg.vars["Sequence mode"] or 1
+    local amt = ultimate.cfg.vars["Sequence min random"] and math.random(ultimate.cfg.vars["Sequence min"], ultimate.cfg.vars["OutSequence"]) or ultimate.cfg.vars["OutSequence"]
+    
+    if mode == 1 then
+        ultimate.seqRunning = true
+        ultimate.SendPacket = true
+        jopa.SetOutSequenceNr(jopa.GetOutSequenceNr() + amt)
+    elseif mode == 2 then
+        local tickrate = math.Round(1 / flTickInterval)
+        local seqshift = tickrate - 3
+        
+        if seqshift > 0 then
+            local velocity = pLocalPlayer:GetVelocity():Length2D()
+            local resetInterval = (velocity > 400) and 30 or 15
+            if (cmd:CommandNumber() % resetInterval == 0) then
+                ultimate.seqRunning = false
+            end
 
-    ultimate.seqshit = true
-    ultimate.SendPacket = true
-    ded.SetOutSequenceNr(ded.GetOutSequenceNr() + amt)
+            if not ultimate.seqRunning then
+
+                local jitter = math.random(-2, 2)
+                jopa.SetOutSequenceNr(jopa.GetOutSequenceNr() + seqshift + jitter)
+                ultimate.seqRunning = true
+                jopa.SetNetChokedPackets(0)
+            else
+                local targetChoke = 0
+                
+                if velocity < 10 then
+                    targetChoke = 127 
+                elseif velocity < 100 then
+                    targetChoke = math.random(1, 2) 
+                else
+                    targetChoke = 0 
+                end
+
+                jopa.SetNetChokedPackets(targetChoke)
+
+                if velocity < 50 and (cmd:CommandNumber() % 12 == 0) then
+                    jopa.SetCommandTick(cmd, cmd:TickCount() + math.random(-1, 1))
+                end
+            end
+        else
+            ultimate.seqRunning = false
+        end
+        ultimate.SendPacket = true
+    end
 end
 
 // Handjob ( arm breaker )
- 
+
 function ultimate.PerformHandjob( cmd )
     local mode = ultimate.cfg.vars["Handjob mode"]
     local shouldjerk = true
@@ -7531,13 +7836,13 @@ function ultimate.PerformHandjob( cmd )
     if mode == 2 then
         shouldjerk = (cmd:CommandNumber() % 12) >= 6
     elseif mode == 3 then
-        shouldjerk = math_random(0, 1) == 0 
+        shouldjerk = math.random(0, 1) == 0
     end
 
-    ded.SetTyping(cmd, shouldjerk)
-end 
+    jopa.SetTyping(cmd, shouldjerk)
+end
 
-// create move hook 
+// create move hook
 
 ultimate.norf = {
     ["laserjetpack"] = true,
@@ -7549,34 +7854,55 @@ ultimate.tyaga = 0
 ultimate.maxvape = ultimate.TIME_TO_TICKS(5)
 ultimate.hoppin = false
 local ic = false
+
+ultimate.slams = {}
+
+function ultimate.OnEntityCreated(ent)
+    if ent:GetClass() == "npc_satchel" and ent:GetOwner() == pLocalPlayer then
+        ultimate.slams[ #ultimate.slams + 1 ] = ent
+    end
+end
+
+
+
+
+
+local bWasOnGround = false
+
+
 function ultimate.CreateMove(cmd)
-    ultimate.SilentAngles(cmd)
+    ultimate.DoSilentAngleUpdate( cmd )
 
     ultimate.aimingrn = false
 
+    //if ( jopa.GetChokedPackets() > 14 ) then jopa.SetChokedPackets( 14 ) end
 
-    if cmd:CommandNumber() == 0 then return end
- 
-    //if ded.GetIsShifting() then ultimate.shiftedTicks = ultimate.shiftedTicks + 1 end
+    if cmd:CommandNumber() == 0 then
+        return
+    end
 
-    local w = me:GetActiveWeapon()
+    ultimate.flServerTime = jopa.GetCurTime()
+
+    //if jopa.GetIsShifting() then ultimate.shiftedTicks = ultimate.shiftedTicks + 1 end
+
+    local w = pLocalPlayer:GetActiveWeapon()
     ultimate.activeWeapon       = IsValid( w ) and w or false
-    ultimate.activeWeaponClass  = IsValid( w ) and w:GetClass() or false 
-    ultimate.moveType           = me:GetMoveType() 
+    ultimate.activeWeaponClass  = IsValid( w ) and w:GetClass() or false
+    ultimate.moveType           = pLocalPlayer:GetMoveType()
 
-    //if ultimate.cfg.vars["Passive recharge"] and ded.GetCurrentCharge() < ded.GetMaxShiftTicks() and not me:Alive() then
-    //    ded.SetReloadKeyPressed( true )
+    //if ultimate.cfg.vars["Passive recharge"] and jopa.GetCurrentCharge() < jopa.GetMaxShiftTicks() and not pLocalPlayer:Alive() then
+    //    jopa.SetReloadKeyPressed( true )
     //end
 
 
     if ultimate.cfg.vars["Silent aim"] then cmd:SetViewAngles(ultimate.SilentAngle) end
 
-    //if ded.GetIsShifting() then
-        //  ded.AdjustTickbase()
+    //if jopa.GetIsShifting() then
+        //  jopa.AdjustTickbase()
     //    print("shifting")
     //end
 
-    if ultimate.cfg.vars["Flashlight spam"] and input_IsKeyDown( KEY_F ) then
+    if ultimate.cfg.vars["Flashlight spam"] and input.IsKeyDown( KEY_F ) then
         cmd:SetImpulse(100)
     end
 
@@ -7586,122 +7912,124 @@ function ultimate.CreateMove(cmd)
                 cmd:RemoveKey( IN_ATTACK )
                 ultimate.tyaga = 0
             elseif ultimate.tyaga < ultimate.maxvape then
-                ultimate.tyaga = ultimate.tyaga + 1 
+                ultimate.tyaga = ultimate.tyaga + 1
             end
         else
             ultimate.tyaga = 0
         end
-    end 
+    end
 
+    if ultimate.cfg.vars["Auto healthkit"] then
+        local weapon = me:GetActiveWeapon()
+        if weapon:IsValid() then
+            print( weapon:GetName() )
+        end
+    end
 
-    if ultimate.vapecd then 
-        ultimate.vapecd = false 
-        cmd:RemoveKey( IN_ATTACK2 ) 
-    elseif ultimate.cfg.vars["Vape spam"] and ultimate.activeWeapon and not ultimate.vapecd and Startultith( ultimate.activeWeaponClass, "weapon_vape" ) then
+    if ultimate.vapecd then
+        ultimate.vapecd = false
+        cmd:RemoveKey( IN_ATTACK2 )
+    elseif ultimate.cfg.vars["Vape spam"] and ultimate.activeWeapon and not ultimate.vapecd and string.StartWith( ultimate.activeWeaponClass, "weapon_vape" ) then
         cmd:AddKey( IN_ATTACK2 )
         ultimate.vapecd = true
-    end   
+    end
 
     if ultimate.cfg.vars["Handjob"] then
         ultimate.PerformHandjob( cmd )
-    end 
+    end
 
     //if ultimate.cfg.vars["Fake latency"] then
     //    local amt = ultimate.cfg.vars["Max latency"]
-    //    ded.SetInSequenceNr(ded.GetInSequenceNr() - amt)
+    //    jopa.SetInSequenceNr(jopa.GetInSequenceNr() - amt)
     //end
 
-    if ultimate.SkipCommand then 
-        cmd:RemoveKey( IN_ATTACK ) 
-    
-        ultimate.SkipCommand = !ultimate.SkipCommand 
+    if ultimate.SkipCommand then
+        cmd:RemoveKey( IN_ATTACK )
+
+        ultimate.SkipCommand = !ultimate.SkipCommand
     end
 
-    if ( me:IsFlagSet( FL_ONGROUND ) ) then
-		ultimate.last_ground_pos = me:GetNetworkOrigin().z
+    if ( pLocalPlayer:IsFlagSet( FL_ONGROUND ) ) then
+		ultimate.last_ground_pos = pLocalPlayer:GetNetworkOrigin().z
 	end
 
     if ultimate.cfg.vars["Animation freezer"] then ultimate.AnimationFreezer() end
-    
+
 	ultimate.SequenceShit(cmd)
 
-    if not ultimate.seqshit then
+    if not ultimate.seqRunning then
         ultimate.FakeLag(cmd)
 
-        if ultimate.cfg.vars["Allah walk"] and me:IsFlagSet( FL_ONGROUND ) and ultimate.IsKeyDown(ultimate.cfg.binds["allahwalk"]) then
-            
+        if ultimate.cfg.vars["Allah walk"] and pLocalPlayer:IsFlagSet( FL_ONGROUND ) and ultimate.IsKeyDown(ultimate.cfg.binds["allahwalk"]) then
+
             if ultimate.fakeLagTicks != 20 then
                 ultimate.ClampMovementSpeed(cmd, 0)
             else
-                ultimate.ClampMovementSpeed(cmd, me:GetWalkSpeed())
+                ultimate.ClampMovementSpeed(cmd, pLocalPlayer:GetWalkSpeed())
             end
 
             //if(ultimate.fakeLagTicks <= 20) then
             //    ultimate.ClampMovementSpeed(cmd, 0)
             //    ultimate.Stop(cmd)
-                //me:SetPoseParameter("move_x", 0)
-	            //me:SetPoseParameter("move_y", 0)
+                //pLocalPlayer:SetPoseParameter("move_x", 0)
+	            //pLocalPlayer:SetPoseParameter("move_y", 0)
             //else
-             //   ultimate.ClampMovementSpeed(cmd, me:GetWalkSpeed())
+             //   ultimate.ClampMovementSpeed(cmd, pLocalPlayer:GetWalkSpeed())
             //end
 
-            --print(ultimate.fakeLagTicks,me:GetVelocity():Length2D())
+            --print(ultimate.fakeLagTicks,pLocalPlayer:GetVelocity():Length2D())
         end
     end
 
-    if ultimate.cfg.vars["Fake lag options-On peek"] or ultimate.cfg.vars["Warp on peek"] or ultimate.cfg.vars["Freeze on peek"]then
+    if ultimate.cfg.vars["Fake lag options-On peek"] or ultimate.cfg.vars["Warp on peek"] or ultimate.cfg.vars["Freeze on peek"] then
         ultimate.CheckPeeking()
     end
-    
-    // Movement
-    
-    ultimate.FastWalk( cmd )
 
+    // Movement
+
+    ultimate.FastWalk( cmd )
 
     if ultimate.cfg.vars["Sprint"] then cmd:AddKey(IN_SPEED) end
 
     ultimate.hoppin = false
+
+
+    if ( ultimate.IsKeyDown(ultimate.cfg.binds["Adaptive CStrafe"]) and ultimate.cfg.vars["Adaptive CStrafe"] ) then
+        if me:IsFlagSet( FL_ONGROUND ) then
+            cmd:AddKey( IN_JUMP )
+        else
+            cmd:RemoveKey( IN_JUMP )
+        end
+        ultimate.AutoStrafe( cmd )
+    end
+
     if ( cmd:KeyDown( IN_JUMP ) ) then
 
-		if ( !me:IsFlagSet( FL_ONGROUND ) ) and ultimate.cfg.vars["Bhop"] then
+		if ( not me:IsFlagSet( FL_ONGROUND ) ) and ultimate.cfg.vars["Bhop"] then
 			cmd:RemoveKey( IN_JUMP )
             ultimate.hoppin = true
 		end
 
 		ultimate.AutoStrafe( cmd )
 	end
-    
-    
 
-    
-    if ultimate.cfg.vars["Fast stop"] then
+    local directionalMove = { IN_BACK, IN_MOVERIGHT, IN_MOVELEFT }
+ 
+    if ultimate.cfg.vars["Remove keys"] then 
+        for i = 1, #directionalMove do
+            cmd:RemoveKey( directionalMove[ i ] )
+        end
+    end
+
+	if ultimate.cfg.vars["Fast stop"] then
         ultimate.Stop(cmd)
     end
 
-
-
-
-    if ultimate.cfg.binds["key_ult"] != 0 and ultimate.IsKeyDown( ultimate.cfg.binds["key_ult"] ) then
-        if(input.IsKeyDown(KEY_A)) then
-            cmd:SetSideMove(-ultimate.cfg.vars["slow walk speed"]) 
-        end
-        if(input.IsKeyDown(KEY_D)) then
-            cmd:SetSideMove(ultimate.cfg.vars["slow walk speed"])
-        end
-        if(input.IsKeyDown(KEY_W)) then
-            cmd:SetForwardMove(ultimate.cfg.vars["slow walk speed"])
-        end
-        if(input.IsKeyDown(KEY_S)) then
-            cmd:SetForwardMove(-ultimate.cfg.vars["slow walk speed"])
-        end
-    end
-
-
-
-
-
-    if ultimate.cfg.vars["Water jump"] and me:WaterLevel() > 1 then
+    if ultimate.cfg.vars["Water jump"] and pLocalPlayer:WaterLevel() > 1 then
         cmd:AddKey( IN_JUMP )
+
+    elseif ultimate.cfg.vars["Jesus lag"] and ultimate.SendPacket and pLocalPlayer:WaterLevel() == 1 then
+        cmd:AddKey( IN_DUCK )
     end
 
     if ultimate.cfg.vars["Fake duck"] and ultimate.IsKeyDown(ultimate.cfg.binds["Fake duck"]) then
@@ -7714,9 +8042,9 @@ function ultimate.CreateMove(cmd)
 
     ultimate.targetVector = false
 
-	ded.StartPrediction(cmd)
+	jopa.StartPrediction(cmd)
 
-        local wish_yaw = ultimate.SilentAngle.y 
+        local wish_yaw = ultimate.SilentAngle.y
 
         if ( ultimate.IsKeyDown(ultimate.cfg.binds["Circle strafe"]) and ultimate.cfg.vars["Circle strafe"] ) then
             wish_yaw = cmd:GetViewAngles().y
@@ -7728,49 +8056,44 @@ function ultimate.CreateMove(cmd)
             ultimate.PropAim(cmd)
         else
             ultimate.Aim(cmd)
-        end 
-        
+        end
+
         if ultimate.cfg.vars["Silent aim"] then
             ultimate.MovementFix( cmd, wish_yaw )
         end
 
-    ded.FinishPrediction() 
-
-    if ultimate.cfg.vars["Trigger bot"] and ultimate.IsKeyDown( ultimate.cfg.binds["Trigger bot"] ) then
-        local tr = me:GetEyeTrace().Entity 
-        
-        if tr and tr:IsPlayer() then
-            cmd:AddKey( IN_ATTACK )
-        end
-    end
+    jopa.FinishPrediction()
 
     if ultimate.cfg.vars["Double tap"] and ultimate.cfg.vars["Tickbase shift"] and cmd:KeyDown( IN_ATTACK ) then
         //ultimate.shiftedTicks = 0
-        print( cmd:KeyDown( IN_ATTACK ) )
-        -- ded.StartShifting( true )
+        jopa.StartShifting( true )
     end
 
-    if ultimate.cfg.vars["Rapid fire"] and me:Alive() then
-        local w = me:GetActiveWeapon()
+    if ultimate.cfg.vars["Auto detonator"] and #ultimate.slams > 0 then
+        local d = ultimate.cfg.vars["AutoD distance"]
+        d = d * d
 
-        if IsValid(w) and not ultimate.norf[ w:GetClass() ] and me:KeyDown( IN_ATTACK ) then
-            cmd:RemoveKey(IN_ATTACK)
+        local plys = player.GetAll()
+
+        for jjj = 1, #plys do
+            if plys[ jjj ] == pLocalPlayer then continue end
+
+            for k, v in pairs(ultimate.slams) do
+                if not IsValid(v) then ultimate.slams[k] = nil continue end
+
+                local pos = v:GetPos()
+
+                if pos:DistToSqr( plys[ jjj ]:GetPos() + plys[ jjj ]:GetVelocity() * ( flTickInterval * 4 ) ) < d then
+                    cmd:AddKey( IN_ATTACK2 )
+                    break
+                end
+            end
         end
     end
-
-    if ultimate.cfg.vars["Alt Rapid fire"] and me:Alive() then
-        local w = me:GetActiveWeapon()
-
-        if IsValid(w) and me:KeyDown( IN_ATTACK2 ) then
-            cmd:RemoveKey(IN_ATTACK2)
-        end
-    end
-
-
 
     if ultimate.cfg.vars["Auto peak"] then
         local ppos = ultimate.startPeekPosition
-        local pposd = me:GetPos():DistToSqr(ppos)
+        local pposd = pLocalPlayer:GetPos():DistToSqr(ppos)
 
         if ultimate.needToMoveBack and pposd < 1024 then //or ultimate.IsMovementKeysDown( cmd )
             ultimate.needToMoveBack = false
@@ -7786,8 +8109,7 @@ function ultimate.CreateMove(cmd)
 
                 if ultimate.cfg.vars["Auto peak tp"] and ultimate.cfg.vars["Tickbase shift"] then
                     //ultimate.shiftedTicks = 0
-                    print("NIGGER")
-                    -- ded.StartShifting( true )
+                    jopa.StartShifting( true )
                 end
             end
         end
@@ -7806,7 +8128,7 @@ function ultimate.CreateMove(cmd)
     end
 
     if ultimate.cfg.vars["Auto GTA"] then
-        local tr = me:GetEyeTrace().Entity
+        local tr = pLocalPlayer:GetEyeTrace().Entity
 
         if IsValid( tr ) and tr:IsVehicle() then
             cmd:AddKey(IN_USE)
@@ -7816,8 +8138,8 @@ function ultimate.CreateMove(cmd)
     if ultimate.cfg.vars["Ghost follower"] then
         local tar = player.GetBySteamID( ultimate.cfg.vars["GFID"] )
 
-        if IsValid( tar ) then 
-            local tang = ( tar:GetPos() - me:EyePos() ):Angle()
+        if IsValid( tar ) then
+            local tang = ( tar:GetPos() - pLocalPlayer:EyePos() ):Angle()
 
             cmd:ClearMovement()
             cmd:ClearButtons()
@@ -7833,23 +8155,23 @@ function ultimate.CreateMove(cmd)
     end
 
     if ultimate.cfg.vars["Air lag duck"] and ultimate.SendPacket then
-        local startPosUnducked = me:GetPos()
-        local isDucking = bit.band(me:GetFlags(), FL_DUCKING) != 0
+        local startPosUnducked = pLocalPlayer:GetPos()
+        local isDucking = bit.band(pLocalPlayer:GetFlags(), FL_DUCKING) != 0
         if isDucking then
             startPosUnducked.z = startPosUnducked.z - (72 - 36)
         end
 
-        ded.StartSimulation( me:EntIndex() )
+        jopa.StartSimulation( pLocalPlayer:EntIndex() )
 
-        local shouldduck = true 
+        local shouldduck = true
 
         for i = 1, 4 do
-            ded.SimulateTick()
+            jopa.SimulateTick()
 
-            local simData = ded.GetSimulationData()
+            local simData = jopa.GetSimulationData()
 
-            local maxs = me:OBBMaxs()
-            maxs.z = 72 
+            local maxs = pLocalPlayer:OBBMaxs()
+            maxs.z = 72
 
             if isDucking then
                 simData.m_vecAbsOrigin.z = simData.m_vecAbsOrigin.z - (72 - 36)
@@ -7858,22 +8180,22 @@ function ultimate.CreateMove(cmd)
             local trace = TraceHull({
                 start = startPosUnducked,
                 endpos = simData.m_vecAbsOrigin,
-                mins = me:OBBMins(),
+                mins = pLocalPlayer:OBBMins(),
                 maxs = maxs,
-                filter = me,
+                filter = pLocalPlayer,
                 mask = MASK_PLAYERSOLID
             })
 
-            if me:IsOnGround() and trace.Hit then
-                shouldduck = false 
+            if pLocalPlayer:IsOnGround() and trace.Hit then
+                shouldduck = false
                 break
             end
         end
 
-        ded.FinishSimulation()
+        jopa.FinishSimulation()
 
-        if shouldduck and !me:IsFlagSet( FL_ONGROUND ) then 
-            cmd:AddKey(IN_DUCK)   
+        if shouldduck and !pLocalPlayer:IsFlagSet( FL_ONGROUND ) then
+            cmd:AddKey( IN_DUCK )
         end
     end
 
@@ -7884,16 +8206,16 @@ function ultimate.CreateMove(cmd)
         cmd:SetViewAngles(ultimate.fcangles)
     end
 
-    /*if ultimate.cfg.vars["Dodge projectiles"] and ded.GetCurrentCharge() >= ded.GetMaxShiftTicks() and not ded.GetIsShifting() then
-        local entitys = ents_GetAll()
+    /*if ultimate.cfg.vars["Dodge projectiles"] and jopa.GetCurrentCharge() >= jopa.GetMaxShiftTicks() and not jopa.GetIsShifting() then
+        local entitys = ents.GetAll()
 
         for i = 1, #entitys do
             local v = entitys[ i ]
 
-            if v:GetClass() != "crossbow_bolt" then continue end 
+            if v:GetClass() != "crossbow_bolt" then continue end
 
-            local mypos = me:GetPos() + me:GetVelocity() * TickInterval 
-            local entpos = v:GetPos() + ( v:GetAngles():Forward() * 3500 ) * TickInterval
+            local mypos = pLocalPlayer:GetPos() + pLocalPlayer:GetVelocity() * flTickInterval
+            local entpos = v:GetPos() + ( v:GetAngles():Forward() * 3500 ) * flTickInterval
 
             if mypos:DistToSqr( entpos ) > 320 then
                 cmd:ClearMovement()
@@ -7901,50 +8223,45 @@ function ultimate.CreateMove(cmd)
 
                 cmd:AddKey( IN_SPEED )
                 cmd:SetSideMove( 10000 )
-                ded.StartShifting( true )
+                jopa.StartShifting( true )
             end
         end
     end*/
 
     if ultimate.SendPacket then
-        ultimate.chokedTicks = 0 
+        ultimate.chokedTicks = 0
     else
         ultimate.chokedTicks = ultimate.chokedTicks + 1
     end
 
     if not ultimate.cfg.vars["Silent aim"] then ultimate.SilentAngle = cmd:GetViewAngles() end
 
-    ded.SetBSendPacket( ultimate.SendPacket )
+    jopa.SetBSendPacket( ultimate.SendPacket )
 
     if ultimate.cfg.vars["Lag mode"] == 3 and ultimate.SendPacket then
-        ded.SetOutSequenceNr(ded.GetOutSequenceNr() + 8)
+        jopa.SetOutSequenceNr(jopa.GetOutSequenceNr() + 8)
     end
-end 
+end
 
-
- 
-   
-hook_Add( "CreateMove", "ultimate.CreateMove", ultimate.CreateMove ) // Post
- 
-/* 
-    Render Scene / Anti screengrab 
+/*
+    Render Scene / Anti screengrab
 */
 ultimate.UnSafeFrame = false
-ultimate.renderTarget = GetRenderTarget( "YaPidoras" .. os.time(), scrw, scrh )
+ultimate.renderTarget = GetRenderTarget( "YaPidoras" .. os.time(), screenWidth, screenHeight )
 
 do
     local oldsky, oldskycolor, oldwallcolor = ultimate.cfg.vars["Custom sky"], ultimate.cfg.vars["Sky color"], ultimate.cfg.vars["Wall color"]
     local oldskyclr, oldwallclr = ultimate.cfg.colors["Sky color"], ultimate.cfg.colors["Wall color"]
 
-    local worldcollerp = string_ToColor( ultimate.cfg.colors["Wall color"] )
+    local worldcollerp = string.ToColor( ultimate.cfg.colors["Wall color"] )
     local worldmats = Entity( 0 ):GetMaterials()
 
     local origsky = GetConVar("sv_skyname"):GetString()
     local tsides = {"lf", "ft", "rt", "bk", "dn", "up"}
     local skymat = {}
 
-    for i = 1, 6 do 
-        skymat[i] = Material("skybox/" .. origsky .. tsides[i]) 
+    for i = 1, 6 do
+        skymat[i] = Material("skybox/" .. origsky .. tsides[i])
     end
 
     local function setSkyboxTexture( skyname )
@@ -7955,7 +8272,7 @@ do
     end
 
     local function setSkyColor( setcolor )
-        local cfg = string_ToColor( ultimate.cfg.colors["Sky color"] )
+        local cfg = string.ToColor( ultimate.cfg.colors["Sky color"] )
         local vector = setcolor and Vector( cfg.r/255, cfg.g/255, cfg.b/255 ) or Vector( 1, 1, 1 )
 
         for i = 1, 6 do
@@ -7964,7 +8281,7 @@ do
     end
 
     local function setWallColor( setcolor )
-        local cfg = string_ToColor( ultimate.cfg.colors["Wall color"] )
+        local cfg = string.ToColor( ultimate.cfg.colors["Wall color"] )
         worldcollerp = ultimate.ColorLerp( worldcollerp, cfg )
         local vector = setcolor and Vector( worldcollerp.r/255, worldcollerp.g/255, worldcollerp.b/255 ) or Vector( 1, 1, 1 )
 
@@ -7976,11 +8293,11 @@ do
         end
     end
 
-    function ultimate.hRenderScene()
+    function ultimate.RenderScene()
 
         local newname, newcolor, newcolor2 = ultimate.cfg.vars["Custom sky"], ultimate.cfg.vars["Sky color"], ultimate.cfg.vars["Wall color"]
         local newskyclr, newwallclr = ultimate.cfg.colors["Sky color"],ultimate.cfg.colors["Wall color"]
-        
+
         if newskyclr != oldskyclr or newcolor != oldskycolor then
             setSkyColor( newcolor )
 
@@ -8005,8 +8322,8 @@ do
             local view = {
                 x = 0,
                 y = 0,
-                w = scrw,
-                h = scrh,
+                w = screenWidth,
+                h = screenHeight,
                 dopostprocess = true,
                 origin = vOrigin,
                 angles = vAngle,
@@ -8015,20 +8332,20 @@ do
                 drawmonitors = true,
                 drawviewmodel = true
             }
-         
-            render_RenderView( view )
-            render.CopyTexture( nil, ultimate.renderTarget )
-         
-            cam_Start2D()
-                hook_Run( "Ungrabbable2D" )
-            cam_End2D()
 
-            cam_Start3D()
-                hook_Run( "Ungrabbable3D" )
-            cam_End3D()
-    
+            render.RenderView( view )
+            render.CopyTexture( nil, ultimate.renderTarget )
+
+            cam.Start2D()
+                hook.Run( "Ungrabbable2D" )
+            cam.End2D()
+
+            cam.Start3D()
+                hook.Run( "Ungrabbable3D" )
+            cam.End3D()
+
             render.SetRenderTarget( ultimate.renderTarget )
-         
+
             return true
         end
     end
@@ -8038,60 +8355,57 @@ end
 function ultimate.PreScreenGrab()
     if ultimate.UnSafeFrame then return end
 	ultimate.UnSafeFrame = true
- 
-	render_Clear( 0, 0, 0, 255, true, true )
-	render_RenderView( {
-		origin = me:EyePos(),
-		angles = me:EyeAngles(),
+
+	render.Clear( 0, 0, 0, 255, true, true )
+	render.RenderView( {
+		origin = pLocalPlayer:EyePos(),
+		angles = pLocalPlayer:EyeAngles(),
 		x = 0,
 		y = 0,
-		w = scrw,
-		h = scrh,
+		w = screenWidth,
+		h = screenHeight,
 		dopostprocess = true,
 		drawhud = true,
 		drawmonitors = true,
 		drawviewmodel = true
 	} )
- 
+
 	ultimate.UnSafeFrame = false
 end
 
-ultimate.prikol = Material( "a/prikol" ):GetTexture( "$basetexture" ) //  Material( file_Read( "prikol.png", "DATA" ) )
+ultimate.prikol = Material( "a/prikol" ):GetTexture( "$basetexture" ) //  Material( file.Read( "prikol.png", "DATA" ) )
 
 function render.Capture( data )
     ultimate.PreScreenGrab()
 
-    if ultimate.cfg.vars["Screengrab image"] then 
+    if ultimate.cfg.vars["Screengrab image"] then
         cam.Start2D()
             render.DrawTextureToScreen( ultimate.prikol )
         cam.End2D()
     end
 
-	return render_Capture( data )
+	return render.Capture( data )
 end
 
 function _G.render.Capture( data )
     ultimate.PreScreenGrab()
 
-    if ultimate.cfg.vars["Screengrab image"] then 
+    if ultimate.cfg.vars["Screengrab image"] then
         cam.Start2D()
             render.DrawTextureToScreen( ultimate.prikol )
         cam.End2D()
     end
 
-	return render_Capture( data )
+	return render.Capture( data )
 end
 
-function ultimate.Shutdown()
-    render.SetRenderTarget()
-end
 
 /*
     ESP, Chams
 */
 
 function ultimate.IsValidPlayer(pl)
-    if pl == me then return false end
+    if pl == pLocalPlayer then return false end
     if not IsValid(pl) then return false end
     if not pl:Alive() then return false end
 
@@ -8099,46 +8413,61 @@ function ultimate.IsValidPlayer(pl)
     return true
 end
 
-function ultimate.GetEntPos(ent)
-    local min, max = ent:OBBMins(), ent:OBBMaxs()
+local vertexMatrix = {
+    Vector( -1, -1, -1 ),
+	Vector( -1, -1, 1 ),
+	Vector( -1, 1, -1 ),
+	Vector( -1, 1, 1 ),
+	Vector( 1, -1, -1 ),
+	Vector( 1, -1, 1 ),
+	Vector( 1, 1, -1 ),
+	Vector( 1, 1, 1 )
+}
 
-    local points = {
-        Vector( max.x, max.y, max.z ),
-        Vector( max.x, max.y, min.z ),
-        Vector( max.x, min.y, min.z ),
-        Vector( max.x, min.y, max.z ),
-        Vector( min.x, min.y, min.z ),
-        Vector( min.x, min.y, max.z ),
-        Vector( min.x, max.y, min.z ),
-        Vector( min.x, max.y, max.z )
-    }
+function ultimate.GetEntPos( entity )
+    local pos, mins, maxs = entity:GetPos(), entity:GetCollisionBounds()
 
-    local MaxX, MinX, MaxY, MinY
-    local isVisible = false
+	local size = ( maxs - mins ) * 0.5
+	local boxCenter = pos + ( mins + maxs ) * 0.5
 
-    for i = 1, #points do
-        local v = points[i]
-        local p = ent:LocalToWorld( v ):ToScreen()
-        isVisible = p.visible 
-        
-		if MaxX != nil then
-            MaxX, MaxY, MinX, MinY = math_max( MaxX, p.x ), math_max( MaxY, p.y), math_min( MinX, p.x ), math_min( MinY, p.y)
-        else
-            MaxX, MaxY, MinX, MinY = p.x, p.y, p.x, p.y
-        end
+	local iMinX, iMinY = math.huge, math.huge
+	local iMaxX, iMaxY = -math.huge, -math.huge
 
-    end
+	for i = 1, 8 do
+		local screenPos = ( boxCenter + vertexMatrix[ i ] * size ):ToScreen()
 
-    return MaxX, MaxY, MinX, MinY, isVisible
+        iMinX, iMinY, iMaxX, iMaxY = math.min( iMinX, screenPos.x ), math.min( iMinY, screenPos.y ), math.max( iMaxX, screenPos.x ), math.max( iMaxY, screenPos.y )
+	end
+
+	if ( iMinX <= 0 or iMinY <= 0 or iMaxX >= screenWidth or iMaxY >= screenHeight ) then
+		return false
+	end
+
+    return math.ceil( iMaxX ), math.ceil( iMaxY ), math.floor( iMinX ), math.floor( iMinY )
 end
 
-function ultimate.getTextX(tw,pos)
+function ultimate.getTextX(v,tw,pos)
     if pos == 1 or pos == 2 then
         return tw/2
     elseif pos == 3 then
         return 0
-    elseif pos == 4 then 
-        return tw
+    elseif pos == 4 then
+        local f = tw
+        if ultimate.cfg.vars["Health bar"] and v.Health > 0 then
+            if f == 0 then
+                f = f + 8
+            else
+                f = f + 5
+            end
+        end
+        if ultimate.cfg.vars["Armor bar"] and v.Armor > 0 then
+            if f == 0 then
+                f = f + 8
+            else
+                f = f + 5
+            end
+        end
+        return f
     end
 end
 
@@ -8148,9 +8477,9 @@ function ultimate.getTextY(max,min,th,pos,tbpos)
     elseif pos == 2 then
         return max+th*tbpos
     elseif pos == 3 then
-        return min+th*tbpos
+        return min+th*tbpos - 1
     elseif pos == 4 then
-        return min+th*tbpos
+        return min+th*tbpos - 1
     end
 end
 
@@ -8177,231 +8506,301 @@ function ultimate.DrawOutlinedPoly( poly )
     for i = 1, #poly do
         local v = poly[ i ]
         if last then
-            surface_DrawLine(last.x, last.y, v.x, v.y)
+            surface.DrawLine(last.x, last.y, v.x, v.y)
             last = v
         else
             last = v
         end
     end
-    surface_DrawLine(last.x, last.y, poly[1].x, poly[1].y)
+    surface.DrawLine(last.x, last.y, poly[1].x, poly[1].y)
 end
 
 ultimate.Fonts = {
     [1] = "veranda",
     [2] = "veranda_s",
-    [3] = "thug",
 }
 
 
+ultimate.BarPadding = 0
 
-function ultimate.watermark()
-    if not true then return end 
+function ultimate.DrawBar(MaxX, MaxY, MinX, MinY, Pos, Current, Max, BarColor, BackColor, Gradient, GradientColor)
+    if ultimate.BarPadding == 0 then
+        ultimate.BarPadding = 6
+    else
+        ultimate.BarPadding = 11
+    end
 
-        ultimate.accent = HSVToColor(  ( CurTime() * 100 ) % 720, 1, 1 )
-        local col =  ultimate.accent
+    local BarX, BarY = MinX-ultimate.BarPadding, MinY-1
+    local BarW, BarH = math.floor( MaxX - MinX ), 4
+    local FillW, FillH = math.ceil(Current / Max * BarW), BarH
 
-        local col =  ultimate.accent
-    local youtno = surface_GetTextSize(ultimate.cfg.vars["Custom Cheat"] .. "| " ..LocalPlayer():Name().. " | gm: " .. engine.ActiveGamemode() .. " | latency:" .. LocalPlayer():Ping() .. " | tick:"..math.Round(1/engine.TickInterval()-1).. " | Owner paste:MR.Putin and MYASNIK"  )
-    local pedic = youtno - 40
-    draw.RoundedBox( 3, 5, 5, pedic, 25, Color(0,0,0))
-    draw.RoundedBox( 10, 7, 6, pedic-4, 3, Color(0,0,0))
-    surface_SetDrawColor( 255, 255, 255, 60 ) 
-    surface.SetMaterial(Material("gui/center_gradient")) 
-    surface_DrawTexturedRect(7, 6, pedic-4, 3)
-    draw.SimpleText(ultimate.cfg.vars["Custom Cheat"] .. "|" ..LocalPlayer():Name().. " | gm: " .. engine.ActiveGamemode() .. " | latency:" .. LocalPlayer():Ping() .. " | tick:"..math.Round(1/engine.TickInterval()-1).. " | Owner paste:MR.Putin and MYASNIK"  , "tbfont", 12, 10, col )
+    if Pos > 2 then
+        BarW, BarH = 4, math.floor( MaxY - MinY ) + 2
+        FillW, FillH = BarW, math.ceil(Current / Max * BarH)
+    end
 
+    FillW = math.min(FillW, BarW)
+    FillH = math.min(FillH, BarH)
+
+    surface.SetDrawColor(BackColor)
+    surface.DrawRect(BarX, BarY, BarW, BarH)
+
+    BarX, BarY = BarX + 1, BarY + 1
+
+    if Pos > 2 then
+        BarY = BarY + BarH - FillH
+    end
+
+    BarW, BarH = BarW - 2, BarH - 2
+    FillW, FillH = FillW - 2, FillH - 2
+
+    surface.SetDrawColor(BarColor)
+    surface.DrawRect(BarX, BarY, FillW, FillH)
+
+    if Gradient then
+        surface.SetDrawColor(GradientColor)
+        surface.SetMaterial(ultimate.Materials["Gradient"])
+        surface.DrawTexturedRect(BarX, BarY, FillW, FillH)
+    end
 end
 
-
-
-
- function ultimate.DrawESP()
+function ultimate.DrawESP()
     local d = ultimate.cfg.vars["ESP Distance"]
     local ed = ultimate.cfg.vars["Ent ESP Distance"]
-    local pos = me:GetPos()
+    local pos = pLocalPlayer:GetPos()
     d = d * d
     ed = ed * ed
 
-    surface_SetFont( ultimate.Fonts[ ultimate.cfg.vars["ESP Font"] ] )
-
-    if ultimate.cfg.vars["Ent box 3d"] then
-        cam_Start3D()
-            for i = 1, #ultimate.entityCache do
-                local v = ultimate.entityCache[ i ]
-
-                if not IsValid( v.entity ) then return end 
-
-                if v.position:DistToSqr( pos ) > ed then continue end
-
-                render_DrawWireframeBox( v.position, v.entity:GetAngles(), v.entity:OBBMins(), v.entity:OBBMaxs(), ultimate.Colors[255], true )
-            end
-        cam_End3D()
-    end
+    surface.SetFont( ultimate.Fonts[ ultimate.cfg.vars["ESP Font"] ] )
 
     for i = 1, #ultimate.entityCache do
         local v = ultimate.entityCache[ i ]
 
-        if not IsValid( v.entity ) then return end 
+        if not IsValid( v.entity ) then return end
 
         if v.position:DistToSqr( pos ) > ed then continue end
 
-        local MaxX, MaxY, MinX, MinY, isVisible = ultimate.GetEntPos( v.entity )
-        local XLen, YLen = MaxX - MinX, MaxY - MinY
+        local MaxX, MaxY, MinX, MinY = ultimate.GetEntPos( v.entity )
 
-        if not isVisible then continue end
-
-        surface_SetAlphaMultiplier( v.entity:IsDormant() and 0.35 or 1 )
-
-        surface_SetTextColor( ultimate.Colors[255] )
-
-        if ultimate.cfg.vars["Ent box"] and not ultimate.cfg.vars["Ent box 3d"] then
-            surface_SetDrawColor( 0, 0, 0 )
-            surface_DrawOutlinedRect(MinX-1,MinY-1,XLen+2,YLen+2,3)
-
-            surface_SetDrawColor( 255, 255, 255 ) 
-            surface_DrawOutlinedRect(MinX,MinY,XLen,YLen,1)
+        if ( not MaxX ) then
+            continue
         end
 
-        if ultimate.cfg.vars["Ent class"] then
-            local tw, th = surface_GetTextSize( v.class )
+        local XLen, YLen = MaxX - MinX, MaxY - MinY
 
-            surface_SetTextPos( ( MaxX + (MinX - MaxX) / 2 ) - tw / 2 , MinY - th )
-            surface_DrawText( v.class )
+        surface.SetAlphaMultiplier( v.entity:IsDormant() and 0.35 or 1 )
+
+        surface.SetTextColor( ultimate.Colors[255] )
+
+        if ultimate.cfg.vars["Ent class"] then
+            local tw, th = surface.GetTextSize( v.class )
+
+            surface.SetTextPos( ( MaxX + (MinX - MaxX) / 2 ) - tw / 2 , MinY - th )
+            surface.DrawText( v.class )
+        end
+
+        if ultimate.cfg.vars["Ent box"] then
+            if ultimate.cfg.vars["Ent box style"] == 1 then
+                surface.SetDrawColor(ultimate.Colors[0])
+                surface.DrawOutlinedRect(MinX-1,MinY-1,XLen+2,YLen+2,3)
+
+                surface.SetDrawColor( ultimate.Colors[255] )
+                surface.DrawOutlinedRect(MinX,MinY,XLen,YLen,1)
+            elseif ultimate.cfg.vars["Ent box style"] == 2 then
+                local wlen, hlen = math.floor( XLen / 3 ), math.floor( YLen / 3 )
+
+                surface.SetDrawColor(ultimate.Colors[0])
+
+                // Left up
+                surface.DrawRect( MinX - 1, MinY - 1, wlen, 3 )
+                surface.DrawRect( MinX - 1, MinY - 1, 3, hlen )
+
+                // Right up
+                surface.DrawRect( MaxX - wlen + 2, MinY - 1, wlen, 3 )
+                surface.DrawRect( MaxX - 1, MinY - 1, 3, hlen )
+
+                // Left down
+                surface.DrawRect( MinX - 1, MaxY - 2, wlen, 3 )
+                surface.DrawRect( MinX - 1, MaxY - hlen, 3, hlen )
+
+                // Right down
+                surface.DrawRect( MaxX - wlen + 2, MaxY - 2, wlen, 3 )
+                surface.DrawRect( MaxX - 1, MaxY - hlen, 3, hlen )
+
+                surface.SetDrawColor( ultimate.Colors[255] )
+
+                wlen = wlen - 2
+                hlen = hlen - 2
+
+                // Left up
+                surface.DrawRect( MinX, MinY, wlen, 1 )
+                surface.DrawRect( MinX, MinY, 1, hlen )
+
+                // Right up
+                surface.DrawRect( MaxX - wlen + 1, MinY, wlen, 1 )
+                surface.DrawRect( MaxX, MinY, 1, hlen )
+
+                // Left down
+                surface.DrawRect( MinX, MaxY - 1, wlen, 1 )
+                surface.DrawRect( MinX, MaxY - hlen - 1, 1, hlen )
+
+                // Right down
+                surface.DrawRect( MaxX - wlen + 1, MaxY - 1, wlen, 1 )
+                surface.DrawRect( MaxX, MaxY - hlen - 1, 1, hlen )
+            elseif ultimate.cfg.vars["Ent box style"] == 3 then
+                cam.Start3D()
+                render.DrawWireframeBox( v.position, v.entity:GetAngles(), v.entity:OBBMins(), v.entity:OBBMaxs(), ultimate.Colors[255], true )
+                cam.End3D()
+            end
         end
     end
 
-    local plys = player_GetAll()
+    local plys = player.GetAll()
 
-    local color_box     = string_ToColor( ultimate.cfg.colors["Box esp"] )
-    local color_box_g   = string_ToColor( ultimate.cfg.colors["Box gradient"] )
+    local color_box     = string.ToColor( ultimate.cfg.colors["Box esp"] )
+    local color_box_g   = string.ToColor( ultimate.cfg.colors["Box gradient"] )
 
-    local myEyePos = me:EyePos()
+    local myEyePos = pLocalPlayer:EyePos()
 
     for i = 1, #plys do
-        local v = plys[i]
+        local v = ultimate.playerCache[ plys[i] ]
 
-        if not ultimate.IsValidPlayer(v) or not ultimate.playerCache[ v ] then continue end
-        
-        local vp = ultimate.playerCache[ v ].GetPos
+        if not v or not ultimate.IsValidPlayer(v.entity) then continue end
+
+        local vp = v.GetPos
         local distance = vp:DistToSqr(pos)
 		if distance > d then continue end
 
-        surface_SetAlphaMultiplier( v:IsDormant() and 0.35 or 1 )
+        surface.SetAlphaMultiplier( v.entity:IsDormant() and 0.35 or 1 )
 
-        local MaxX, MaxY, MinX, MinY, isVisible = ultimate.GetEntPos( v )
+        local MaxX, MaxY, MinX, MinY = ultimate.GetEntPos( v.entity )
+
+        if ( not MaxX ) then
+            continue
+        end
+
         local XLen, YLen = MaxX - MinX, MaxY - MinY
 
-        local teamcolor = ultimate.playerCache[ v ].TeamColor
+        local teamcolor = v.TeamColor
 
-        if ultimate.cfg.vars["OOF Arrows"] then 
-            local xScale, yScale = scrw / 250, scrh / 250
+        if ultimate.cfg.vars["OOF Arrows"] then
+            local xScale, yScale = screenWidth / 250, screenHeight / 250
             local xScale, yScale = xScale * 50, yScale * 50
- 
-            local angle = ( v:EyePos() - myEyePos ):Angle() 
+
+            local angle = ( v.entity:EyePos() - myEyePos ):Angle()
             local addPos = Angle(0, (ultimate.SilentAngle.y - angle.y) - 90, 0):Forward()
-            local pos = Vector(scrw / 2, scrh / 2, 0) + Vector(addPos.x * xScale, addPos.y * yScale, 0)
+            local pos = Vector(screenWidth / 2, screenHeight / 2, 0) + Vector(addPos.x * xScale, addPos.y * yScale, 0)
 
             if math.abs( math.NormalizeAngle(angle.y - ultimate.SilentAngle.y) ) >= 60 then
                 local poly = ultimate.GenerateArrowPoss(pos.x, pos.y, 16, (ultimate.SilentAngle.y - angle.y) - 90)
                 local poly1 = ultimate.GenerateArrowPoss(pos.x, pos.y, 17, (ultimate.SilentAngle.y - angle.y) - 90)
                 local poly2 = ultimate.GenerateArrowPoss(pos.x, pos.y, 15, (ultimate.SilentAngle.y - angle.y) - 90)
-                
-                surface_SetDrawColor( ultimate.Colors[0] )
-                ultimate.DrawOutlinedPoly( poly1 )
-                ultimate.DrawOutlinedPoly( poly2 )
 
-                surface_SetDrawColor( teamcolor ) 
-                ultimate.DrawOutlinedPoly( poly )
+                if ultimate.cfg.vars["OOF Style"] == 1 then
+                    surface.SetDrawColor( ultimate.Colors[0] )
+                    ultimate.DrawOutlinedPoly( poly1 )
+                    ultimate.DrawOutlinedPoly( poly2 )
+
+                    surface.SetDrawColor( teamcolor )
+                    ultimate.DrawOutlinedPoly( poly )
+                else
+                    local ang2 = Angle(0, (ultimate.SilentAngle.y - angle.y) - 90 + 120, 0):Forward() * (scale - 1)
+                    surface.SetDrawColor( teamcolor )
+
+                    surface.DrawLine( pos.x, pos.y, pos.x, pos.y + ang2.y )
+                    //surface.DrawLine(last.x, last.y, v.x, v.y)
+                    //surface.DrawLine(last.x, last.y, v.x, v.y)
+                    //surface.DrawLine(last.x, last.y, v.x, v.y)
+                end
+
             end
         end
 
-        if not isVisible then continue end
-
         if ultimate.cfg.vars["Box esp"] then
             if ultimate.cfg.vars["Box style"] == 1 then
-                surface_SetDrawColor(ultimate.Colors[0])
-                surface_DrawOutlinedRect(MinX-1,MinY-1,XLen+2,YLen+2,3)
-        
-                surface_SetDrawColor( ultimate.cfg.vars["Box team color"] and teamcolor or color_box )
-                surface_DrawOutlinedRect(MinX,MinY,XLen,YLen,1)
-            elseif ultimate.cfg.vars["Box style"] == 2 then
-                local wlen, hlen = math_floor( XLen / 3 ), math_floor( YLen / 3 )
+                surface.SetDrawColor(ultimate.Colors[0])
+                surface.DrawOutlinedRect(MinX-1,MinY-1,XLen+2,YLen+2,3)
 
-                surface_SetDrawColor(ultimate.Colors[0])
+                surface.SetDrawColor( ultimate.cfg.vars["Box team color"] and teamcolor or color_box )
+                surface.DrawOutlinedRect(MinX,MinY,XLen,YLen,1)
+            elseif ultimate.cfg.vars["Box style"] == 2 then
+                local wlen, hlen = math.floor( XLen / 3 ), math.floor( YLen / 3 )
+
+                surface.SetDrawColor(ultimate.Colors[0])
 
                 // Left up
-                surface_DrawRect( MinX - 1, MinY - 1, wlen, 3 )
-                surface_DrawRect( MinX - 1, MinY - 1, 3, hlen )
+                surface.DrawRect( MinX - 1, MinY - 1, wlen, 3 )
+                surface.DrawRect( MinX - 1, MinY - 1, 3, hlen )
 
                 // Right up
-                surface_DrawRect( MaxX - wlen + 2, MinY - 1, wlen, 3 )
-                surface_DrawRect( MaxX - 1, MinY - 1, 3, hlen )
+                surface.DrawRect( MaxX - wlen + 2, MinY - 1, wlen, 3 )
+                surface.DrawRect( MaxX - 1, MinY - 1, 3, hlen )
 
                 // Left down
-                surface_DrawRect( MinX - 1, MaxY - 2, wlen, 3 )
-                surface_DrawRect( MinX - 1, MaxY - hlen, 3, hlen )
+                surface.DrawRect( MinX - 1, MaxY - 2, wlen, 3 )
+                surface.DrawRect( MinX - 1, MaxY - hlen, 3, hlen )
 
                 // Right down
-                surface_DrawRect( MaxX - wlen + 2, MaxY - 2, wlen, 3 )
-                surface_DrawRect( MaxX - 1, MaxY - hlen, 3, hlen )
+                surface.DrawRect( MaxX - wlen + 2, MaxY - 2, wlen, 3 )
+                surface.DrawRect( MaxX - 1, MaxY - hlen, 3, hlen )
 
-                surface_SetDrawColor( ultimate.cfg.vars["Box team color"] and teamcolor or color_box )
+                surface.SetDrawColor( ultimate.cfg.vars["Box team color"] and teamcolor or color_box )
 
                 wlen = wlen - 2
-                hlen = hlen - 2 
+                hlen = hlen - 2
 
                 // Left up
-                surface_DrawRect( MinX, MinY, wlen, 1 )
-                surface_DrawRect( MinX, MinY, 1, hlen )
- 
+                surface.DrawRect( MinX, MinY, wlen, 1 )
+                surface.DrawRect( MinX, MinY, 1, hlen )
+
                 // Right up
-                surface_DrawRect( MaxX - wlen + 1, MinY, wlen, 1 )
-                surface_DrawRect( MaxX, MinY, 1, hlen )
- 
+                surface.DrawRect( MaxX - wlen + 1, MinY, wlen, 1 )
+                surface.DrawRect( MaxX, MinY, 1, hlen )
+
                 // Left down
-                surface_DrawRect( MinX, MaxY - 1, wlen, 1 )
-                surface_DrawRect( MinX, MaxY - hlen - 1, 1, hlen )
- 
+                surface.DrawRect( MinX, MaxY - 1, wlen, 1 )
+                surface.DrawRect( MinX, MaxY - hlen - 1, 1, hlen )
+
                 // Right down
-                surface_DrawRect( MaxX - wlen + 1, MaxY - 1, wlen, 1 )
-                surface_DrawRect( MaxX, MaxY - hlen - 1, 1, hlen )
+                surface.DrawRect( MaxX - wlen + 1, MaxY - 1, wlen, 1 )
+                surface.DrawRect( MaxX, MaxY - hlen - 1, 1, hlen )
             elseif ultimate.cfg.vars["Box style"] == 3 then
-                local wlen, hlen = math_floor( XLen / 3 ), math_floor( YLen / 3 )
-                local xc = math_floor( XLen / 2 )
+                local wlen, hlen = math.floor( XLen / 3 ), math.floor( YLen / 3 )
+                local xc = math.floor( XLen / 2 )
 
-                surface_SetDrawColor(ultimate.Colors[0])
-
-                // Left
-                surface_DrawRect( MinX - 1, MinY - 1 + hlen, 3, hlen )
-
-                surface_DrawLine( MinX - 1, MinY - 1 + hlen, MinX + xc, MinY - 1 )
-                surface_DrawLine( MinX + 1, MinY - 1 + hlen, MinX + xc, MinY + 1 )
-
-                surface_DrawLine( MinX - 1, MinY - 2 + hlen * 2, MinX + xc, MinY + 1 + YLen )
-                surface_DrawLine( MinX + 1, MinY - 2 + hlen * 2, MinX + xc, MinY - 1 + YLen )
-
-                // Right
-                surface_DrawRect( MaxX - 1, MinY - 1 + hlen, 3, hlen )
-
-                surface_DrawLine( MaxX - 1, MinY - 1 + hlen, MinX + xc, MinY + 1 )
-                surface_DrawLine( MaxX + 1, MinY - 1 + hlen, MinX + xc, MinY - 1 )
-
-                surface_DrawLine( MaxX - 1, MinY - 2 + hlen * 2, MinX + xc, MinY - 1 + YLen )
-                surface_DrawLine( MaxX + 1, MinY - 2 + hlen * 2, MinX + xc, MinY + 1 + YLen )
-
-                surface_SetDrawColor( ultimate.cfg.vars["Box team color"] and teamcolor or color_box )
+                surface.SetDrawColor(ultimate.Colors[0])
 
                 // Left
-                surface_DrawRect( MinX, MinY + hlen - 1, 1, hlen )
-                surface_DrawLine( MinX, MinY - 1 + hlen, MinX + xc, MinY )
-                surface_DrawLine( MinX, MinY - 2 + hlen * 2, MinX + xc, MinY + YLen )
+                surface.DrawRect( MinX - 1, MinY - 1 + hlen, 3, hlen )
+
+                surface.DrawLine( MinX - 1, MinY - 1 + hlen, MinX + xc, MinY - 1 )
+                surface.DrawLine( MinX + 1, MinY - 1 + hlen, MinX + xc, MinY + 1 )
+
+                surface.DrawLine( MinX - 1, MinY - 2 + hlen * 2, MinX + xc, MinY + 1 + YLen )
+                surface.DrawLine( MinX + 1, MinY - 2 + hlen * 2, MinX + xc, MinY - 1 + YLen )
 
                 // Right
-                surface_DrawRect( MaxX, MinY + hlen - 1, 1, hlen )
-                surface_DrawLine( MaxX, MinY - 1 + hlen, MinX + xc, MinY )
-                surface_DrawLine( MaxX, MinY - 2 + hlen * 2, MinX + xc, MinY + YLen )
+                surface.DrawRect( MaxX - 1, MinY - 1 + hlen, 3, hlen )
+
+                surface.DrawLine( MaxX - 1, MinY - 1 + hlen, MinX + xc, MinY + 1 )
+                surface.DrawLine( MaxX + 1, MinY - 1 + hlen, MinX + xc, MinY - 1 )
+
+                surface.DrawLine( MaxX - 1, MinY - 2 + hlen * 2, MinX + xc, MinY - 1 + YLen )
+                surface.DrawLine( MaxX + 1, MinY - 2 + hlen * 2, MinX + xc, MinY + 1 + YLen )
+
+                surface.SetDrawColor( ultimate.cfg.vars["Box team color"] and teamcolor or color_box )
+
+                // Left
+                surface.DrawRect( MinX, MinY + hlen - 1, 1, hlen )
+                surface.DrawLine( MinX, MinY - 1 + hlen, MinX + xc, MinY )
+                surface.DrawLine( MinX, MinY - 2 + hlen * 2, MinX + xc, MinY + YLen )
+
+                // Right
+                surface.DrawRect( MaxX, MinY + hlen - 1, 1, hlen )
+                surface.DrawLine( MaxX, MinY - 1 + hlen, MinX + xc, MinY )
+                surface.DrawLine( MaxX, MinY - 2 + hlen * 2, MinX + xc, MinY + YLen )
             elseif ultimate.cfg.vars["Box style"] == 4 then
-                local wlen, hlen = math_floor( XLen / 3 ) + 3, math_floor( YLen / 3 ) + 3
+                local wlen, hlen = math.floor( XLen / 3 ) + 3, math.floor( YLen / 3 ) + 3
                 local x, y, xw, xh = MinX - 3, MinY - 3, MaxX + 3, MaxY + 3
                 local polys = {}
 
@@ -8416,66 +8815,85 @@ end
                         { x = x, y = xh - hlen },
                         { x = x, y = y + hlen },
                     }
-    
-                    surface_SetDrawColor( i == 2 and teamcolor or ultimate.Colors[0] ) 
+
+                    surface.SetDrawColor( i == 2 and teamcolor or ultimate.Colors[0] )
                     ultimate.DrawOutlinedPoly( polys )
-                    
+
                     wlen, hlen = wlen - i, hlen - i
 
                     y, x = y + i, x + i
                     xw, xh = xw - i, xh - i
                 end
-                
+            elseif ultimate.cfg.vars["Box style"] == 5 then
+                cam.Start3D()
+                render.DrawWireframeBox(v.entity:GetPos(), v.entity:GetAngles(), v.entity:OBBMins(), v.entity:OBBMaxs(), ultimate.cfg.vars["Box team color"] and teamcolor or color_box, true)
+                cam.End3D()
             end
         end
 
-        // Sight lines 
+        // Sight lines
 
-        if ultimate.cfg.vars["Sight lines"] then 
-            local tr = v:GetEyeTrace()
+        if ultimate.cfg.vars["Sight lines"] then
+            local tr = v.entity:GetEyeTrace()
             local startpos, hitpos = tr.StartPos:ToScreen(), tr.HitPos:ToScreen()
 
-            surface_SetDrawColor( teamcolor )
-            surface_DrawLine( startpos.x, startpos.y, hitpos.x, hitpos.y )
+            surface.SetDrawColor( teamcolor )
+            surface.DrawLine( startpos.x, startpos.y, hitpos.x, hitpos.y )
         end
 
-        // text 
+        // text
 
         local ttbl = { [1] = 0, [2] = 0, [3] = 0, [4] = 0 }
         local poses = { [1] = MaxX + (MinX - MaxX) / 2, [3] = MaxX+5, [4] = MinX-5 }
         poses[2] = poses[1]
 
-        surface_SetTextColor( ultimate.Colors[255] )
+        surface.SetTextColor( ultimate.Colors[255] )
 
-        if ultimate.cfg.vars["Name"] then 
-            local name = ultimate.playerCache[ v ].Name
-            local pos = ultimate.cfg.vars["Name pos"]
-            local tw, th = surface_GetTextSize(name)
+if ultimate.cfg.vars["Name"] then 
+    local name = v.Name
+    local pos = ultimate.cfg.vars["Name pos"]
+    local tw, th = surface.GetTextSize(name)
 
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
+    if ultimate.cfg.priorityList and ultimate.cfg.priorityList[v.entity:SteamID()] then
+        surface.SetTextColor(255, 0, 0, 255)
+    elseif ultimate.cfg.friends[v.entity:SteamID()] or v.entity:GetFriendStatus() == "friend" then
+        surface.SetTextColor(0, 255, 0, 255)
+    elseif ultimate.trackedPlayers and ultimate.trackedPlayers[steamId] then
+        surface.SetTextColor(255, 0, 0, 255)
+    else
+        surface.SetTextColor(255, 255, 255, 255)
+    end
 
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
 
-        if ultimate.cfg.vars["Usergroup"] then 
-            local name = ultimate.playerCache[ v ].GetUserGroup
+    surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos), ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+    surface.DrawText(name)
+
+    ttbl[pos] = ttbl[pos] + 0.8
+end
+
+        surface.SetTextColor( ultimate.Colors[255] )
+
+        if ultimate.cfg.vars["Usergroup"] then
+            local name = v.GetUserGroup
             local pos = ultimate.cfg.vars["Usergroup pos"]
-            local tw, th = surface_GetTextSize(name)
+            local tw, th = surface.GetTextSize(name)
 
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
+            surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+            surface.DrawText(name)
 
             ttbl[pos] = ttbl[pos] + 0.8
         end
 
-        if ultimate.cfg.vars["Weapon"] then 
-            local name = ultimate.cfg.vars["Show ammo"] and ultimate.playerCache[ v ].WeaponClass .. " (" .. ultimate.playerCache[ v ].WeaponAmmo .. ")" or ultimate.playerCache[ v ].WeaponClass
-           
+
+        surface.SetTextColor( ultimate.Colors[255] )
+
+        if ultimate.cfg.vars["Weapon"] then
+            local name = ultimate.cfg.vars["Show ammo"] and v.WeaponClass .. " (" .. v.WeaponAmmo .. ")" or v.WeaponClass
+
             if ultimate.cfg.vars["Show reloading"] then
                 for i = 0, 13 do
-                    if v:IsValidLayer(i) then
-                        if v:GetSequenceActivityName(v:GetLayerSequence(i)):find("RELOAD") then
+                    if v.entity:IsValidLayer(i) then
+                        if v.entity:GetSequenceActivityName(v.entity:GetLayerSequence(i)):find("RELOAD") then
                             name = "RELOADING"
                             break
                         end
@@ -8484,483 +8902,163 @@ end
             end
 
             local pos = ultimate.cfg.vars["Weapon pos"]
-            local tw, th = surface_GetTextSize(name)
+            local tw, th = surface.GetTextSize(name)
 
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-
-        if ultimate.cfg.vars["Armor"] then 
-            local name = ultimate.playerCache[ v ].Armor
-            local pos = ultimate.cfg.vars["Armor pos"]
-            local tw, th = surface_GetTextSize(name)
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
+            surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+            surface.DrawText(name)
 
             ttbl[pos] = ttbl[pos] + 0.8
         end
 
-        if ultimate.cfg.vars["Team"] then 
-            local name = ultimate.playerCache[ v ].TeamName
+        if ultimate.cfg.vars["Team"] then
+            local name = v.TeamName
             local pos = ultimate.cfg.vars["Team pos"]
-            local tw, th = surface_GetTextSize(name)
-            
-            -- Use team color
-            local teamColor = ultimate.playerCache[ v ].TeamColor or Color(255, 255, 255)
-            surface_SetTextColor(teamColor)
+            local tw, th = surface.GetTextSize(name)
 
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
+            local teamColor = v.TeamColor or ultimate.Colors[255]
+            surface.SetTextColor(teamColor)
+            surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+            surface.DrawText(name)
 
             ttbl[pos] = ttbl[pos] + 0.8
+
+            -- reset color so following elements (money, HP, etc.) don't inherit team tint
+            surface.SetTextColor( ultimate.Colors[255] )
         end
 
-        if ultimate.cfg.vars["DarkRP Money"] then 
-            local name = ultimate.playerCache[ v ].MoneyVar
+        if ultimate.cfg.vars["DarkRP Money"] then
+            local name = v.MoneyVar
             local pos = ultimate.cfg.vars["Money pos"]
-            local tw, th = surface_GetTextSize(name)
+            local tw, th = surface.GetTextSize(name)
 
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
+            surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+            surface.DrawText(name)
 
             ttbl[pos] = ttbl[pos] + 0.8
         end
-        
-        local health = ultimate.playerCache[ v ].Health
 
-        if ultimate.cfg.vars["Health bar"] then 
-            local maxhealth = ultimate.playerCache[ v ].GetMaxHealth
+        ultimate.BarPadding = 0
 
-			local healthfrac = math_min( health / maxhealth, 1 )
-		    local height = math_floor( healthfrac * YLen )
+        local health = v.Health
+        local maxhealth = v.GetMaxHealth
 
-            surface_SetDrawColor( 0, 0, 0 )
-            surface_DrawRect( MinX-6, MinY-1, 4, YLen+2 )
+        if health > 0 then
+            if ultimate.cfg.vars["Health"] then
+                local pos = ultimate.cfg.vars["Health pos"]
+                local tw, th = surface.GetTextSize(health)
 
-			surface_SetDrawColor( string_ToColor( ultimate.cfg.colors["Health"] ) )
-			surface_DrawRect(MinX - 5, MinY+YLen-height, 2, height)
+                surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+                surface.DrawText(health)
 
-            if ultimate.cfg.vars["Health bar gradient"] then 
-                surface_SimpleTexturedRect( MinX - 5, MinY+YLen-height, 2, height, string_ToColor( ultimate.cfg.colors["Health bar gradient"] ) , ultimate.Materials["Gradient"] )
+                ttbl[pos] = ttbl[pos] + 0.8
+            end
+
+            if ultimate.cfg.vars["Health bar"] then
+                ultimate.DrawBar( MaxX, MaxY, MinX, MinY, 4, health, maxhealth, string.ToColor( ultimate.cfg.colors["Health"] ), Color(0, 0, 0), ultimate.cfg.vars["Health bar gradient"], string.ToColor( ultimate.cfg.colors["Health bar gradient"] ) )
             end
         end
 
-        if ultimate.cfg.vars["Health"] then 
-            local pos = ultimate.cfg.vars["Health pos"]
-            local tw, th = surface_GetTextSize(health)
-            
-            -- Health-based color
-            local maxhealth = ultimate.playerCache[ v ].GetMaxHealth or 100
-            local healthPercent = health / maxhealth
-            local healthColor
-            
-            if healthPercent > 0.75 then
-                -- Green (75-100%)
-                healthColor = Color(0, 255, 0)
-            elseif healthPercent > 0.5 then
-                -- Yellow-Green (50-75%)
-                local t = (healthPercent - 0.5) / 0.25
-                healthColor = Color(math.floor(255 * (1 - t)), 255, 0)
-            elseif healthPercent > 0.25 then
-                -- Orange (25-50%)
-                local t = (healthPercent - 0.25) / 0.25
-                healthColor = Color(255, math.floor(255 * t), 0)
-            else
-                -- Red (0-25%)
-                healthColor = Color(255, 0, 0)
-            end
-            
-            surface_SetTextColor(healthColor)
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(health)
+        local armor = v.Armor
+        local maxarmor = v.GetMaxArmor
 
-            ttbl[pos] = ttbl[pos] + 0.8
+        if armor > 0 then
+            if ultimate.cfg.vars["Armor"] then
+                local pos = ultimate.cfg.vars["Armor pos"]
+                local tw, th = surface.GetTextSize(armor)
+
+                surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+                surface.DrawText(armor)
+
+                ttbl[pos] = ttbl[pos] + 0.8
+            end
+
+            if ultimate.cfg.vars["Armor bar"] then
+                ultimate.DrawBar( MaxX, MaxY, MinX, MinY, 4, armor, maxarmor, string.ToColor( ultimate.cfg.colors["Armor"] ), Color(0, 0, 0), ultimate.cfg.vars["Armor bar gradient"], string.ToColor( ultimate.cfg.colors["Armor bar gradient"] ) )
+            end
         end
 
         if ultimate.cfg.vars["Break LC"] and v.break_lc then
             local name = "Breaking LC"
             local pos = ultimate.cfg.vars["Break LC pos"]
-            local tw, th = surface_GetTextSize(name)
+            local tw, th = surface.GetTextSize(name)
 
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-
-        if ultimate.cfg.vars["Steam id"] then
-            local name = v:SteamID()
-            local pos = ultimate.cfg.vars["Steam id pos"]
-            local tw, th = surface_GetTextSize(name)
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
+            surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+            surface.DrawText(name)
 
             ttbl[pos] = ttbl[pos] + 0.8
         end
-        
 
-
-        
-
-        if ultimate.cfg.vars["Ping"] then
-
-    local name = v:Ping()
-    local pos = ultimate.cfg.vars["Ping pos"]
-    local tw, th = surface_GetTextSize(name)
-
-    surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-    surface_DrawText('Ping: '..name,dFont)
-
-    ttbl[pos] = ttbl[pos] + 0.8
-end
-        
         if ultimate.cfg.vars["Simtime updated"] then
             local name = v.simtime_updated and "Updated" or "Same"
             local pos = ultimate.cfg.vars["Simtime pos"]
-            local tw, th = surface_GetTextSize(name)
+            local tw, th = surface.GetTextSize(name)
 
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        if ultimate.cfg.vars["AA Mode"] then
-	
-            local pitch = v:EyeAngles().p
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize(math_Round(pitch,2))
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText('Pitch: '..math_Round(pitch,4),dFont) 
-            
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        
-        
-        if ultimate.cfg.vars["AA Mode"] then
-	
-            local pitch = v:EyeAngles().y 
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize(math_Round(pitch,2))
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText('Yaw: '..math_Round(pitch,4),dFont) 
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        
-        
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] then
-            surface_SetTextColor(0,255,0)
-	
-            local pitch = "Resolver Enable"
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize(pitch)
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(pitch,Font) 
-            
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-
-        
-
-        
-        
-        
-        
-  // PITCH AA MODE
-        
-  if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and v.fakepitch then
-    surface_SetTextColor(255,0,0)
-    local pitch = "Pitch warning!"
-    local pos = ultimate.cfg.vars["AA Mode pos"]
-    local tw, th = surface_GetTextSize(pitch)
-
-    surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-    surface_DrawText(pitch,Font)
-
-    ttbl[pos] = ttbl[pos] + 0.8
-end
-  
-
-
-local cfg = ultimate.cfg.vars["Auto Pitch mode"]     
-if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 1 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Auto Pitch type:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Auto Pitch type:".."None",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        local cfg = ultimate.cfg.vars["Auto Pitch mode"]         
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 2 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Auto Pitch type:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Auto Pitch type:".."(up,down)",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        local cfg = ultimate.cfg.vars["Auto Pitch mode"]       
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 3 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Auto Pitch type")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Auto Pitch type:".."(up,up,down,down)",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        local cfg = ultimate.cfg.vars["Auto Pitch mode"]         
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 4 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Auto Pitch type:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Auto Pitch type:".."(up,zero,down)",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        local cfg = ultimate.cfg.vars["Auto Pitch mode"]        
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 5 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Auto Pitch type:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Auto Pitch type:".."(up,up,zero,zero,down,down)",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 6 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Auto Pitch type:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Auto Pitch type:".."just up",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        
-          // YAW AA MODE
-
-
-
-
-        local cfg = ultimate.cfg.vars["Yaw mode"]     
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 1 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Resolver type Yaw:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Resolver type Yaw:".."Absolute",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        local cfg = ultimate.cfg.vars["Yaw mode"]           
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 2 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Resolver type Yaw:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Resolver type Yaw:".."Relative",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        local cfg = ultimate.cfg.vars["Yaw mode"]  
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 3 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Resolver type Yaw:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Resolver type Yaw:".."(Following) 145,180,-145",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        local cfg = ultimate.cfg.vars["Yaw mode"]  
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 4 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Resolver type Yaw:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Resolver type Yaw:".."Lower body delat",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-        local cfg = ultimate.cfg.vars["Yaw mode"]  
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 5 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Resolver type Yaw:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Resolver type Yaw:".."Test(Self angle)",Font)
+            surface.SetTextPos(poses[pos]-ultimate.getTextX(v,tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
+            surface.DrawText(name)
 
             ttbl[pos] = ttbl[pos] + 0.8
         end
 
-
-        local cfg = ultimate.cfg.vars["Yaw mode"]    
-        if ultimate.cfg.vars["AA Mode"] and ultimate.cfg.vars["Resolver"] and cfg == 6 then
-            surface_SetTextColor(247,242,26)
-           
-
-            local pos = ultimate.cfg.vars["AA Mode pos"]
-            local tw, th = surface_GetTextSize("Resolver type Yaw:")
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText("Resolver type Yaw:".."180 Invert",Font)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
-
-
-        
-
-        
-
-        if ultimate.cfg.vars["hitbox esp"] then 
-
-            for group = 0,v:GetHitBoxGroupCount()-1 do 
-                local count = v:GetHitBoxCount(group) - 1 
-                for hitbox = 0,count do 
-                    local bone = v:GetHitBoxBone(hitbox,group) 
-                    if(!bone) then continue end 
-                    local min,max = v:GetHitBoxBounds(hitbox,group) 
-                    local bonepos,boneang = v:GetBonePosition(bone) 
-                    cam_Start3D() render_DrawWireframeBox(bonepos,boneang,min,max,color_box,true) cam_End3D() 
-                end 
-            end 
-        end
-
-        if ultimate.cfg.vars["IFOV"] then
-            local angle = ( v:EyePos() - myEyePos ):Angle() 
-            local infov = math_abs( math_NormalizeAngle( angle.y ) ) > 75
-            local name = infov and "in FOV!" or "out of FOV!"
-            local pos = ultimate.cfg.vars["Simtime pos"]
-            local tw, th = surface_GetTextSize(name)
-
-            surface_SetTextPos(poses[pos]-ultimate.getTextX(tw,pos),ultimate.getTextY(MaxY,MinY,th,pos,ttbl[pos]))
-            surface_DrawText(name)
-
-            ttbl[pos] = ttbl[pos] + 0.8
-        end
- /*
         if ultimate.cfg.vars["Skeleton"] then
+            surface.SetDrawColor( string.ToColor( ultimate.cfg.colors["Skeleton"] ) )
 
-            ultimate.accent = HSVToColor(  ( CurTime() * 50 ) % 360, 1, 1 )
-            local col =  ultimate.accent
-           
-           
-            surface_SetDrawColor( col )
+		    for i = 0, v.entity:GetBoneCount() - 1 do
+                if (!v.entity:BoneHasFlag(i, BONE_USED_BY_HITBOX)) then continue end
 
-		    for i = 0, me:GetBoneCount() - 1 do
+			    local ParentId = v.entity:GetBoneParent(i)
 
-			    local parent = me:GetBoneParent(i)
+			    if (!ParentId) then continue end
 
-			    if(!parent) then continue end
+                if (!v.entity:BoneHasFlag(ParentId, BONE_USED_BY_HITBOX)) then continue end
 
-			    local bonepos = me:GetBonePosition(i)
+                local BoneMatrix = v.entity:GetBoneMatrix(i)
+                local ParentMatrix = v.entity:GetBoneMatrix(ParentId)
 
-			    if(bonepos == me:GetPos() ) then continue end
+                if (!BoneMatrix or !ParentMatrix) then continue end
 
-			    local parentpos = me:GetBonePosition(parent)
+			    local BonePos = BoneMatrix:GetTranslation()
 
-			    if(!bonepos or !parentpos) then continue end
+			    if (BonePos == v.entity:GetPos()) then continue end
 
-			    local screen1, screen2 = bonepos:ToScreen(),parentpos:ToScreen()
+			    local ParentPos = ParentMatrix:GetTranslation()
 
-			    surface_DrawLine(screen1.x,screen1.y,screen2.x,screen2.y)
+			    if (!BonePos or !ParentPos) then continue end
+
+			    local screen1, screen2 = BonePos:ToScreen(), ParentPos:ToScreen()
+
+			    surface.DrawLine(screen1.x, screen1.y, screen2.x, screen2.y)
 		    end
-        end*/
+        end
+
         if ultimate.cfg.vars["Show records"] and ultimate.canBacktrack(v) then
             local len = #ultimate.btrecords[ v ]
 
             for i = 1, len do
                 local pos = ( ultimate.btrecords[v][i].aimpos ):ToScreen()
-                surface_SetDrawColor( ultimate.backtracktick == i and ultimate.Colors["Red"] or ultimate.Colors[255] )
-                surface_DrawRect(pos.x,pos.y,2,2)
+                surface.SetDrawColor( ultimate.backtracktick == i and ultimate.Colors["Red"] or ultimate.Colors[255] )
+                surface.DrawRect(pos.x,pos.y,2,2)
             end
         end
 
         if ultimate.cfg.vars["Backtrack skeleton"] and ultimate.canBacktrack(v) then
             local len = #ultimate.btrecords[ v ]
 
-            surface_SetDrawColor( ultimate.Colors[255] )
+            surface.SetDrawColor( ultimate.Colors[255] )
 
             for i = 1, len do
                 local data = ultimate.btrecords[ v ][ i ].skeleton
 
                 for nbone = 1, #data do
                     local screen1, screen2 = data[nbone][1]:ToScreen(), data[nbone][2]:ToScreen()
-        
-                    surface_DrawLine(screen1.x,screen1.y,screen2.x,screen2.y)
+
+                    surface.DrawLine(screen1.x,screen1.y,screen2.x,screen2.y)
                 end
             end
         end
     end
 
-    surface_SetAlphaMultiplier(1)
+    surface.SetAlphaMultiplier(1)
 end
-
-
-function ultimate.PrePlayerDraw(entity, flags)
-    model_render:override(entity == pLocalPlayer and "Local player" or "Player", entity)
-
-    if ultimate.cfg.vars["Invalidate activity"] and entity ~= pLocalPlayer then
-        entity:SetSequence(-1)
-    end
-    
-    entity:InvalidateBoneCache()
-    entity:SetupBones()
-
-    entity.ChatGestureWeight = 0
-end
-
-function ultimate.PostPlayerDraw(entity, flags)
-    model_render:restore()
-end
-
-
 
 
 surface.CreateFont("DTFont", { font = "Verdana", size = 15, antialias = false, outline = true } )
@@ -8981,656 +9079,279 @@ ultimate.gradFov = false
 do
     local lc, blc = Color(125,255,64), Color(255,64,125)
 
-
-    local indx, indy = scrw / 2 - 100, scrh/2 + 250
+    local indx, indy = screenWidth / 2 - 100, screenHeight/2 + 250
     local charge = 0
 
     local gradcolor, chargedcolor, unchargedcolor = Color(200,200,200,128), Color(0,255,128), Color(255,155,0)
 
-    local chargestate, ccharge, chargecolor = "NOT CHARGED", 0, chargedcolor
-
-    //local watermarkx = scrw + 245
-    //local watermarkc = Color( 232, 232, 232, 235)
+    local chargestate, ccharge, chargecolor = "NO CHARGE", 200, chargedcolor
 
     function ultimate.DrawSomeShit()
+        surface.SetFont("DTFont")
 
-        //if ultimate.frame:IsVisible() then
-        //    surface_SetDrawColor( ultimate.accent )
-        //    surface_SetMaterial( ultimate.bgmaterial )
-        //    surface_DrawTexturedRect( 0, 0, scrw, scrh )
-        //end
+        if ultimate.cfg.vars["Indicators"] then
+            local latency = math.Round( ( jopa.GetLatency(0) + jopa.GetLatency(1) ) * 1000 )
 
-        surface_SetFont("DTFont")
-        
-        local latency = math_Round( ( ded.GetLatency(0) + ded.GetLatency(1) ) * 1000 ) 
+            surface.SetTextColor( latency > 50 and blc or lc )
+            surface.SetTextPos( 38, screenHeight - 180 )
+            surface.DrawText( "VEL: " .. math.Round(pLocalPlayer:GetVelocity():Length2D()) )
 
+            surface.SetTextColor( latency > 50 and blc or lc )
+            surface.SetTextPos( 38, screenHeight - 160 )
+            surface.DrawText( "AT: " .. latency .. " ms" )
 
+            surface.SetTextColor( ultimate.SendPacket and blc or lc )
+            surface.SetTextPos( 38, screenHeight - 140 )
+            surface.DrawText( "FT: " .. ultimate.fakeLagTicks )
 
-        surface_SimpleText(38,scrh-120,"LC",me.break_lc and blc or lc)
-        surface_SimpleText(38,scrh-140,"FT: "..ultimate.fakeLagTicks,ultimate.SendPacket and blc or lc)
-        surface_SimpleText(38,scrh-160,math_Round(me:GetVelocity():Length2D()),lc)
-        surface_SimpleText(38,scrh-180,"AT: "..latency.." ms",latency > 50 and blc or lc)
+            surface.SetTextColor( pLocalPlayer.break_lc and blc or lc )
+            surface.SetTextPos( 38, screenHeight - 120 )
+            surface.DrawText( "LC" )
+        end
 
-        
         if ultimate.cfg.vars["Auto Vape"] then
-            surface_SimpleText(38,scrh-220,"Vape: ", ultimate.tyaga == 0 and blc or lc)
-            
-            surface_SetDrawColor( 0, 0, 0 )
-            surface_DrawRect( 78, scrh-219, 60, 14 )
+            surface.SetTextColor( ultimate.tyaga == 0 and blc or lc )
+            surface.SetTextPos( 38,screenHeight-220 )
+            surface.DrawText( "Vape: " )
 
-            surface_SetDrawColor( lc )
-            surface_DrawRect( 79, scrh-218, ultimate.tyaga / ultimate.maxvape * 58, 12 )
-        end
-        
+            surface.SetDrawColor( 0, 0, 0 )
+            surface.DrawRect( 78, screenHeight-219, 60, 14 )
 
-        if ultimate.cfg.vars["Tickbase indicator"] then
-            local max, cur = ultimate.cfg.vars["Charge ticks"], 0 -- ded.GetCurrentCharge()
-            local dtw = cur / max * 30
-
-            local x, y = scrwc - 7, scrhc + 10
-
-            surface_SimpleText( x, y, "DT", blc ) // 
-
-            render.SetScissorRect( x, y, x + dtw, y + 30, true )
-                surface_SimpleText( x, y, "DT", lc )
-            render.SetScissorRect( 0, 0, 0, 0, false )
+            surface.SetDrawColor( lc )
+            surface.DrawRect( 79, screenHeight-218, ultimate.tyaga / ultimate.maxvape * 58, 12 )
         end
 
-           
-     
-
-
-        
-
-        
-        
-        
-        
-        
-        
-        
-
-        
-
-        local cfg = ultimate.cfg.vars["Hit Chance Auto Sniper"]
-        local weapon = me:GetActiveWeapon()
-        if not IsValid(weapon) then return end
-        local w = weapon:GetClass()
-
-        local Pistol1 = 'weapon_swcs_g3sg1'
-        local Pistol2 = 'weapon_swcs_scar20'
-       
-       
-        if cfg == 2 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 ) then
-            local hs = Color(127, 255, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-            
-         surface_SimpleText( x, y, "Hit Chance mode: Minimum", hs ) 
-          end
-          elseif cfg == 3 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 ) then
-            local hs = Color(255, 155, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Medium", hs ) 
-            end
-         elseif cfg == 4 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 ) then
-            local hs = Color(255, 0, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Higt", hs ) 
-            end
-         elseif cfg == 5 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 ) then
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-            local x, y = scrwc - 60, scrhc + 68 
-
-        surface_SimpleText( x, y, "Hit Chance mode: FULL", hs ) 
+        if ultimate.cfg.vars["Tickbase shift"] and ultimate.cfg.vars["Tickbase indicator"] then
+            if jopa.GetCurrentCharge() <= ultimate.cfg.vars["Shift ticks"] then
+                ccharge = jopa.GetCurrentCharge() * 196 / ultimate.cfg.vars["Shift ticks"]
             end
 
+            charge = math.Approach(charge,ccharge,FrameTime()*700)
+
+            if jopa.GetCurrentCharge() == 0 then
+                chargestate = "NO CHARGE"
+                chargecolor = unchargedcolor
+            elseif jopa.GetCurrentCharge() < ultimate.cfg.vars["Shift ticks"] and ultimate.IsKeyDown( ultimate.cfg.binds["Auto recharge"] ) then
+                chargestate = "CHARGING"
+                chargecolor = unchargedcolor
+            else
+                chargestate = "READY"
+                chargecolor = chargedcolor
+            end
+
+            local tw, th = surface.GetTextSize(chargestate)
+
+            surface.SetDrawColor(ultimate.Colors[12])
+            surface.DrawRect(indx,indy,200,30)
+
+            surface.SetDrawColor(chargecolor)
+            surface.DrawRect(indx+2,indy+2,charge,26)
+
+            surface.SetDrawColor( gradcolor )
+            surface.SetMaterial( ultimate.Materials["Gradient right"] )
+            surface.DrawTexturedRect( indx+2,indy+2,charge,26 )
+
+            surface.SetTextColor( ultimate.Colors[245] )
+
+            surface.SetTextPos( indx+2,indy-20 )
+            surface.DrawText( "CHARGE "..jopa.GetCurrentCharge() )
+
+            surface.SetTextPos( indx+196-tw,indy-20 )
+            surface.DrawText( chargestate )
         end
 
-
-        local cfg = ultimate.cfg.vars["Hit Chance AWP"]
-        local w = me:GetActiveWeapon():GetClass()
-
-        local Pistol1 = 'weapon_swcs_awp'
-       
-       
-        if cfg == 2 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(127, 255, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-            
-         surface_SimpleText( x, y, "Hit Chance mode: Minimum", hs ) 
-          end
-          elseif cfg == 3 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(255, 155, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Medium", hs ) 
-            end
-         elseif cfg == 4 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(255, 0, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Higt", hs ) 
-            end
-         elseif cfg == 5 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-            local x, y = scrwc - 60, scrhc + 68 
-
-        surface_SimpleText( x, y, "Hit Chance mode: FULL", hs ) 
-            end
-
-        end
-        
-
-        local cfg = ultimate.cfg.vars["Hit Chance Smg"]
-        local w = me:GetActiveWeapon():GetClass()
-        
-        local Pistol1 = 'weapon_swcs_mac10'
-        local Pistol2 = 'weapon_swcs_mp5sd'
-        local Pistol3 = 'weapon_swcs_mp7'
-        local Pistol4 = 'weapon_swcs_mp9'
-        local Pistol5 = 'weapon_swcs_p90'
-        local Pistol6 = 'weapon_swcs_bizon'
-        local Pistol7 = 'weapon_swcs_ump45'
-        
-        
-        
-        
-        if cfg == 2 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )
- then
-            local hs = Color(127, 255, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-            
-         surface_SimpleText( x, y, "Hit Chance mode: Minimum", hs ) 
-          end
-          elseif cfg == 3 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )
- then
-            local hs = Color(255, 155, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Medium", hs ) 
-            end
-         elseif cfg == 4 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )
- then
-            local hs = Color(255, 0, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Higt", hs ) 
-            end
-         elseif cfg == 5 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )
- then
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-            local x, y = scrwc - 60, scrhc + 68 
-
-        surface_SimpleText( x, y, "Hit Chance mode: FULL", hs ) 
-            end
-
-        end
-
-
-        local cfg = ultimate.cfg.vars["Hit Chance Auto Rifle"]
-        local w = me:GetActiveWeapon():GetClass()
-        
-        local Pistol1 = 'weapon_swcs_ak47'
-        local Pistol2 = 'weapon_swcs_aug'
-        local Pistol3 = 'weapon_swcs_famas'
-        local Pistol4 = 'weapon_swcs_galilar'
-        local Pistol5 = 'weapon_swcs_m4a1_silencer'
-        local Pistol6 = 'weapon_swcs_m4a1'
-        local Pistol7 = 'weapon_swcs_sg556'
-       
-       
-        if cfg == 2 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 ) then
-            local hs = Color(127, 255, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-            
-         surface_SimpleText( x, y, "Hit Chance mode: Minimum", hs ) 
-          end
-          elseif cfg == 3 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 ) then
-            local hs = Color(255, 155, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Medium", hs ) 
-            end
-         elseif cfg == 4 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 ) then
-            local hs = Color(255, 0, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Higt", hs ) 
-            end
-         elseif cfg == 5 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 ) then
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-            local x, y = scrwc - 60, scrhc + 68 
-
-        surface_SimpleText( x, y, "Hit Chance mode: FULL", hs ) 
-            end
-
-        end
-
-
-        local cfg = ultimate.cfg.vars["Hit Chance Heavy Pistol"]
-        local w = me:GetActiveWeapon():GetClass()
-        
-        local Pistol1 = 'weapon_swcs_deagle'
-        local Pistol2 = 'weapon_swcs_revolver'
-        
-       
-        if cfg == 2 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 ) then
-            local hs = Color(127, 255, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-            
-         surface_SimpleText( x, y, "Hit Chance mode: Minimum", hs ) 
-          end
-          elseif cfg == 3 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )then
-            local hs = Color(255, 155, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Medium", hs ) 
-            end
-         elseif cfg == 4 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 ) then
-            local hs = Color(255, 0, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Higt", hs ) 
-            end
-         elseif cfg == 5 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 ) then
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-            local x, y = scrwc - 60, scrhc + 68 
-
-        surface_SimpleText( x, y, "Hit Chance mode: FULL", hs ) 
-            end
-
-        end
-
-    
-        
-        
-        local cfg = ultimate.cfg.vars["Hit Chance Pistol"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_glock'
-local Pistol2 = 'weapon_swcs_hkp2000'
-local Pistol3 = 'weapon_swcs_cz75'
-local Pistol4 = 'weapon_swcs_elite'
-local Pistol5 = 'weapon_swcs_fiveseven'
-local Pistol6 = 'weapon_swcs_p250'
-local Pistol7 = 'weapon_swcs_usp_silencer'
-local Pistol8 = 'weapon_swcs_tec9'
-        
-        
-        if cfg == 2 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )  or Startultith( w, Pistol8 )   then
-            local hs = Color(127, 255, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-            
-         surface_SimpleText( x, y, "Hit Chance mode: Minimum", hs ) 
-          end
-          elseif cfg == 3 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )  or Startultith( w, Pistol8 )  then
-            local hs = Color(255, 155, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Medium", hs ) 
-            end
-         elseif cfg == 4 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )  or Startultith( w, Pistol8 )   then
-            local hs = Color(255, 0, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Higt", hs ) 
-            end
-         elseif cfg == 5 then 
-            if Startultith( w, Pistol1 ) or Startultith( w, Pistol2 )  or Startultith( w, Pistol3 )  or Startultith( w, Pistol4 )  or Startultith( w, Pistol5 )  or Startultith( w, Pistol6 )  or Startultith( w, Pistol7 )  or Startultith( w, Pistol8 )   then
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-            local x, y = scrwc - 60, scrhc + 68 
-
-        surface_SimpleText( x, y, "Hit Chance mode: FULL", hs ) 
-            end
-
-        end
-        local cfg = ultimate.cfg.vars["Hit Chance SSG 08"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'weapon_swcs_ssg08'
-        
-        if cfg == 2 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(127, 255, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-            
-         surface_SimpleText( x, y, "Hit Chance mode: Minimum", hs ) 
-          end
-          elseif cfg == 3 then 
-            if Startultith( w, Pistol1 )then
-            local hs = Color(255, 155, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Medium", hs ) 
-            end
-         elseif cfg == 4 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(255, 0, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Higt", hs ) 
-            end
-         elseif cfg == 5 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-            local x, y = scrwc - 60, scrhc + 68 
-
-        surface_SimpleText( x, y, "Hit Chance mode: FULL", hs ) 
-            end
-
-        end
-        local cfg = ultimate.cfg.vars["Hit Chance SSG 08"]
-local w = me:GetActiveWeapon():GetClass()
-
-local Pistol1 = 'arccw_ud_'
-        
-        if cfg == 2 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(127, 255, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-            
-         surface_SimpleText( x, y, "Hit Chance mode: Minimum", hs ) 
-          end
-          elseif cfg == 3 then 
-            if Startultith( w, Pistol1 )then
-            local hs = Color(255, 155, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Medium", hs ) 
-            end
-         elseif cfg == 4 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(255, 0, 0)
-            local x, y = scrwc - 60, scrhc + 68 
-
-         surface_SimpleText( x, y, "Hit Chance mode: Higt", hs ) 
-            end
-         elseif cfg == 5 then 
-            if Startultith( w, Pistol1 ) then
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-            local x, y = scrwc - 60, scrhc + 68 
-
-        surface_SimpleText( x, y, "Hit Chance mode: FULL", hs ) 
-            end
-
-        end
-
-
-
-
-        
-        
-
-
-        /*
-        
-        watermarkx = watermarkx - 1
-
-        if watermarkx < -925 then
-            watermarkx = scrw + 100
-        end
-
-        surface_SetFont("XVIDEOS FONT")
-        surface_SimpleText(watermarkx,10,"This video was uploaded to WWW.XVIDEOS.COM",watermarkc)
-        */
         local CT = CurTime()
         local FT = FrameTime() * 128
 
         if ultimate.cfg.vars["Hitmarker"] and #ultimate.hitmarkers > 0 then
-            local hm = string_ToColor( ultimate.cfg.colors["Hitmarker"] ) 
-    
-            surface_SetDrawColor( hm )
+            local hm = string.ToColor( ultimate.cfg.colors["Hitmarker"] )
+
+            surface.SetDrawColor( hm )
 
             for i = #ultimate.hitmarkers, 1, -1  do
                 local v = ultimate.hitmarkers[ i ]
-    
-                if v.time < CT - 1 then table_remove( ultimate.hitmarkers, i ) continue end 
-    
-                v.add = math_Approach( v.add, v.add - (CT - 1) * 5, FT )
 
-                surface_DrawLine( scrwc - v.add, scrhc - v.add, scrwc - 10 - v.add, scrhc - 10 - v.add )
-                surface_DrawLine( scrwc + v.add, scrhc - v.add, scrwc + 10 + v.add, scrhc - 10 - v.add )
-                surface_DrawLine( scrwc - v.add, scrhc + v.add, scrwc - 10 - v.add, scrhc + 10 + v.add )
-                surface_DrawLine( scrwc + v.add, scrhc + v.add, scrwc + 10 + v.add, scrhc + 10 + v.add )
+                if v.time < CT - 1 then table.remove( ultimate.hitmarkers, i ) continue end
+
+                v.add = math.Approach( v.add, v.add - (CT - 1) * 5, FT )
+
+                surface.DrawLine( ( screenWidth * 0.5 ) - v.add, ( screenHeight * 0.5 ) - v.add, ( screenWidth * 0.5 ) - 10 - v.add, ( screenHeight * 0.5 ) - 10 - v.add )
+                surface.DrawLine( ( screenWidth * 0.5 ) + v.add, ( screenHeight * 0.5 ) - v.add, ( screenWidth * 0.5 ) + 10 + v.add, ( screenHeight * 0.5 ) - 10 - v.add )
+                surface.DrawLine( ( screenWidth * 0.5 ) - v.add, ( screenHeight * 0.5 ) + v.add, ( screenWidth * 0.5 ) - 10 - v.add, ( screenHeight * 0.5 ) + 10 + v.add )
+                surface.DrawLine( ( screenWidth * 0.5 ) + v.add, ( screenHeight * 0.5 ) + v.add, ( screenWidth * 0.5 ) + 10 + v.add, ( screenHeight * 0.5 ) + 10 + v.add )
             end
         end
---simple nikitaka ch
-    if  ultimate.cfg.vars["Crosshair"]  then 
-        local cfg = ultimate.cfg.vars["Crosshair type"]
-        local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-        local x, y = scrwc - 20, scrhc - 13
-        local x1, y1 = scrwc - 3, scrhc - 23
-        local x2, y2 = scrwc - 3, scrhc + 9
 
-        local x3, y3 = scrwc - 3, scrhc - 9
+        if ultimate.cfg.vars["Hitnumbers"] and #ultimate.hitnums > 0 then
+            local n, c = string.ToColor( ultimate.cfg.colors["Hitnumbers"] ), string.ToColor( ultimate.cfg.colors["Hitnumbers krit"] )
 
-
-        if cfg == 1 then
-       
-       
-            local hs = Color(  ( CurTime() * 720 ) % 360, 155, 155 )
-        local x, y = scrwc - 20, scrhc - 13
-        local x1, y1 = scrwc - 3, scrhc - 23
-        local x2, y2 = scrwc - 3, scrhc + 9
-        local x3, y3 = scrwc - 3, scrhc - 9
-        
-        
-        
-        surface_SimpleText( x, y, "_      _", hs ) 
-        surface_SimpleText( x1, y1, "|", hs )
-        surface_SimpleText( x2, y2, "|", hs )
-        surface_SimpleText( x3, y3, ".", hs )
-            
-        elseif cfg == 2 then
-            local csizew = 1
-
-            draw.RoundedBox(0,scrw/2-csizew/2-1,scrh/2-csizew/2-1,csizew+2,csizew+2,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-            draw.RoundedBox(0,scrw/2-csizew/2,scrh/2-csizew/2,csizew,csizew,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-
-            --left
-            draw.RoundedBox(0,scrw/2-csizew-16,scrh/2-csizew/2-1,csizew+2+10,csizew+2,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-            draw.RoundedBox(0,scrw/2-csizew-15,scrh/2-csizew/2,csizew+10,csizew,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-            --right
-            draw.RoundedBox(0,scrw/2+3,scrh/2-csizew/2-1,csizew+12,csizew+2,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-            draw.RoundedBox(0,scrw/2+4,scrh/2-csizew/2,csizew+10,csizew,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-            --top
-            draw.RoundedBox(0,scrw/2-csizew/2-1,scrh/2-csizew/2-16,csizew+2,csizew+12,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-            draw.RoundedBox(0,scrw/2-csizew/2,scrh/2-csizew/2-15,csizew,csizew+10,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-            --down
-            draw.RoundedBox(0,scrw/2-csizew/2-1,scrh/2+3,csizew+2,csizew+12,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-            draw.RoundedBox(0,scrw/2-csizew/2,scrh/2+4,csizew,csizew+10,Color(  ( CurTime() * 720 ) % 360, 155, 155 ))
-        
-
-
-
-    
-
-        
-    end
-
-end
-       
-       
-        if ultimate.cfg.vars["Hitnumbers"] and #ultimate.hitnums > 0 then 
-            local n, c = string_ToColor( ultimate.cfg.colors["Hitnumbers"] ), string_ToColor( ultimate.cfg.colors["Hitnumbers krit"] )
-        
-            surface_SetFont( "veranda_scr" )
+            surface.SetFont( "veranda_scr" )
 
             for i = #ultimate.hitnums, 1, -1 do
                 local v = ultimate.hitnums[ i ]
 
-                if v.time < CT - 1 then table_remove( ultimate.hitnums, i ) continue end 
+                if v.time < CT - 1 then table.remove( ultimate.hitnums, i ) continue end
 
-                surface_SetTextColor( v.crit and c or n )
+                surface.SetTextColor( v.crit and c or n )
 
-                v.add = math_Approach( v.add, v.add - (CT - 1) * 5, FT / 2 )
+                v.add = math.Approach( v.add, v.add - (CT - 1) * 5, FT / 2 )
 
-                surface_SetTextPos( scrwc - v.add * v.xdir, scrhc - v.add * v.ydir )
-                surface_DrawText( v.dmg )
+                surface.SetTextPos( ( screenWidth * 0.5 ) - v.add * v.xdir, ( screenHeight * 0.5 ) - v.add * v.ydir )
+                surface.DrawText( v.dmg )
             end
         end
 
-        if ultimate.cfg.vars["Show FOV"] then 
-            local col = string_ToColor( ultimate.cfg.colors["Show FOV"] )
-            
+        if ultimate.cfg.vars["Fov limit"] and ultimate.cfg.vars["Show FOV"] then
+            local col = string.ToColor( ultimate.cfg.colors["Show FOV"] )
+
             local radius = ultimate.GetFovRadius()
-        
-            surface_SetDrawColor( 0, 0, 0, 128 )
-            surface.DrawCircle( scrwc, scrhc, radius + 1 )
 
-            surface_SetDrawColor( col.r, col.g, col.b )
-            surface.DrawCircle( scrwc, scrhc, radius )
+            surface.SetDrawColor( 0, 0, 0, 128 )
+            surface.DrawCircle( ( screenWidth * 0.5 ), ( screenHeight * 0.5 ), radius + 1 )
 
-            surface_SetDrawColor( 0, 0, 0, 128 )
-            surface.DrawCircle( scrwc, scrhc, radius - 1 )
+            surface.SetDrawColor( col.r, col.g, col.b )
+            surface.DrawCircle( ( screenWidth * 0.5 ), ( screenHeight * 0.5 ), radius )
+
+            surface.SetDrawColor( 0, 0, 0, 128 )
+            surface.DrawCircle( ( screenWidth * 0.5 ), ( screenHeight * 0.5 ), radius - 1 )
         end
 
         if ultimate.target and ultimate.targetVector then
-            if ultimate.cfg.vars["Aimbot snapline"] then 
+            if ultimate.cfg.vars["Aimbot snapline"] then
                 local pos = ultimate.targetVector:ToScreen()
-                surface_SetDrawColor( string_ToColor( ultimate.cfg.colors["Aimbot snapline"] ) )
-                surface_DrawLine( pos.x, pos.y, scrwc, scrhc )
+                surface.SetDrawColor( string.ToColor( ultimate.cfg.colors["Aimbot snapline"] ) )
+                surface.DrawLine( pos.x, pos.y, ( screenWidth * 0.5 ), ( screenHeight * 0.5 ) )
             end
-            if ultimate.target and ultimate.cfg.vars["Target"] then
-            
-                ultimate.accent = HSVToColor(  ( CurTime() * 100 ) % 720, 1, 1 )
-                local col =  ultimate.accent
-                    local x, y = scrwc - 45, scrhc - 45 
-        
-                 surface_SimpleText( x, y, " Target:"..ultimate.target:Name(), col ) 
-                    end
-                    
-            if ultimate.cfg.vars["Aimbot marker"] then 
+
+            if ultimate.cfg.vars["Aimbot marker"] then
                 local pos = ultimate.targetVector:ToScreen()
-                local markerMode = ultimate.cfg.vars["Aimbot marker mode"] or 1
-                local col = string_ToColor( ultimate.cfg.colors["Aimbot marker"] )
+                local markerType = ultimate.cfg.vars["Aimbot marker type"] or 1
+                local color = markerType == 2 and string_ToColor( ultimate.cfg.colors["GTA Marker"] ) or string.ToColor( ultimate.cfg.colors["Aimbot marker"] )
 
-                if markerMode == 2 or markerMode == 3 then
-                    -- Circle modes
-                    local radius = 4
+                if markerType == 2 then
+                    draw.NoTexture()
 
-                    surface_SetDrawColor(0, 0, 0, 255)
-                    surface.DrawCircle(pos.x, pos.y, radius + 1)
+                    local radius = ultimate.cfg.vars["GTA Marker Radius"] or 30
+                    local size = ultimate.cfg.vars["GTA Marker Size"] or 10
+                    local speed = ultimate.cfg.vars["GTA Marker Speed"] or 100
+                    local angle_offset = (CurTime() * speed) % 360
 
-                    if markerMode == 3 then
-                        -- Filled circle
-                        surface_SetDrawColor(col.r, col.g, col.b, col.a)
-                        surface.DrawCircle(pos.x, pos.y, radius)
-                        surface.DrawCircle(pos.x, pos.y, radius - 1)
-                        surface.DrawCircle(pos.x, pos.y, radius - 2)
-                    else
-                        -- Outline circle
-                        surface_SetDrawColor(col.r, col.g, col.b, col.a)
-                        surface.DrawCircle(pos.x, pos.y, radius)
+                    for i = 0, 2 do
+                        local angle = math.rad(angle_offset + i * 120)
+
+                        local cx = pos.x + math.cos(angle) * radius
+                        local cy = pos.y + math.sin(angle) * radius
+                        local tip_angle = angle + math.pi
+
+                        local function get_tri_points(sz)
+                            local p1x = cx + math.cos(tip_angle) * sz
+                            local p1y = cy + math.sin(tip_angle) * sz
+                            local p2x = cx + math.cos(tip_angle + 2.3) * sz
+                            local p2y = cy + math.sin(tip_angle + 2.3) * sz
+                            local p3x = cx + math.cos(tip_angle - 2.3) * sz
+                            local p3y = cy + math.sin(tip_angle - 2.3) * sz
+
+                            return {
+                                { x = p1x, y = p1y },
+                                { x = p2x, y = p2y },
+                                { x = p3x, y = p3y }
+                            }
+                        end
+
+                        surface_SetDrawColor(0, 0, 0, color.a)
+                        surface_DrawPoly(get_tri_points(size + 2))
+
+                        surface_SetDrawColor(color.r, color.g, color.b, color.a)
+                        surface_DrawPoly(get_tri_points(size))
                     end
+                elseif markerType == 3 then
+                    local radius = 4
+                    surface.SetDrawColor(0, 0, 0, 255)
+                    surface.DrawCircle(pos.x, pos.y, radius + 1)
+                    local col = string.ToColor(ultimate.cfg.colors["Aimbot marker"])
+                    surface.SetDrawColor(col.r, col.g, col.b, col.a)
+                    surface.DrawCircle(pos.x, pos.y, radius)
                 else
-                    -- Square mode (default)
-                    surface_SetDrawColor( 0, 0, 0 )
-                    surface_DrawRect( pos.x - 6, pos.y - 6, 5, 3 )
-                    surface_DrawRect( pos.x + 2, pos.y - 6, 5, 3 )
+                    local gap = 2
+                    local length = 4
+                    local thickness = 1
+                    local outline = 2
+                    local function draw_marker_line(x1, y1, x2, y2, clr, thick, outline_thick)
+                        surface.SetDrawColor(0, 0, 0, clr.a)
+                        local full_thick = thick + outline_thick
+                        for i = -full_thick, full_thick do
+                            for j = -full_thick, full_thick do
+                                surface.DrawLine(x1 + i, y1 + j, x2 + i, y2 + j)
+                            end
+                        end
 
-                    surface_DrawRect( pos.x - 6, pos.y + 4, 5, 3 )
-                    surface_DrawRect( pos.x + 2, pos.y + 4, 5, 3 )
+                        surface.SetDrawColor(clr.r, clr.g, clr.b, clr.a)
+                        for i = -thick, thick do
+                            for j = -thick, thick do
+                                surface.DrawLine(x1 + i, y1 + j, x2 + i, y2 + j)
+                            end
+                        end
+                    end
 
-                    surface_DrawRect( pos.x - 6, pos.y - 6, 3, 5 )
-                    surface_DrawRect( pos.x + 4, pos.y - 6, 3, 5 )
-
-                    surface_DrawRect( pos.x - 6, pos.y + 2, 3, 5 )
-                    surface_DrawRect( pos.x + 4, pos.y + 2, 3, 5 )
-
-                    surface_SetDrawColor( col.r, col.g, col.b, col.a )
-                    
-                    surface_DrawRect( pos.x - 5, pos.y - 5, 3, 1 )
-                    surface_DrawRect( pos.x + 3, pos.y - 5, 3, 1 )
-
-                    surface_DrawRect( pos.x - 5, pos.y + 5, 3, 1 )
-                    surface_DrawRect( pos.x + 3, pos.y + 5, 3, 1 )
-
-                    surface_DrawRect( pos.x - 5, pos.y - 5, 1, 3 )
-                    surface_DrawRect( pos.x + 5, pos.y - 5, 1, 3 )
-
-                    surface_DrawRect( pos.x - 5, pos.y + 3, 1, 3 )
-                    surface_DrawRect( pos.x + 5, pos.y + 3, 1, 3 )
+                    draw_marker_line(pos.x - gap - length, pos.y - gap - length, pos.x - gap, pos.y - gap, color, thickness, outline)
+                    draw_marker_line(pos.x + gap + length, pos.y - gap - length, pos.x + gap, pos.y - gap, color, thickness, outline)
+                    draw_marker_line(pos.x - gap - length, pos.y + gap + length, pos.x - gap, pos.y + gap, color, thickness, outline)
+                    draw_marker_line(pos.x + gap + length, pos.y + gap + length, pos.x + gap, pos.y + gap, color, thickness, outline)
                 end
-
             end
         end
 
-        ultimate.watermark()
 
-        surface_SetFont( "veranda" )
+        
+
+        surface.SetFont( "veranda" )
 
         if ultimate.cfg.vars[ "On screen logs" ] and table.Count( ultimate.onScreenLogs ) > 0 then
             local tick = engine.TickCount()
-            local x, y = scrw / 2, scrh / 2 + 45 
-    
+            local x, y = screenWidth / 2, screenHeight / 2 + 45
+
             for k, v in pairs( ultimate.onScreenLogs ) do
 
                 if ultimate.TICKS_TO_TIME( tick - ultimate.onScreenLogs[ k ].tick ) > 8 then
                     ultimate.onScreenLogs[ k ] = nil
-                    continue 
+                    continue
                 end
 
                 local data = ultimate.onScreenLogs[ k ]
                 local fstr = ""
-    
+
                 for o = 1, #data[ 1 ] do
                     fstr = fstr .. data[ 1 ][ o ]
                 end
-    
+
                 local tw, th = surface.GetTextSize( fstr )
-    
+
                 x = x - tw / 2
-                
+
                 for p = 1, #data[ 1 ] do
                     local str = data[ 1 ][ p ]
                     tw, th = surface.GetTextSize( str )
-    
+
                     surface.SetTextPos( x, y )
                     surface.SetTextColor( data[ 2 ][ p ] )
                     surface.DrawText( str )
-    
+
                     x = x + tw
                 end
-    
-                x, y = scrw / 2, y + th
+
+                x, y = screenWidth / 2, y + th
             end
         end
 
-        local plys = player_GetAll()
+        local plys = player.GetAll()
 
         if ultimate.cfg.vars["Spectator list"] then
             if not ultimate.spectatorListData then
-                ultimate.spectatorListData = { x = scrw - 280, y = scrh / 2, dragging = false, dx = 0, dy = 0 }
+                ultimate.spectatorListData = { x = screenWidth - 280, y = screenHeight / 2, dragging = false, dx = 0, dy = 0 }
             end
 
             local data = ultimate.spectatorListData
-            local pLocalPlayer = me
+            local pLocalPlayer = LocalPlayer()
             local spectators = {}
             local headerColor = string_ToColor( ultimate.cfg.colors["Spectator list header"] )
             local accentColor = string_ToColor( ultimate.cfg.colors["Spectator list accent"] )
@@ -9641,20 +9362,20 @@ end
             local headerHeight = 20
 
             for i = 1, #plys do
-                local v = plys[i]
-                if not ultimate.playerCache[v] then continue end
-                if ultimate.playerCache[v].ObserverMode == 0 then continue end
-                if not IsValid(v) then continue end
-                if not IsValid(ultimate.playerCache[v].ObserverTarget) then continue end
+                local v = ultimate.playerCache[ plys[ i ] ]
+                if not v then continue end
+                if v.ObserverMode == 0 then continue end
+                if not IsValid( v.entity ) then continue end
+                if not IsValid( v.ObserverTarget ) then continue end
 
-                spectators[#spectators + 1] = {
-                    text = (v:Name() or "Unknown") .. " spectating " .. tostring(ultimate.playerCache[v].ObserverTarget:Name() or "Unknown"),
-                    target = ultimate.playerCache[v].ObserverTarget == pLocalPlayer
+                spectators[ #spectators + 1 ] = {
+                    text = ( v.entity:Name() or "Unknown" ) .. " spectating " .. tostring( v.ObserverTarget:Name() or "Unknown" ),
+                    target = v.ObserverTarget == pLocalPlayer
                 }
             end
 
             local rowHeight = 17
-            local listHeight = headerHeight + 6 + math_max(#spectators, 0) * rowHeight
+            local listHeight = headerHeight + 6 + math_max( #spectators, 0 ) * rowHeight
             local mx, my = gui.MousePos()
             local overList = mx >= data.x and mx <= data.x + listWidth and my >= data.y and my <= data.y + listHeight
 
@@ -9666,93 +9387,116 @@ end
 
             if data.dragging then
                 if input.IsMouseDown(MOUSE_LEFT) then
-                    data.x = math.Clamp(mx - data.dx, 0, scrw - listWidth)
-                    data.y = math.Clamp(my - data.dy, 0, scrh - listHeight)
+                    data.x = math.Clamp( mx - data.dx, 0, screenWidth - listWidth )
+                    data.y = math.Clamp( my - data.dy, 0, screenHeight - listHeight )
                 else
                     data.dragging = false
                 end
             end
 
-            surface.SetFont("veranda")
-            surface_SetDrawColor(accentColor.r, accentColor.g, accentColor.b, accentColor.a)
-            surface_DrawRect(data.x, data.y - 3, listWidth, 3)
+            surface.SetFont( "veranda" )
+            surface_SetDrawColor( accentColor.r, accentColor.g, accentColor.b, accentColor.a )
+            surface_DrawRect( data.x, data.y - 3, listWidth, 3 )
 
-            surface_SetDrawColor(headerColor.r, headerColor.g, headerColor.b, headerColor.a)
-            surface_DrawRect(data.x, data.y, listWidth, headerHeight)
+            surface_SetDrawColor( headerColor.r, headerColor.g, headerColor.b, headerColor.a )
+            surface_DrawRect( data.x, data.y, listWidth, headerHeight )
 
-            local tw, th = surface_GetTextSize("Spectator list")
-            surface_SetTextColor(0, 0, 0, 255)
-            surface_SetTextPos(data.x + (listWidth - tw) / 2 + 1, data.y + (headerHeight - th) / 2 + 1)
-            surface_DrawText("Spectator list")
+            local tw, th = surface_GetTextSize( "Spectator list" )
+            surface_SetTextColor( 0, 0, 0, 255 )
+            surface_SetTextPos( data.x + ( listWidth - tw ) / 2 + 1, data.y + ( headerHeight - th ) / 2 + 1 )
+            surface_DrawText( "Spectator list" )
 
-            surface_SetTextColor(titleColor.r, titleColor.g, titleColor.b, titleColor.a)
-            surface_SetTextPos(data.x + (listWidth - tw) / 2, data.y + (headerHeight - th) / 2)
-            surface_DrawText("Spectator list")
+            surface_SetTextColor( titleColor.r, titleColor.g, titleColor.b, titleColor.a )
+            surface_SetTextPos( data.x + ( listWidth - tw ) / 2, data.y + ( headerHeight - th ) / 2 )
+            surface_DrawText( "Spectator list" )
 
             local y = data.y + headerHeight + 6
             if #spectators > 0 then
                 for i = 1, #spectators do
-                    local text = spectators[i].text
-                    local clr = spectators[i].target and targetColor or textColor
+                    local text = spectators[ i ].text
+                    local clr = spectators[ i ].target and targetColor or textColor
 
-                    surface_SetTextColor(0, 0, 0, 255)
-                    surface_SetTextPos(data.x + 1, y + 1)
-                    surface_DrawText(text)
+                    surface_SetTextColor( 0, 0, 0, 255 )
+                    surface_SetTextPos( data.x + 1, y + 1 )
+                    surface_DrawText( text )
 
-                    surface_SetTextColor(clr.r, clr.g, clr.b, clr.a)
-                    surface_SetTextPos(data.x, y)
-                    surface_DrawText(text)
+                    surface_SetTextColor( clr.r, clr.g, clr.b, clr.a )
+                    surface_SetTextPos( data.x, y )
+                    surface_DrawText( text )
 
                     y = y + rowHeight
                 end
             end
-        end 
-        
-        if ultimate.cfg.vars[ "Ping Warning" ] then
-        if me:Ping() < 60 then
-            local y = scrh / 2.1 
-            surface.SetTextPos( 800, y )
-            surface.SetTextColor( 0,255,0 )
-            surface.DrawText( "Ping Sigma" )
-            y = y + 8
-   
-      elseif me:Ping() < 100 then
-        local y = scrh / 2.1 
-        surface.SetTextPos( 800, y )
-        surface.SetTextColor( 255,255,0 )
-        surface.DrawText( "Ping Huiny" )
-    y = y + 8
-elseif me:Ping() < 150 then
-    local y = scrh / 2.1
-    surface.SetTextPos( 800, y )
-    surface.SetTextColor( 255,125,0 )
-    surface.DrawText( "Ping SATANA" )
-y = y + 8
-elseif me:Ping() < 200 then
-    local y = scrh / 2.1
-    surface.SetTextPos( 800, y )
-    surface.SetTextColor( 255,0,0 )
-    surface.DrawText( "РЎС…РѕРґРё СѓР±РµР№СЃСЏ С‡РµСЂС‚" )
-y = y + 8
-        
+        end
+
+        if ultimate.cfg.vars["Crosshair"] then
+            x = screenWidth * 0.5
+            y = screenHeight * 0.5
+
+            gap = 8
+            size = 14
+
+            local crosshairColor = ultimate.GetAnimatedColor( "Crosshair color", 120 )
+            surface.SetDrawColor( crosshairColor.r, crosshairColor.g, crosshairColor.b, crosshairColor.a )
+
+            surface.DrawLine(x - gap - size, y, x - gap, y)
+            surface.DrawLine(x + gap, y, x + gap + size, y)
+
+            surface.DrawLine(x, y - gap - size, x, y - gap)
+            surface.DrawLine(x, y + gap, x, y + gap + size)
+        end
 
 
-end
-    
-   
-    
-end
 
-end
-end
 
-/*
-hook.Add( "PostDrawTranslucentRenderables", "test", function()
-    if ultimate.targetVector then
-        render.DrawWireframeSphere( ultimate.targetVector, 0.5, 10, 10, Color( 255, 0, 64 ) )
+
+
+
     end
+
+
+
+end
+
+
+local function GetKeypads()
+	return ents.FindByClass("Keypad")
+end
+
+hook.Add("Think", "KeypadLogger", function()
+	if not ultimate.cfg.vars["Keypad Logger"] then return end
+	local keypads = GetKeypads()
+	for k, v in pairs(keypads) do
+		if IsValid(v) then
+			if v.hacked == nil then
+				v.hacked = false
+			end
+			if not v.hacked then
+				if v:GetStatus() == 1 then
+					local text = v:GetText()
+					if text and text != "****" and text != "" then
+						v.hacked = true
+						v.passi = text
+					end
+				end
+			end
+		end
+	end
 end)
-*/
+
+hook.Add("HUDPaint", "KeypadLogger", function()
+	if not ultimate.cfg.vars["Keypad Logger"] then return end
+	if ultimate.UnSafeFrame then return end
+	local keypads = GetKeypads()
+	for k, v in pairs(keypads) do
+		if IsValid(v) and v.hacked and v.passi then
+			local pos = v:GetPos():ToScreen()
+			if pos.x > 0 and pos.x < ScrW() and pos.y > 0 and pos.y < ScrH() then
+				draw.SimpleText(v.passi, "TargetID", pos.x + 25, pos.y + 20, Color(255, 0, 0), 1, 1)
+			end
+		end
+	end
+end)
 
 
 ultimate.kd = false
@@ -9775,110 +9519,48 @@ function ultimate.togglevisible()
     end
 end
 
-// dormant esp 
---[[]
 
-function ultimate.SetEntPos(ent,pos)
-    if not IsValid(ent) or ent == me or not ent:IsDormant() then return end
 
-    ent:SetNetworkOrigin(pos)
-    ent:SetRenderOrigin(pos)
+function ultimate.PrePlayerDraw( pEntity, iFlags )
+    if ( pEntity == pLocalPlayer ) then
+        return
+    end
+
+   if ultimate.cfg.vars["Disable Taunts"] and ply != me then
+        ply:AnimResetGestureSlot(GESTURE_SLOT_VCD)
+        ply:AnimResetGestureSlot(GESTURE_SLOT_CUSTOM)
+    
+        ply:SetPoseParameter("head_pitch", 0)
+        ply:SetPoseParameter("head_yaw", 0)
+    end
+  
+    if ( ultimate.cfg.vars["Resolver"] ) then
+        local angs = Angle()
+        angs.y = ultimate.bruteYaw[ pEntity.aimshots % #ultimate.bruteYaw + 1 ] + pEntity:EyeAngles().y
+
+        pEntity:SetRenderAngles( angs )
+        pEntity:SetPoseParameter( "body_yaw", (angs.y + 180) / 360 )
+        pEntity:SetPoseParameter( "aim_yaw", angs.y - pEntity:EyeAngles().y )
+    end
+
+    if ( ultimate.cfg.vars["Pitch resolver"] and pEntity.fakepitch ) then
+        pEntity:SetPoseParameter( "aim_pitch", -89 )
+        pEntity:SetPoseParameter( "head_pitch", -89 )
+    end
+
+    pEntity:InvalidateBoneCache()
+    pEntity:SetupBones()
+
+    pEntity.ChatGestureWeight = 0
 end
 
-hook.Add( "EntityEmitSound", "EntSounds", function( data )
-    local ent = data.Entity 
-    local pos = data.Pos
 
-    if ent:IsPlayer() and ent:Alive() and ent:IsDormant() then
-        ultimate.SetEntPos(ent,pos)
-        print(ent,pos)
-    elseif ent:Iulteapon() then
-        print(ent)
-    end
-end)
-
-hook.Add( "PlayerStepSoundTime", "StepSounds", function( ent, type, walking )
-    local pos = ent:GetPos()
-
-    if ent:Alive() and ent:IsDormant() then
-        ultimate.SetEntPos(ent,pos)
-        print("steps ",ent,pos)
-    end
-end)
-]]
-
-
-
-
-hook.Add("PrePlayerDraw", "serj.preplayerdraw", function(ply, falgs)
-	if ply != me then
-        ply.ChatGestureWeight = 0
-		for i = 0, 13 do
-			if ply:IsValidLayer(i) then
-				local seqname = ply:GetSequenceName(ply:GetLayerSequence(i))
-				if seqname:StartWith("taunt_") or seqname:StartWith("act_") or seqname:StartWith("gesture_") then
-                    ply:SetLayerDuration(i, 0.001)
-					break
-				end
-			end
-		end
-        
-
-
-    /*
-	elseif ply == me then
-        local ndata = ultimate.GetLocalNetworkData()
-        //local ntang = Angle( 0, ndata.angles_y, 0 )
-
-        //ply:SetPoseParameter("aim_yaw", ndata.angles_y)
-        //ply:SetPoseParameter("head_yaw", ndata.angles_y)
-
-        //ply:SetPoseParameter("aim_pitch", ndata.angles_x)
-        //ply:SetPoseParameter("head_pitch", ndata.angles_x)
-
-        //ply:InvalidateBoneCache()
-        //ply:SetupBones()
-
-        ply:SetNetworkOrigin( ndata.origin )
-        ply:SetRenderOrigin( ndata.origin )
-
-
-  
-
-*/
-    
-
-    
-
-    
-    end
-
-    if ultimate.cfg.vars["Visible chams"] then
-        //ply:SetNoDraw( true )
-    end
-end)
-
-
-
-local prevang
-local autopistol = false
-
-local positions = {}
-hook.Add("HUDPaint", "dt", function()
-	surface.SetDrawColor(255, 255, 255)
-	for i = 1, #positions-1 do
-		local pos = positions[i]:ToScreen()
-		local prevpos = positions[i+1]:ToScreen()
-		surface.DrawRect(pos.x, pos.y, 4, 4)
-		surface.DrawLine(pos.x, pos.y, prevpos.x,prevpos.y)
-	end
-end)
 // Chams
 
-CreateMaterial("textured", "VertexLitGeneric") 
-CreateMaterial("flat", "UnLitGeneric")
-CreateMaterial("flat_z", "UnLitGeneric",{["$ignorez"] = 1})
-CreateMaterial("textured_z", "VertexLitGeneric",{["$ignorez"] = 1})
+CreateMaterial("flat", "VertexLitGeneric")
+CreateMaterial("flat_z", "VertexLitGeneric", {
+    ["$ignorez"] = 1
+} )
 
 CreateMaterial( "selfillum", "VertexLitGeneric", {
     ["$basetexture"] = "vgui/white_additive",
@@ -9956,60 +9638,73 @@ CreateMaterial("metallic_z", "VertexLitGeneric", {
 ultimate.chamMats = {
     vis = {
         Material("!flat"), -- flat
-        Material("!textured"), -- textured
+        Material("!wireframe"), -- wireframe
         Material("!selfillum"), -- glow
         Material("!selfillum_a"), -- glow outline
-        Material("!wireframe"), -- wireframe
         Material("!metallic"), -- metallic
         Material("effects/nightvision"), -- _rt_fullframefb
         Material("effects/flashbang"), -- _rt_fullframefb
     },
     invis = {
         Material("!flat_z"), -- flat
-        Material("!textured_z"), -- textured
+        Material("!wireframe_z"), -- wireframe
         Material("!selfillum_z"), -- glow
         Material("!selfillum_a_z"), -- glow outline
-        Material("!wireframe_z"), -- wireframe
         Material("!metallic_z"), -- metallic
         Material("effects/nightvision"), -- _rt_fullframefb
         Material("effects/flashbang"), -- _rt_fullframefb
     }
 }
- 
+
 do
     local f = (1/255)
 
-    function ultimate.drawChams()
+    function ultimate.RenderScreenspaceEffects()
         if ultimate.UnSafeFrame then return end
 
-        local vm, invm = ultimate.cfg.vars["Visible mat"], ultimate.cfg.vars["inVisible mat"]
-        local sin = math_floor( math_sin( CurTime() * 4 ) * 45 )
+        if ultimate.cfg.vars["Color Modify"] then
+            local rse = {
+                [ "$pp_colour_addr" ] = ultimate.cfg.vars["Color Modify Add Red"],
+                [ "$pp_colour_addg" ] = ultimate.cfg.vars["Color Modify Add Green"],
+                [ "$pp_colour_addb" ] = ultimate.cfg.vars["Color Modify Add Blue"],
+                [ "$pp_colour_brightness" ] = ultimate.cfg.vars["Color Modify Brightness"],
+                [ "$pp_colour_contrast" ] = ultimate.cfg.vars["Color Modify Contrast"],
+                [ "$pp_colour_colour" ] = ultimate.cfg.vars["Color Modify Saturation"],
+                [ "$pp_colour_mulr" ] = ultimate.cfg.vars["Color Modify Mul Red"],
+                [ "$pp_colour_mulg" ] = ultimate.cfg.vars["Color Modify Mul Green"],
+                [ "$pp_colour_mulb" ] = ultimate.cfg.vars["Color Modify Mul Blue"]
+            }
+            DrawColorModify( rse )
+        end
 
-        local vc = string_ToColor(ultimate.cfg.colors["Visible chams"])
-        local invc = string_ToColor(ultimate.cfg.colors["inVisible chams"])
-        local sc = string_ToColor(ultimate.cfg.colors["Self chams"])
-        
-        cam_Start3D()
-            for k, v in pairs(player_GetAll()) do
-                if not IsValid(v) or v == me or not v:Alive() or v:IsDormant() then continue end 
+        local vm, invm = ultimate.cfg.vars["Visible mat"], ultimate.cfg.vars["inVisible mat"]
+        local sin = math.floor( math.sin( CurTime() * 4 ) * 45 )
+
+        local vc = string.ToColor(ultimate.cfg.colors["Visible chams"])
+        local invc = string.ToColor(ultimate.cfg.colors["inVisible chams"])
+        local sc = string.ToColor(ultimate.cfg.colors["Self chams"])
+
+        cam.Start3D()
+            for k, v in pairs(player.GetAll()) do
+                if not IsValid(v) or v == pLocalPlayer or not v:Alive() or v:IsDormant() then continue end
 
                 if ultimate.cfg.vars["Supress lighting"] then
-                    render_SuppressEngineLighting(true)
+                    render.SuppressEngineLighting(true)
                 end
 
                 if ultimate.cfg.vars["inVisible chams"] then
                     ultimate.chamMats.invis[6]:SetVector( "$envmaptint", Vector( invc.r / 255, invc.g / 255, invc.b / 255 ) )
-                    render_MaterialOverride(ultimate.chamMats.invis[invm])
-                    render_SetColorModulation(invc.r/255,invc.g/255,invc.b/255) 
+                    render.MaterialOverride(ultimate.chamMats.invis[invm])
+                    render.SetColorModulation(invc.r/255,invc.g/255,invc.b/255)
 
                     if invm == 7 then
-                        render_SetBlend( (sin + 100) / 255 )
+                        render.SetBlend( (sin + 100) / 255 )
                     end
 
                     v:SetRenderMode(1)
                     v:DrawModel()
 
-                    if ultimate.cfg.vars["inVisible chams w"] then 
+                    if ultimate.cfg.vars["inVisible chams w"] then
                         local w = v:GetActiveWeapon()
                         if IsValid(w) then w:DrawModel() end
                     end
@@ -10017,97 +9712,68 @@ do
 
                 if ultimate.cfg.vars["Visible chams"] then
                     ultimate.chamMats.vis[6]:SetVector( "$envmaptint", Vector( vc.r / 255, vc.g / 255, vc.b / 255 ) )
-                    render_MaterialOverride(ultimate.chamMats.vis[vm])
-                    render_SetColorModulation(vc.r/255,vc.g/255,vc.b/255)
+                    render.MaterialOverride(ultimate.chamMats.vis[vm])
+                    render.SetColorModulation(vc.r/255,vc.g/255,vc.b/255)
 
                     if vm == 7 then
-                        render_SetBlend( (sin + 100) / 255 )
+                        render.SetBlend( (sin + 100) / 255 )
                     end
 
                     v:DrawModel()
 
-                    if ultimate.cfg.vars["Visible chams w"] then 
+                    if ultimate.cfg.vars["Visible chams w"] then
                         local w = v:GetActiveWeapon()
                         if IsValid(w) then w:DrawModel() end
                     end
                 end
 
                 if ultimate.cfg.vars["Supress lighting"] then
-                    render_SuppressEngineLighting(false)
+                    render.SuppressEngineLighting(false)
                 end
 
             end
 
-            
-            
-            
-            
-            
-            
-            if ultimate.cfg.vars["Self chams"] and IsValid(me) and me:Alive() then
-                ultimate.accent = HSVToColor(  ( CurTime() * 50 ) % 360, 1, 1 )
-                local col =  ultimate.accent
-        
+            if ultimate.cfg.vars["Self chams"] and IsValid(pLocalPlayer) and pLocalPlayer:Alive() then
 
-
-                if ultimate.cfg.vars["Selfhitbox"]  and IsValid(me) and me:Alive() then 
-                    ultimate.accent = HSVToColor(  ( CurTime() * 50 ) % 360, 1, 1 )
-                    local col =  ultimate.accent
-                    for group = 0,me:GetHitBoxGroupCount()-1 do 
-                        local count = me:GetHitBoxCount(group) - 1 
-                        for hitbox = 0,count do 
-                            local bone = me:GetHitBoxBone(hitbox,group) 
-                            if(!bone) then continue end 
-                            local min,max = me:GetHitBoxBounds(hitbox,group) 
-                            local bonepos,boneang = me:GetBonePosition(bone) 
-                             render_DrawWireframeBox(bonepos,boneang,min,max,col,true) 
-                        end 
-                    end 
-                end
-    
-               
-
-            
-               
                 if ultimate.cfg.vars["Supress self lighting"] then
-                    render_SuppressEngineLighting(true)
+                    render.SuppressEngineLighting(true)
                 end
 
                 ultimate.chamMats.invis[6]:SetVector( "$envmaptint", Vector( sc.r / 255, sc.g / 255, sc.b / 255 ) )
-                render_MaterialOverride(ultimate.chamMats.vis[ultimate.cfg.vars["Self mat"]])
-                render_SetColorModulation(sc.r/255,sc.g/255,sc.b/255)
+                render.MaterialOverride(ultimate.chamMats.vis[ultimate.cfg.vars["Self mat"]])
+                render.SetColorModulation(sc.r/255,sc.g/255,sc.b/255)
 
                 if ultimate.cfg.vars["Self mat"] == 7 then
-                    render_SetBlend( (sin + 100) / 255 )
+                    render.SetBlend( (sin + 100) / 255 )
                 end
 
-                me:SetRenderMode(1)
-                me:DrawModel()
+                pLocalPlayer:SetRenderMode(1)
+                pLocalPlayer:DrawModel()
 
-                if ultimate.cfg.vars["Self chams w"] then 
-                    local w = me:GetActiveWeapon()
+                if ultimate.cfg.vars["Self chams w"] then
+                    local w = pLocalPlayer:GetActiveWeapon()
                     if IsValid(w) then w:DrawModel() end
                 end
 
-              
                 if ultimate.cfg.vars["Supress self lighting"] then
-                    render_SuppressEngineLighting(false)
+                    render.SuppressEngineLighting(false)
                 end
 
             end
 
 
 
-        cam_End3D()
 
-        render_SetColorModulation(1, 1, 1)
-        render_SetBlend(1)
-        render_MaterialOverride()
+        cam.End3D()
+
+        render.SetColorModulation(1, 1, 1)
+        render.SetBlend(1)
+        render.MaterialOverride()
     end
 end
 
 
-// Client side models 
+// Client side models
 
 function ultimate.CS_Model(mdl)
     local model = ClientsideModel(mdl)
@@ -10117,11 +9783,11 @@ function ultimate.CS_Model(mdl)
 end
 
 function ultimate.CS_Model_update(ply,model,tbl)
-    if !tbl then return end
+    if !ply or !model or !tbl then return end
 
     local mdl = model
     local playerModel = ply:GetModel()
-    local layers = tbl.layers 
+    local layers = tbl.layers
 
     for i = 0, 13 do
         if mdl:IsValidLayer(i) then
@@ -10139,7 +9805,7 @@ function ultimate.CS_Model_update(ply,model,tbl)
 	mdl:SetPoseParameter("head_pitch", 0)
 	mdl:SetPoseParameter("body_yaw", tbl.angles.y)
 	mdl:SetPoseParameter("aim_yaw", 0)
-		
+
 	mdl:SetPoseParameter("move_x", tbl.movex)
 	mdl:SetPoseParameter("move_y", tbl.movey)
 
@@ -10154,19 +9820,19 @@ function ultimate.PostDrawTranslucentRenderables()
     ultimate.drawCSModels_backtrack()
     ultimate.drawCSModels_real()
 
-    render_SetBlend(1)
-    render_MaterialOverride()
+    render.SetBlend(1)
+    render.MaterialOverride()
 end
 
 
-// Backtracking 
+// Backtracking
 
 ultimate.btrecords = {}
 ultimate.predicted = {}
 
 
 
- 
+
 
 
 
@@ -10181,47 +9847,47 @@ ultimate.predicted = {}
 
 
 function ultimate.canBacktrack(ply)
-    if not ultimate.cfg.vars["Backtrack"] then return false end 
+    if not ultimate.cfg.vars["Backtrack"] then return false end
     if not IsValid(ply) then return false end
-    if not ultimate.btrecords[ply] then return false end 
-    if ply.break_lc then return false end 
+    if not ultimate.btrecords[ply] then return false end
+    if ply.break_lc then return false end
 
-    return true 
+    return true
 end
 
 function ultimate.recordBacktrack(ply)
 	local deadtime = CurTime() - ultimate.cfg.vars["Backtrack time"] / 1000
-	
+
 	local records = ultimate.btrecords[ply]
 
 	if !records then
         records = {}
 		ultimate.btrecords[ply] = records
 	end
-	
+
 	local i = 1
 	while i < #records do
 		local record = records[i]
-		
+
 		if record.simulationtime < deadtime then
-			table_remove(records, i)
+			table.remove(records, i)
 			i = i - 1
 		end
-		
+
 		i = i + 1
 	end
-	
+
 	if !ply:Alive() then return end
     if ply.break_lc then return end
-	
-	local simulationtime = ded.GetSimulationTime(ply)
+
+	local simulationtime = jopa.GetSimulationTime(ply)
 	local len = #records
 	local simtimechanged = true
 
 	if len > 0 then
 		simtimechanged = records[len].simulationtime < simulationtime
 	end
-	
+
 	if !simtimechanged then return end
 
 	local layers = {}
@@ -10247,17 +9913,17 @@ function ultimate.recordBacktrack(ply)
     local hdata = {}
     local hset = ply:GetHitboxSet()
     local hnum = ply:GetHitBoxCount( hset )
-    
+
     for hitbox = 0, hnum - 1 do
         local bone = ply:GetHitBoxBone( hitbox, hset )
-  
+
         if bone == nil then continue end
 
         local mins, maxs = ply:GetHitBoxBounds( bone, hset )
 
-        if not mins or not maxs then continue end 
+        if not mins or not maxs then continue end
 
-        local bonepos, ang = ply:GetBonePosition( bone )  
+        local bonepos, ang = ply:GetBonePosition( bone )
         mins:Rotate( ang )
         maxs:Rotate( ang )
 
@@ -10287,7 +9953,7 @@ function ultimate.recordBacktrack(ply)
     */
 
 	records[len + 1] = {
-		simulationtime =    ded.GetSimulationTime(ply),
+		simulationtime =    ultimate.ResolveSequence(ply),
 		angles =            Angle(x,y,0),
 		origin =            ply:GetNetworkOrigin(),
 		aimpos =            ultimate.GetBones( ply )[1],
@@ -10305,7 +9971,7 @@ end
 ultimate.btmodel = ultimate.CS_Model("models/player/kleiner.mdl")
 
 function ultimate.drawCSModels_backtrack()
-    if not ultimate.cfg.vars["Backtrack chams"] then return end 
+    if not ultimate.cfg.vars["Backtrack chams"] then return end
     if not ultimate.canBacktrack(ultimate.target) then return end
 
     local len = #ultimate.btrecords[ultimate.target]
@@ -10315,18 +9981,18 @@ function ultimate.drawCSModels_backtrack()
     ultimate.CS_Model_update(ultimate.target,m,tbl)
 
     if ultimate.cfg.vars["Backtrack fullbright"] then
-        render_SuppressEngineLighting(true)
+        render.SuppressEngineLighting(true)
     end
 
-    local col = string_ToColor(ultimate.cfg.colors["Backtrack chams"])
+    local col = string.ToColor(ultimate.cfg.colors["Backtrack chams"])
     ultimate.chamMats.invis[6]:SetVector( "$envmaptint", Vector( col.r / 255, col.g / 255, col.b / 255 ) )
-    render_MaterialOverride(ultimate.chamMats.invis[ultimate.cfg.vars["Backtrack material"]]) 
-    render_SetColorModulation(col.r/255,col.g/255,col.b/255)
+    render.MaterialOverride(ultimate.chamMats.invis[ultimate.cfg.vars["Backtrack material"]])
+    render.SetColorModulation(col.r/255,col.g/255,col.b/255)
     m:SetRenderMode(1)
     m:DrawModel()
 
     if ultimate.cfg.vars["Backtrack fullbright"] then
-        render_SuppressEngineLighting(false)
+        render.SuppressEngineLighting(false)
     end
 end
 
@@ -10334,16 +10000,17 @@ ultimate.hitmarkers = {}
 ultimate.hitnums = {}
 
 gameevent.Listen( "player_hurt" )
-hook_Add("player_hurt", "penissss1337", function(data)
+
+function ultimate.player_hurt(data)
     local health = data.health
 	local priority = SERVER and data.Priority or 5
 	local hurted = Player( data.userid )
 	local attackerid = data.attacker
 
-	if attackerid == me:UserID() then
-        
+	if attackerid == pLocalPlayer:UserID() then
+
         if ultimate.cfg.vars[ "On screen logs" ] then
-            local hlcolor = string_ToColor( ultimate.cfg.colors[ "On screen logs" ] )
+            local hlcolor = string.ToColor( ultimate.cfg.colors[ "On screen logs" ] )
             local data = {
                 tick = engine.TickCount(),
                 {
@@ -10354,16 +10021,16 @@ hook_Add("player_hurt", "penissss1337", function(data)
                     " damage"
                 },
                 {
-                    ultimate.HitLogulthite,
+                    ultimate.HitLogsWhite,
                     hlcolor,
-                    ultimate.HitLogulthite,
+                    ultimate.HitLogsWhite,
                     hlcolor,
-                    ultimate.HitLogulthite,
+                    ultimate.HitLogsWhite,
                 }
             }
-            
+
             ultimate.onScreenLogs[ engine.TickCount() ] = data
-            print( "hurt", engine.TickCount() )
+            //print( "hurt", engine.TickCount() )
         end
 
         if ultimate.cfg.vars["Hitmarker"] then
@@ -10372,116 +10039,48 @@ hook_Add("player_hurt", "penissss1337", function(data)
 
         if ultimate.cfg.vars["Hitnumbers"] then
             local hp = hurted:Health() - health
-            ultimate.hitnums[ #ultimate.hitnums + 1 ] = { time = CurTime(), add = 0, xdir = math_random(-1,1), ydir = math_random(-1,1), dmg = hp, crit = health <= 0 }
+            ultimate.hitnums[ #ultimate.hitnums + 1 ] = { time = CurTime(), add = 0, xdir = math.random(-1,1), ydir = math.random(-1,1), dmg = hp, crit = health <= 0 }
         end
-        
-        -- Update resolver statistics on hit
-        if ultimate.cfg.vars["Resolver"] and hurted.ult_resolved_yaw then
-            local yaw = math_floor(hurted.ult_resolved_yaw / 15) * 15 -- Round to nearest 15 degrees
-            hurted.ult_resolve_stats[yaw] = (hurted.ult_resolve_stats[yaw] or 0) + 1
-            hurted.ult_resolve_hits[yaw] = (hurted.ult_resolve_hits[yaw] or 0) + 1
-            
-            if ultimate.cfg.vars["Yaw mode"] == 5 then
-                print(hurted:Nick(), "HIT at yaw:", yaw, "Stats:")
-                local sorted = {}
-                for y, hits in pairs(hurted.ult_resolve_hits) do
-                    table.insert(sorted, {yaw = y, hits = hits, misses = hurted.ult_resolve_misses[y] or 0})
-                end
-                table.sort(sorted, function(a, b) return a.hits > b.hits end)
-                for i = 1, math.min(5, #sorted) do
-                    print(string.format("  %d°: %d hits, %d misses", sorted[i].yaw, sorted[i].hits, sorted[i].misses))
-                end
-            end
-        end
-        
+
         if ultimate.cfg.vars["Hitsound"] then
-            local cfg = ultimate.cfg.vars["Hitsound mode"]
-            -- ultimate.ui.ComboBox( p,"Hitsound mode", "Hitsound mode", {"blast","blast","glass"})
-            if cfg == 1 then 
-                surface_PlaySound( 'mixkit-blast-hit-with-echo-2186.wav' )
-                elseif cfg == 2 then 
-                    surface_PlaySound( 'mixkit-cartoon-dazzle-hit-and-birds-746.wav' )
-                elseif cfg == 3 then 
-                        surface_PlaySound( 'mixkit-cinematic-glass-hit-suspense-677.wav' )
-                    elseif cfg == 4 then 
-                        surface_PlaySound( 'judgement.mp3' )
-                        
-            
-
+            surface.PlaySound( ultimate.cfg.vars["Hitsound str"] )
         end
-    end
-       
 
-    
-    
-    if ultimate.cfg.vars["Resolver"] then 
-        hurted.aimshots = (hurted.aimshots or 0) - 1
-        
-        -- Update miss statistics
-        if hurted.ult_resolved_yaw then
-            local yaw = math_floor(hurted.ult_resolved_yaw / 15) * 15
-            hurted.ult_resolve_misses[yaw] = (hurted.ult_resolve_misses[yaw] or 0) + 1
+        if ultimate.cfg.vars["Resolver"] then
+            hurted.aimshots = (hurted.aimshots or 0) - 1
         end
-    end
 
     end
-end)
+end
 
 /*
-    Player vars 
+    Player vars
 */
 
 function ultimate.initPlayerVars( v )
-	v.ult_cur_pos = v:GetPos()
-	v.ult_prev_pos = v:GetPos()
+    v.ult_prev_pos = Vector()
 
-    v.ult_prev_simtime = 0 
-    v.flticks = 0 
+    v.ult_prev_simtime = 0
+    v.flticks = 0
     v.aimshots = 0
     v.missedanimticks = 0
 
-    v.break_lc = false 
-    v.simtime_updated = false 
+    v.break_lc = false
+    v.simtime_updated = false
     v.fakepitch = false
-
-    -- Resolver stats
-    v.ult_resolve_stats = {}
-    v.ult_resolve_hits = {}
-    v.ult_resolve_misses = {}
-    v.ult_last_velocity = Vector(0,0,0)
-    v.ult_jitter_detected = false
-    v.ult_lby_delta = 0
-    v.ult_resolved_yaw = nil
-    
-    for i = -180, 180, 15 do
-        v.ult_resolve_stats[i] = 0
-        v.ult_resolve_hits[i] = 0
-        v.ult_resolve_misses[i] = 0
-    end
 
     ultimate.btrecords[ v ] = {}
     ultimate.predicted[ v ] = {}
 end
 
-for k, v in ipairs(player_GetAll()) do
+for k, v in ipairs(player.GetAll()) do
 	ultimate.initPlayerVars( v )
 end
 
-/*
-    Killsay / chatspam
 
-    ultimate.ui.CheckBox( p, "Killsay", "Killsay" )
-ultimate.ui.CheckBox( p, "Chat spam", "Chat spammer" )
-
-ultimate.ui.ComboBox( p, "Mode", { "Р›СѓС‡С€РµРµ 22-23", "РЈРЅРёР¶Р°Р»РєР°", "РЁРєРѕР»Р° С…РІС…", "AI СѓРЅРёР¶Р°Р»РєР°", "РРіСЂР° РїРёР»С‹", "Р’.Р’. РџСѓС‚РёРЅ", "Arabic", "СѓРєСЂР°С—РЅСЃСЊРєР° РјРѕРІР°" }, "Chat mode")
-ultimate.ui.ComboBox( p, "Group", { "Normal", "/OOC", "Advert", "PM", "ULX" }, "Chat group")
-
-*/
-
-
-ultimate.chatmsg = {
-    killsay = {
-                [1] = {
+ultimate.chatmsg =
+{
+        [1] = {
             "I am the way and the truth and the life. No one comes to the Father except through me. -Jesus",
             "Do to others as you would have them do to you. -Jesus",
             "With man this is impossible, but with God all things are possible. -Jesus",
@@ -10584,200 +10183,258 @@ ultimate.chatmsg = {
             "Приходи один работёнка есть!, координаты: 55.8653382,49.304329",
             "юид полиция подьехала открывай дверь уебыч",
             "Disgusting tranny holzed",
-            "але ты там из хрущевки выеди а потом вырыгивай блять", 
+            "але ты там из хрущевки выеди а потом вырыгивай блять",
             "как там с мамкой комнату разделять АХАХАХХАХА как ты на акк накопил блять",
-            "найс 0.5х0.5м комната блять ХАХАХАХА ТЫ ТАМ ЖЕ ДАЖЕ ПОВЕСИТЬСЯ НЕ МОЖЕШЬ МЕСТА НЕТ ПХПХПХППХ", 
-            "на мыло и веревку то деньги есть нищ????", 
+            "найс 0.5х0.5м комната блять ХАХАХАХА ТЫ ТАМ ЖЕ ДАЖЕ ПОВЕСИТЬСЯ НЕ МОЖЕШЬ МЕСТА НЕТ ПХПХПХППХ",
+            "на мыло и веревку то деньги есть нищ????",
             "опущены стяги, легион и.. А БЛЯТЬ ТЫЖ ТУТ ОПУЩ НАХУЙ ПХГАХААХАХАХАХА)))))))",
-            "але какая с юидом ситуация)))", 
-            "че тут эта нищая собака заскулила", 
-            "не хотелось даже руки об тебя марать нищ сука", 
+            "але какая с юидом ситуация)))",
+            "че тут эта нищая собака заскулила",
+            "не хотелось даже руки об тебя марать нищ сука",
             "ебать ты красиво на бутылку упал",
-            "прости что без смазки)))", 
-            "алло это скорая? тут такая ситуация нищ упал))) ОЙ А ВЫ НИЩАМ ТО НЕ ПОМОГАЕТЕ?? ПОНЯТНО Я ПОЙДУ ТОГДА))))))))", 
+            "прости что без смазки)))",
+            "алло это скорая? тут такая ситуация нищ упал))) ОЙ А ВЫ НИЩАМ ТО НЕ ПОМОГАЕТЕ?? ПОНЯТНО Я ПОЙДУ ТОГДА))))))))",
             "вырыгнись из окна нахуй боберхук юзер",
-            "тяжело с мемсенсом наверно????", 
-            "nice chromosome count you sell??", 
+            "тяжело с мемсенсом наверно????",
+            "nice chromosome count you sell??",
             "как ты на пк накопил даже не знаю )))))))))",
-            "iq больше двух будет пмнешь ок????", 
+            "iq больше двух будет пмнешь ок????",
             "НИХУЯ ТАМ НЬЮКАМЫЧА ОРОШИЛИ СТРУЕЙ МОЧИ АХАХХАХАХАХАХАХАХА",
             "дал юид за щеку проверяй",
         },
         [3] = {
-            "Девочки пишите мне в телеграм обменяемся интимками",
-            "Кто в Барнауле?) Телеграмм вверху. Пишите(я пацан) поебёмся",
-            "Девушки, накидайте интимок в тг aexcasas буду вам очень благодарен)",
-            "Скиньте пизду плиз телега fruti",
-            "Кто нибудь скиньте мне хуй я гей",
-            "Скиньте киску свою в тг _The_best_",
-            "Дамы и господа присылайте свои половые органы в телеграмм имя сверху жду.",
-            "Скиньте свои интимками я вам хуй) только девушки @FaresFaru",
-            "Хочю трахаца! Мой тг @zxc_Youpeser",
-            "девочки давайте обменяемся интим фото вот мои тг matvejb1",
-            "давайте перекинемся интим фото",
-            "Кто может скинуть свои сиськи в тг",
-            "Я лезбиянка скинть свою пизду и грудь",
-            "Кто обмен интимками я мальчик тгDad Anime",
-            "Я бы жоска выебал амбер и кончил ей на лицо",
-            "Кто хочет быть трахнутым пишите тг:@shhhegx",
-            "Кто скинет интимку из девочек, пишите",
-            "Девочки давайте вы скините мне пизду. А я вам член?",
-            "давай я тебе сиськи ты мне член?",
-            "Долбите членом меня в задницу и засуньте мне глубоко в рот",
-            "Скинь попку, зайчик",
-            "Го обмен член на член",
-            "я професионал трахаю так шо до смерти на трахаюсь амбер я хочу",
-            "до трахаю до смерти ",
-            "Оттрахайте меня пожалуйста могу и пососать кончити в меня сколько хотите",
-            "Я могу тебя оттрахать, согласна?",
-            "Хах могу отсосать))",
-            "Я срадастью дам пососать свой член",
-            "Оо го мне вот мой тг:Ivan_123455 у меня хуй 17 см так что он войдёт в твой рот",
-            "Го скину хуй,а ты мне пизду??",
-            "Кто будет ебаться с презиком",
-            "Выебите меня во все щели! Ах ааа я кончаю!!!!!!! Кончи мне на лицо!!!! Твоя сперма такая вкусная!!!!!",
-            "Выеби меня в жопу!!!!!! Ещё не ещё!! Сука да блядь! Я снова кончаю!!!!",
-            "У меня большооооой",
-            "Кто хочет у меня отсосать",
-            "Амбер ты гаряча давай ка мне первому пжжжж!",
-            "Пж девочки скиньте свою пизду",
-            "Скинте мне слив брока. :((",
-            "Изнасилуйте меня пожалуста хочу глотать сперму хочу хуй в жопу и хуй между сисек",
-            "Девчонки обмен интимками в вк ekazarin99  жду)",
-            "Девочки скиньте мне свою пизду в вк ekazarin99 обмен интимками",
-            "ООО хорошо подрочил",
-            "Скиньте сиськи",
-            "Скинь жопу пж",
-            "мальчики я хочу трахаться и подрочить ваши члены скидывайте мне в телеграмм @aaalinaaa69",
+		"хуевый ресолвер",
+		"хуевые фейклаги",
+		"хуевый антиаим",
+		"хуевый спинбот",
+		"хуевый бхоп",
+		"хуевый аим",
+		"найс паста аимвара",
+		"найс паста мемевара",
+		"неужели это идиотбокс???",
+		"ого идиотбокс???",
+		"неужели это аосхак???",
+		"ого аосхак???",
+		"неужели это ехек хак???",
+		"ого ехек хак???",
+		"что за ебанутый у тебя чит?",
+		"ez",
+		"ezz",
+		"изи",
+		"ииииииизи",
+		"упал",
+		"спи",
+		"отдыхай",
+		"отлетел дебил)",
+		"упал пастер",
+		"пастер лег",
+		"изи даун",
+		"ору отлетела дура",
+		"найс ресолвер стен",
+		"найс ресолвер деревьев",
+		"бро имажин ресолвинг ин гмод",
+		"улетел фанат артемкинга4",
+		"упал фанат артемкинга4",
+		"ты куда стреляешь)))",
+		"упал ннчик без самоваре",
+		"умер ннчик без самоваре",
+		"отдыхай ннчик без самоваре",
+		"упал подписчик урбанички",
+		"умер подписчик урбанички",
+		"отдыхай подписчик урбанички",
+		"енжинпред где???",
+		"антиаим где???",
+		"фейклаги где???",
+		"антиаим не спас",
+		"фейклаги не спасли",
+		"даун с пастой отлетел",
+		"упал баимер ебаный",
+		"отлетел ебаный баимер))",
+		"охуеть даун с пастой аимвара",
+		"упал дебил",
+		"выйди не позорься",
+		"найс брейн иссуе",
+		"найс кфг иссуе",
+		"сука не позорься и ливни лол",
+		"*DEAD* пофикси нищ",
+		"нищий улетел",
+		"набутылирован лол",
+		"ебать ты красиво на бутылку упал",
+		"хуя тебя опустили))",
+		"прости что без смазки)",
+		"обоссан",
+		"обоссал юзера пасты аимвара",
+		"алло это скорая? тут такая ситуация нищ упал)))",
+		"на завод иди",
+		"ебать тебя унесло",
+		"ой нищий упал щас скорую вызовем",
+		"научи потом как так сосать на хвх",
+		"нихуя ты там как самолет отлетел",
+
         },
         [4] = {
-            "как мать %s ? жива ?",
-            "иди мать чекни %s",
-            "как там шлюха мать %s поживает?",
-            "вчера шлюху на трассе выбеал, вроде мать %s была",
-            "мне тут птичка на ухо напела что у %s мать сгнила нахуй",
-            "я недавно тут услышал что у %s мать сдохла xD",
-            "бля %s убери свою дохлую мать, гнилью воняет пиздец",
-            "вчера мать %s ебал норм темка",
-            "ебать мать %s жирная свинья",
-            "вчера мать %s топором захуярил",
-            "мать %s настолько жирная что её грузовиком переехать мало",
-            "у %s батя за хлебом ушел",
-            "%s ебать лох ливни нахуй",
-            "забавный факт, мать %s весит 500кг :)",
-            "смотри в садик не опоздай %s",
-            "%s у тебя утренник скоро",
-            "%s ты как блять из палаты выбрался?",
-            "кто сука интернет в палату к %s провёл?)",
-            "%s тебе завтра вроде в школу...",
-            "%s не забудь дз сделать :)",
-            "нахуя к %s в деревню интернет провели...",
-            "какой далбаеб додумался в деревню %s инет провести...",
-            "%s ливни нахуй пж",
-            "%s quit в консоль пж",
-            "%s сьеби чмошник",
-            "вчера шлюху отьебал. вроде %s звали",
-            "пиздец %s лох ебаный ливни пж",
-            "лол ебать у %s хуёв в жопе",
-            "ебать у матери %s пизда размером с 10 этажный дом :)",
-            "%s не обижайся конечно но я твою мать ебал xD",
-            "%s когда думаешь из жизни ливать?",
-            "сосни хуйца %s",
-            "хуесос чмо пидр лох -> %s",
-            "%s ебанись головой об стену пж",
-            "%s смотри на первый урок не опоздай :)",
-            "%s завтра в школу вроде",
-            "%s как мать?)",
-            "П|/|3ДЕЦ /\0Х -> %s",
-            "%s с мамой и папой регулярно играл в снежки :)",
-            "%s всегда такой далбаеб или сегодня особый день?",
-            "%s задумался?! что то новенькое",
-            "таких лохов как %s давно не видел",
-            "поговаривают что %s отчим трахает :)",
-            "вчера на могилу матери %s насрал :D",
-            "мать %s стоя на коленях у меня сосала :)",
-            "мать %s сдохла пока мой хуй сосала xD",
-            "недавно выебал бабушку %s, было вкусно ˙ ͜ʟ˙",
-            "вчера сжег деда %s ˙ ͜ʟ˙",
-            "ебал все поколения родственников %s ツ",
-            "ронял кирпич на голову матери %s ◝(ᵔᵕᵔ)◜",
-            "%s по секрету скажу я твоего деда трахал ( ͡° ͜ʖ ͡°)",
-            "выцарапал глаза матери %s. сори у меня лапки ฅ^•ﻌ•^ฅ",
-            "%s скажи арбуз! твоя мать шлюха ◉‿◉",
-            "( ＾◡＾)っ✂╰⋃╯ отцу %s хуй отрезал хахахахаах",
-            "у %s сдохла мать и мне некого больше ебать (つ╥﹏╥)つ",
-            "☠ у %s мать сдохла +шлюха +спидозная +похуй всем ☠",
-            "( ◡̀_◡́) крепись брат %s у тебя мать сдохла",
-            "%s тут такое дело... твоя мать такая милая когда ласкает мой член =^◕⩊◕^=",
-            "%s дай сиськи потрогац ฅ՞•ﻌ•՞ฅ",
-            "%s далбаеб ◡̈ ◡̈ ◡̈",
-            "зуб даю у мамки %s самые мягкие сиськи ˶ᵔ ᵕ ᵔ˶",
+	"Навальный топчик",
+	"Навальный топчик",
+	"Навальный топчик",
+	"Навальный топчик,за него Тверскую топчем",
+	"Навальный топчик,за него Тверскую топчем",
+	"Нью Бэланс кеды, прилипли к подошве гетры",
+	"Но сегодня в центре в них устроим веселье",
+	"Мы отсюда не свалим",
+	"Все кто дома - не с нами",
+	"Мы тут просто гуляем",
+	"В нашем сердце весна В нашем сердце весна",
+	"В нашем сердце весна",
+	"Навальный топчик,за него Тверскую топчем",
+	"Навальный топчик,скажем громче",
+	"Навальный топчик,за него Тверскую топчем",
+	"Навальный топчик,",
+	"Навальный топчик,за него Тверскую топчем",
+	"Тверскую топчем",
+	"Вокруг так много космонавтов",
+	"МКС полицейский пазик",
+	"Лица скрывают каски,маски",
+	"Становиться опасно,но",
+	"Мы устроим пляски",
+	"Дружно,под эти песни",
+	"Вся Тверская в курсе",
+	"Вся Тверская денсит",
+	"Тверская денсит",
+	"Тверская денсит",
+	"Денсит",
+	"Навальный топчик,за него Тверскую топчем",
+	"Навальный топчик,скажем громче",
+	"Навальный топчик,за него Тверскую топчем",
+	"Навальный топчик,",
+	"Навальный топчик,за него Тверскую топчем",
+	"Тверскую топчем",
+	"Навальный топчик",
+	"15 суток, нам нет места от скуки",
+	"Ждем когда вернешься, Навальный Леша",
+	"Время летит быстро,скоро новая вписка",
+	"Мы не пойдем на пары если,Навальный с нами",
+	"Навальный с нами,давай с нами",
+	"Навальный с нами, пойдем тусить с нами",
+	"Навальный с нами, давай с нами",
+	"Давай с нами, пойдем тусить с нами",
+	"Этому городу нужен герой",
+	"Леша Навальный, мы с тобой",
+	"Этой стране нужен герой",
+	"Леша Навальный, мы с тобой",
+	"Этой планете нужен герой",
+	"Леша Навальный, мы с тобой",
+	"Этой Вселенной нужен герой",
+	"Леша Навальный, мы с тобой",
+	"Этой Вселенной нужен герой",
+	"Леша Навальный, мы с тобой",
+	"Леша Навальный, мы с тобой",
+            "зуб даю у навального лехи самые мягкие сиськи",
+        },
+        [5] = {
+         "я ЂÖг ₸ӹ ԉÖχ",
+         "I am ♛ you noob",
+         "{X}o4y kak PR0™ moGy kak DNO",
+         "(‿!‿) Попа ищет ПрИкЛюченИй•",
+         "٠●•۩۞۩[̲̲̅И̲̅Д̲̅И̲̲̅(ٿ)̲̅H̲̅A̲̅X̲̅У̲̅Й]۩۞۩•●٠",
+         "DOLBIT N0RMALNO",
+         "♛Truckach♛.CFG injecting",
+         "Держи ✈ и лети нахуй !",
+         "(Ауф)ᶜʸᵇᵉʳˢᵖᵒʳᵗЯ VIP А ТЫ RIP",
+         "çŤᵱẮχ çŤᵱẮχ çŤᵱẮχ çŤᵱẮχ çŤᵱẮχ çŤᵱẮχ",
+         "Следующая остановка – голова",
+         "ᵗᵠ ᵉᵇᵃⁿᵘˡˢʸᵃ?",
+         "!!!!ОР ВЫШЕ ГОР!!!!",
+         "-===≡≡≡( ͝° ͜ʖ͡°) сперма летит тебе в FACE",
+         "(っ´ཀ`)っ  ⋃  соси!!1",
+         "★А мНе ВсЁ пОфИг★",
+         "ОРЕЛ-КАВКАЗА ЛЕТИТ ВЕРШИТЬ СУДЬБУ",
+         "•ЯАШОТТЕБЕ~ХЭДШОТ•",
+         "Ð•Ē•M•Ø•Ŋ KILLED YOU",
+         "•Я_tOT_komy_HaBce||OX•",
+         "༼ つ ◕_◕ ༽つ {лежи ннчик}",
+         "4iTeRoc_Ha_SeRvErE",
+         "ЂΣƊOŁ∆G∆",
+         "АхТы?НеГодЯй!",
+         "-n๏ȼąȼέʍȼя?",
+         "TRUCKACH.TECH RELEASE ACTIVATED ....",
+         "%s EB@NYHKA S CHITOM",
+         "给这个亚洲人吹箫",
+        },
+                [6] = {
+                        "✰Р@C-I_I_I-ИР3НИ3 Т3РРИТ0РИИ✰ ☬П0ЖИР@Т3Лb☬М0ZG0B☬",
+        "✄τℰЛℰФОH ∂óℬℰ尸ИЯ ОTҠЛОHЯℰT ℳÖน ℨℬОHҠИ ☏☬",
+        "KAZAHE☢️ SILE  ͡๏̯͡๏ TI ☠️ MOGILE ۩☬",
+        "ЛЕТИ %s ТЫ СВОБОДЕН! <(`▽´)>☬",
+        "†(•̪●)† G3T D0WN! L0S3R!!!!☬",
+        "Stͥⱥnͣdͫoffﾂ ᵒᶠᶠᶤᶜᶤᵃˡ☬",
+        "⚠⚠_WARING_⚠⚠ { %s ] SCP 279 ==[CODE: HVH LOSER]☬",
+        "卐卐卍卐卐卍卐卐卐卐 HАЙДИТЕ 10 ОТЛИЧИЙ!☬",
+        "%s 36@Tb, T36R V0VAN ADIDAS  [-={3@0ВНИЛ}=-]!!!☬",
+        "%s Тbl 6bl Y6иT ツMELLSTROY2012HACKERツ ☬",
+        "♠Не КиСнИ,в КоНтАкТе ЗаВиСнИ♥♠",
+        "%s УЛЫБНИСЬ ☻☬",
+        "собираю apмию против фанатов А4! [(•̪●) A4LOH] копируй и paсстaвляй тaм где A☬",
+        "[̲̅$̲̅(◣_◢)̲̅$̲̅] U LOS3 TH1S G@M3☬",
+        "%s, юзает пасту сережехак в6 пастед бу ILYAtrasher$",
+        "ᴇꜱʟɪ ʏᴀ xᴏʀᴏʜᴏ ɪɢʀᴀɪ ᴇᴛᴏ ɴᴇ ᴢɴᴀʜɪᴛ ʜᴛᴏ ʏᴀ ᴄʜᴇᴀᴛᴇʀ",
+        "нож - скамнул✔♕        Я ПЕРСОН  V I P  ТЫ ПАЦАН ВЛИП     ?",
+        "часы - накрутил✔⼺  ⼺㆔[̲̅Х̲̅][̲̅а̲̅][̲̅р̲̅][̲̅а̲̅][̲̅к̲̅][̲̅т̲̅][̲̅е̅ [̲̅р]",
+        " 一♣️ u suk♡︎◕︎‿︎◕︎​",
+        "$$$ 1 TAP BY ME $$$ ∩ ( ͡⚆ ͜ʖ ͡⚆) ∩",
+        "Ты К@К-т0 Н3ЖН0 СТbIлRЕШЬ ТЫ ЧТО НОВИЧ0К?",           
         },
     }
 
-}
 
-
-
-// Init player vars 
-gameevent.Listen("player_spawn")
+// Init player vars
+gameevent.Listen( "player_spawn" )
 gameevent.Listen( "player_activate" )
 gameevent.Listen( "entity_killed" )
 
-hook.Add( "entity_killed", "entity_killed_example", function( data ) 
-	local aid = data.entindex_attacker 		
-	local vid = data.entindex_killed 	
+function ultimate.entity_killed(data)
+	local aid = Entity(data.entindex_attacker)
+	local vid = Entity(data.entindex_killed)
 
-
-    if aid != vid and Player( vid ):IsPlayer() and aid == me:EntIndex() then
+    if aid == pLocalPlayer and aid != vid and !vid:IsNPC() and (vid:IsPlayer() or vid:IsBot() ) then
         if ultimate.cfg.vars["Killsay"] then
-            local tbl = ultimate.chatmsg.killsay[ ultimate.cfg.vars["Killsay mode"] ]
-            local str = tbl[ math_random( 1, #tbl ) ]
-            gRunCmd( "say", str )
+            local chatPrefixes = {
+                [2] = "/ooc ",
+                [3] = "/ad "
+            }
+
+            local chatGroup = ultimate.cfg.vars["Killsay group"]
+
+            local prefix = chatPrefixes[chatGroup] or ""
+
+            local tbl = ultimate.chatmsg[ ultimate.cfg.vars["Killsay mode"] ]
+            local str = prefix .. tbl[ math.random( 1, #tbl ) ]
+
+            if str:find("%s") then str = str:format(vid:Nick()) end
+
+            RunConsoleCommand( "say", str )
         end
-        
+
         if ultimate.cfg.vars["Killsound"] then
-            local cfg = ultimate.cfg.vars["Killsound mode"]
-            if cfg == 1 then 
-                surface_PlaySound( "skeet.mp3" )
-                elseif cfg == 2 then 
-                    
-                    surface_PlaySound( "starorusskii-kamshot.mp3" )
-                elseif cfg == 3 then 
-                    
-                    surface_PlaySound( "SUS.mp3" )
-                elseif cfg == 4 then 
-                    
-                    surface_PlaySound( "destroy_8pkWYMG.mp3" )
-
-                elseif cfg == 5 then 
-                    
-                    surface_PlaySound( "bambam.mp3" )
-
-     
-
+            surface.PlaySound( ultimate.cfg.vars["Killsound str"] )
         end
-    end
 
-     
+
     end
-end )
+end
 
 
 
 function ultimate.updatePlayerVars( data )
-    local id = data.userid  
+    local id = data.userid
 
     local ply = Player( id )
 
     ply.ult_prev_pos = Vector()
-    ply.ult_cur_pos = ply:GetPos()
     // ply.ult_prev_hitbox_pos = Vector()
-    
+
     ply.ult_prev_simtime = 0
-    ply.ult_cur_simtime = ded.GetSimulationTime(ply)
     ply.flticks = 0
-        
+
     ply.simtime_updated = false
     ply.break_lc = false
     ply.fakepitch = false
@@ -10804,11 +10461,9 @@ end
 
 
 
-// Menu hints 
+// Menu hints
 
-function ultimate.drawOverlay()
-    local Text = string_ToColor( ultimate.cfg.colors["Text"] )
-    if ultimate.UnSafeFrame then return end
+function ultimate.DrawMenuHints()
     if not ultimate.frame:IsVisible() then return end
 
     if not ultimate.hint then
@@ -10816,74 +10471,30 @@ function ultimate.drawOverlay()
         return
     end
 
-    surface_SetTextColor(Text)
-    surface_SetFont("tbfont")
+    surface.SetTextColor(ultimate.Colors[165])
+    surface.SetFont("DermaSmall")
 
-    local tw, th = surface_GetTextSize(ultimate.hintText)
+    local tw, th = surface.GetTextSize(ultimate.hintText)
 
-    surface_SetDrawColor(ultimate.Colors[35])
-    surface_DrawRect(ultimate.hintX,ultimate.hintY,tw+20,th+10)
-    surface_SetDrawColor(ultimate.Colors[54])
-    surface_DrawOutlinedRect(ultimate.hintX,ultimate.hintY,tw+20,th+10,1)    
+    surface.SetDrawColor(ultimate.Colors[35])
+    surface.DrawRect(ultimate.hintX,ultimate.hintY,tw+20,th+10)
+    surface.SetDrawColor(ultimate.Colors[54])
+    surface.DrawOutlinedRect(ultimate.hintX,ultimate.hintY,tw+20,th+10,1)
 
-    surface_SetTextPos(ultimate.hintX+10,ultimate.hintY+5)
-    surface_DrawText(ultimate.hintText)
+    surface.SetTextPos(ultimate.hintX+10,ultimate.hintY+5)
+    surface.DrawText(ultimate.hintText)
 
     ultimate.hint = false
 end
 
+function ultimate.DrawOverlay()
+    if ultimate.UnSafeFrame then return end
 
-// Gamemode UpdateClientsideAnimation
---[[]
-local function RunSandboxAnims(ply, velocity, maxseqgroundspeed)
-    local len = velocity:Length()
-	local movement = 1.0
-
-	if ( len > 0.2 ) then
-		movement = ( len / maxseqgroundspeed )
-	end
-
-	local rate = math.min( movement, 2 )
-
-	-- if we're under water we want to constantly be ultimming..
-	if ( ply:WaterLevel() >= 2 ) then
-		rate = math.max( rate, 0.5 )
-	elseif ( !ply:IsOnGround() && len >= 1000 ) then
-		rate = 0.1
-	end
-
-	ply:SetPlaybackRate( rate )
-
-	-- We only need to do this clientside..
-	if ( CLIENT ) then
-		if ( ply:InVehicle() ) then
-			--
-			-- This is used for the 'rollercoaster' arms
-			--
-			local Vehicle = ply:GetVehicle()
-			local Velocity = Vehicle:GetVelocity()
-			local fwd = Vehicle:GetUp()
-			local dp = fwd:Dot( Vector( 0, 0, 1 ) )
-
-			ply:SetPoseParameter( "vertical_velocity", ( dp < 0 && dp || 0 ) + fwd:Dot( Velocity ) * 0.005 )
-
-			-- Pass the vehicles steer param down to the player
-			local steer = Vehicle:GetPoseParameter( "vehicle_steer" )
-			steer = steer * 2 - 1 -- convert from 0..1 to -1..1
-			if ( Vehicle:GetClass() == "prop_vehicle_prisoner_pod" ) then steer = 0 ply:SetPoseParameter( "aim_yaw", math.NormalizeAngle( ply:GetAimVector():Angle().y - Vehicle:GetAngles().y - 90 ) ) end
-			ply:SetPoseParameter( "vehicle_steer", steer )
-
-		end
-	end
+    ultimate.DrawMenuHints()
 end
 
-function GAMEMODE:UpdateAnimation(plr, velocity, maxSeqGroundSpeed)
-    local hResult = self.BaseClass.UpdateAnimation(self, plr, velocity, maxSeqGroundSpeed)
 
-    RunSandboxAnims(plr, velocity, maxSeqGroundSpeed)
-    return hResult;
-end
-]]
+
 
 
 
@@ -10899,15 +10510,15 @@ end
 function ultimate.ColorLerp( first, second )
     local FT = FrameTime() * 350
 
-    first.r = math_Approach( first.r, second.r, FT )
-    first.g = math_Approach( first.g, second.g, FT )
-    first.b = math_Approach( first.b, second.b, FT )
-    first.a = math_Approach( first.a, second.a, FT )
+    first.r = math.Approach( first.r, second.r, FT )
+    first.g = math.Approach( first.g, second.g, FT )
+    first.b = math.Approach( first.b, second.b, FT )
+    first.a = math.Approach( first.a, second.a, FT )
 
-    math_Round( first.r, 0 )
-    math_Round( first.g, 0 )
-    math_Round( first.b, 0 )
-    math_Round( first.a, 0 )
+    math.Round( first.r, 0 )
+    math.Round( first.g, 0 )
+    math.Round( first.b, 0 )
+    math.Round( first.a, 0 )
 
     return first
 end
@@ -10917,35 +10528,39 @@ function ultimate.ColorEqual( first, second )
         return false
     end
 
-    return true 
+    return true
 end
 
 
 
 
 
-/* 
-    hooks -> Think 
+/*
+    hooks -> Think
 */
 
 ultimate.ekd = false
+ultimate.ekd2 = false
+ultimate.ekd3 = false
 ultimate.fbkd = false
 
 // Dancer ( act / taunt spam )
 
 ultimate.nextact = 0
+ultimate.nextTaunt2 = 0
 ultimate.actCommands = {"robot","muscle","laugh","bow","cheer","wave","becon","agree","disagree","forward","group","half","zombie","dance","pers","halt","salute"}
+ultimate.actCommands2 = {"frenzy", "melee2", "poke", "attack", "melee"}
 
-// Name changer 
+// Name changer
 
 do
     local cooldown = GetConVarNumber("sv_namechange_cooldown_seconds")
     local curtime = CurTime()
-    local lastname = me:Name()
+    local lastname = pLocalPlayer:Name()
     local changed = 0
 
     local function check(pl,mn,ptbl)
-        if pl == me then return false end 
+        if pl == pLocalPlayer then return false end
 
         if pl:Name() == mn then return false end
 
@@ -10957,7 +10572,7 @@ do
     end
 
     local function changename(name)
-        ded.NetSetConVar("name",name.." ")
+        jopa.NetSetConVar("name",name.." ")
 
         if changed >= 2 then
             changed = 0
@@ -10969,16 +10584,16 @@ do
         curtime = CurTime() + cooldown
     end
 
-    function ultimate.nameChanger() 
+    function ultimate.nameChanger()
         if curtime > CurTime() then return end
 
-        local pltbl = player_GetAll()
+        local pltbl = player.GetAll()
 
-        local len = me:Name():len()
+        local len = pLocalPlayer:Name():len()
 
-        local mname = string.sub(me:Name(),1,len-1)
+        local mname = string.sub(pLocalPlayer:Name(),1,len-1)
 
-        local i = math_random(1,#pltbl)
+        local i = math.random(1,#pltbl)
 
         if not check(pltbl[i],mname,pltbl) then return end
 
@@ -10990,39 +10605,75 @@ do
     local tply
     local chatdelay = CurTime()
     local inverterdown = false
-        
-    function ultimate.hThink()
-        if input_IsKeyDown(KEY_DELETE) and not ultimate.kd then 
+
+    function ultimate.Think()
+        if input.IsKeyDown(KEY_END) then
+            ultimate.Unload()
+        end
+
+        if input.IsKeyDown(KEY_DELETE) and not ultimate.kd then
             ultimate.togglevisible()
-    
+
             CloseDermaMenus()
         end
 
-        ultimate.kd = input_IsKeyDown(KEY_DELETE)
+        ultimate.kd = input.IsKeyDown(KEY_DELETE)
 
         if ultimate.IsKeyDown( ultimate.cfg.binds["Ent add"] ) and not ultimate.ekd then
-            local tr = me:GetEyeTrace().Entity
+            local tr = pLocalPlayer:GetEyeTrace().Entity
 
-            if IsValid( tr ) then 
+            if IsValid( tr ) then
                 local class = tr:GetClass()
 
-                //print( ultimate.allowedClasses[ class ] )
+                //print(ultimate.cfg.ents[ class ] )
 
-                if not ultimate.allowedClasses[ class ] then
-                    ultimate.allowedClasses[ class ] = true
+                if not ultimate.cfg.ents[ class ] then
+                   ultimate.cfg.ents[ class ] = true
                 else
-                    ultimate.allowedClasses[ class ] = not ultimate.allowedClasses[ class ]
+                   ultimate.cfg.ents[ class ] = not ultimate.cfg.ents[ class ]
                 end
             end
         end
 
+if ultimate.IsKeyDown(ultimate.cfg.binds["Player add"]) and not ultimate.ekd2 then
+    local tr = pLocalPlayer:GetEyeTrace().Entity
+
+    if IsValid(tr) and tr:GetClass() == "player" then 
+        local steamId = tr:SteamID()
+
+        if not ultimate.cfg.friends[steamId] then
+            ultimate.cfg.friends[steamId] = true
+        else
+            ultimate.cfg.friends[steamId] = nil
+        end
+    end
+end
+
+if ultimate.IsKeyDown(ultimate.cfg.binds["Priority add"] or KEY_F4) and not ultimate.ekd3 then
+    local tr = pLocalPlayer:GetEyeTrace().Entity
+
+    if IsValid(tr) and tr:GetClass() == "player" then 
+        local steamId = tr:SteamID()
+
+        if not ultimate.cfg.priorityList[steamId] then
+            ultimate.cfg.priorityList[steamId] = true
+            print("[Priority] Добавлен игрок: "..tr:Name())
+        else
+            ultimate.cfg.priorityList[steamId] = nil
+            print("[Priority] Удален игрок: "..tr:Name())
+        end
+    end
+end
+
         if ultimate.cfg.vars["Inverter"] and ultimate.IsKeyDown( ultimate.cfg.binds["Inverter"] ) and not inverterdown then
-            ultimate.inverted = !ultimate.inverted 
+            ultimate.inverted = !ultimate.inverted
         end
 
         inverterdown = ultimate.IsKeyDown( ultimate.cfg.binds["Inverter"] )
 
         ultimate.ekd = ultimate.IsKeyDown( ultimate.cfg.binds["Ent add"] )
+        ultimate.ekd2 = ultimate.IsKeyDown( ultimate.cfg.binds["Player add"] )
+        ultimate.ekd3 = ultimate.IsKeyDown( ultimate.cfg.binds["Priority add"] )
 
         if ultimate.IsKeyDown( ultimate.cfg.binds["Fullbright"] ) and not ultimate.fbkd then
             ultimate.fbe = not ultimate.fbe
@@ -11031,63 +10682,86 @@ do
         ultimate.fbkd = ultimate.IsKeyDown( ultimate.cfg.binds["Fullbright"] )
 
         if ultimate.cfg.vars["FSpec ClickTP"] and ultimate.IsKeyDown( ultimate.cfg.binds["FSpec ClickTP"] ) then
-            local pos = me:GetEyeTrace().HitPos
-            
+            local pos = pLocalPlayer:GetEyeTrace().HitPos
+
             //print(pos)
 
-            //gRunCmd( "ba", "spec" )
+            //RunConsoleCommand( "ba", "spec" )
 
-            gRunCmd( "FTPToPos", string_format("%d, %d, %d", pos.x, pos.y, pos.z), string_format("%d, %d, %d", 0, 0, 0) )
+            RunConsoleCommand( "FTPToPos", string.format("%d, %d, %d", pos.x, pos.y, pos.z), string.format("%d, %d, %d", 0, 0, 0) )
         end
 
-        
-        
+
+
         // ultimate.cfg.vars["FSpec Teleport"] = false
         // ultimate.cfg.binds["FSpec Teleport"] = 0
-        
+
         // ultimate.cfg.vars["FSpec Masskill"] = false
         // ultimate.cfg.binds["FSpec Masskill"] = 0
-        
+
         // ultimate.cfg.vars["FSpec Velocity"] = false
         // ultimate.cfg.binds["FSpec Velocity"] = 0
 
         if ultimate.cfg.vars["Chat spammer"] and CurTime() > chatdelay then
-            local s = ultimate.cfg.vars["Chat OOC"] and "// " or ""
+            local chatPrefixes = {
+                [2] = "/ooc ",
+                [3] = "/ad "
+            }
 
-            gRunCmd("say",s.."1")
+            local chatGroup = ultimate.cfg.vars["Chat group"]
 
-            chatdelay = CurTime() + 0.5
+            local prefix = chatPrefixes[chatGroup] or ""
+
+            local tbl = ultimate.chatmsg[ ultimate.cfg.vars["Chat mode"] ]
+            local str = prefix .. tbl[ math.random( 1, #tbl ) ]
+
+            local players   = player.GetAll()
+
+            local random_ply = players[ math.random( 1, #players ) ]
+            if random_ply == pLocalPlayer then return end
+
+            str = string.format( str, ultimate.playerCache[ random_ply ].Name )
+
+            RunConsoleCommand("say", str)
+
+            chatdelay = CurTime() + ultimate.cfg.vars["Chat delay"]
         end
-    
+
         if ultimate.cfg.vars["Name stealer"] then ultimate.nameChanger() end
-    
-        -- Tickbase shifting functions not available in zxcmodule
-        -- if ded.GetCurrentCharge() < ultimate.cfg.vars["Shift ticks"] then ded.StartShifting( false ) end
 
-        if ultimate.cfg.vars["Tickbase shift"] then 
+        if ded and jopa.GetCurrentCharge and jopa.GetCurrentCharge() < ultimate.cfg.vars["Shift ticks"] then jopa.StartShifting( false ) end
+
+        if ultimate.cfg.vars["Tickbase shift"] then
             if ultimate.IsKeyDown( ultimate.cfg.binds["Tickbase shift"] ) then
-                -- ded.StartShifting( true )
+                jopa.StartShifting( true )
             end
-            
-            local shouldcharge =  false -- ded.GetCurrentCharge() < ultimate.cfg.vars["Charge ticks"] and ultimate.IsKeyDown( ultimate.cfg.binds["Auto recharge"] )
-            
-            -- ded.StartRecharging( shouldcharge )
-        
+
+            local shouldcharge = ded and jopa.GetCurrentCharge and jopa.GetCurrentCharge() < ultimate.cfg.vars["Charge ticks"] and ultimate.IsKeyDown( ultimate.cfg.binds["Auto recharge"] )
+
+            jopa.StartRecharging( shouldcharge )
+
             if shouldcharge then
-                -- ded.StartShifting( false )
+                jopa.StartShifting( false )
             end
         end
-    
-        if ultimate.cfg.vars["Taunt spam"] and ultimate.nextact < CurTime() and me:Alive() and !me:IsPlayingTaunt() then 
+
+        if ultimate.cfg.vars["Taunt spam"] and ultimate.nextact < CurTime() and pLocalPlayer:Alive() and !pLocalPlayer:IsPlayingTaunt() then
             local act = ultimate.actCommands[ultimate.cfg.vars["Taunt"]]
-    
-            gRunCmd("act", act)
+
+            RunConsoleCommand("act", act)
             ultimate.nextact = CurTime() + 0.3
         end
-    
+
+        if ultimate.cfg.vars["Taunt spam 2"] and pLocalPlayer:Alive() and CurTime() >= ultimate.nextTaunt2 then
+            local act = ultimate.actCommands2[ultimate.cfg.vars["Taunt 2"]]
+
+            RunConsoleCommand("act2", act)
+            ultimate.nextTaunt2 = CurTime() + 0.2
+        end
+
         if ultimate.cfg.vars["Yaw base"] == 2 then
-            tply = ultimate.GetSortedPlayers( 1, 0, 1, false ) 
-    
+            tply = ultimate.GetSortedPlayers( 1, 0, 1, false )
+
             if tply then
                 ultimate.aatarget = tply[1][1]
             end
@@ -11104,15 +10778,15 @@ end
     hooks -> CalcView
 */
 
-ultimate.vieworigin = me:EyePos()
+ultimate.vieworigin = pLocalPlayer:EyePos()
 ultimate.viewfov    = 0
 ultimate.znear      = 0
 
 ultimate.tpenabled = false
 ultimate.tptoggled = false
 
-ultimate.fcvector = me:EyePos()
-ultimate.fcangles = me:EyeAngles()
+ultimate.fcvector = pLocalPlayer:EyePos()
+ultimate.fcangles = pLocalPlayer:EyeAngles()
 ultimate.fcenabled = false
 ultimate.fctoggled = false
 
@@ -11129,10 +10803,9 @@ ultimate.slider("Roll","Viewmodel r",1,360,0,p:GetItemPanel())
 
 ultimate.cameraHullMax = Vector( 3, 3, 3 )
 ultimate.cameraHullMin = Vector( -3, -3, -3 )
-function ultimate.hCalcView( ply, origin, angles, fov, znear, zfar )
-
-    if ultimate.UnSafeFrame then 
-        return { origin = origin, angles = angles, fov = fov } 
+function ultimate.CalcView( ply, origin, angles, fov, znear, zfar )
+    if ultimate.UnSafeFrame then
+        return { origin = origin, angles = angles, fov = fov }
     end
 
     local view = {}
@@ -11146,7 +10819,7 @@ function ultimate.hCalcView( ply, origin, angles, fov, znear, zfar )
 
     if ultimate.cfg.vars["Free camera"] and fcpressed and not ultimate.fctoggled then
         ultimate.fcenabled = not ultimate.fcenabled
-        ultimate.fcangles = me:EyeAngles()
+        ultimate.fcangles = pLocalPlayer:EyeAngles()
     elseif ultimate.fcenabled and not ultimate.cfg.vars["Free camera"] then
         ultimate.fcenabled = false
     end
@@ -11156,7 +10829,7 @@ function ultimate.hCalcView( ply, origin, angles, fov, znear, zfar )
 
 
     if ultimate.cfg.vars["Fake duck"] and ultimate.IsKeyDown(ultimate.cfg.binds["Fake duck"]) then
-        origin.z = me:GetPos().z + 64
+        origin.z = pLocalPlayer:GetPos().z + 64
     end
 
     local fangs = ultimate.cfg.vars["Silent aim"] and ultimate.SilentAngle or angles
@@ -11168,28 +10841,28 @@ function ultimate.hCalcView( ply, origin, angles, fov, znear, zfar )
 
     if ultimate.fcenabled then
         local speed = ultimate.cfg.vars["Free camera speed"]
-        
-        if input_IsKeyDown(KEY_W) then
+
+        if input.IsKeyDown(KEY_W) then
             ultimate.fcvector = ultimate.fcvector + ultimate.SilentAngle:Forward() * speed
         end
 
-        if input_IsKeyDown(KEY_S) then
+        if input.IsKeyDown(KEY_S) then
             ultimate.fcvector = ultimate.fcvector - ultimate.SilentAngle:Forward() * speed
         end
 
-        if input_IsKeyDown(KEY_A) then
+        if input.IsKeyDown(KEY_A) then
             ultimate.fcvector = ultimate.fcvector - ultimate.SilentAngle:Right() * speed
         end
 
-        if input_IsKeyDown(KEY_D) then
+        if input.IsKeyDown(KEY_D) then
             ultimate.fcvector = ultimate.fcvector + ultimate.SilentAngle:Right() * speed
         end
 
-        if input_IsKeyDown(KEY_SPACE) then
+        if input.IsKeyDown(KEY_SPACE) then
             ultimate.fcvector.z = ultimate.fcvector.z + speed
         end
 
-        if input_IsKeyDown(KEY_LSHIFT) then
+        if input.IsKeyDown(KEY_LSHIFT) then
             ultimate.fcvector.z = ultimate.fcvector.z - speed
         end
 
@@ -11224,49 +10897,65 @@ function ultimate.hCalcView( ply, origin, angles, fov, znear, zfar )
     ultimate.vieworigin = ( ultimate.cfg.vars["Ghetto free cam"] and ultimate.fcenabled ) and ultimate.fcvector or origin
     ultimate.viewfov    = view.fov
     ultimate.znear      = znear
-    
 
+    if ( not ultimate.cfg.vars["Override view"] ) then
+        if ( math.floor( fov ) ~= GetConVar( "fov_desired" ):GetFloat() ) then
+            view.fov = fov
+        end
+
+        local pVehicle = pLocalPlayer:GetVehicle()
+
+        if ( IsValid( pVehicle ) ) then
+            view = hook.Run( "CalcVehicleView", pVehicle, ply, view )
+        end
+
+        local pWeapon = pLocalPlayer:GetActiveWeapon()
+
+        if ( IsValid( pWeapon ) ) then
+            local pWeaponCalcView = pWeapon.CalcView
+
+            if ( pWeaponCalcView ) then
+                local origin, angles, fov = pWeaponCalcView( pWeapon, ply, Vector( view.origin ), Angle( view.angles ), view.fov )
+			    view.origin, view.angles, view.fov = origin or view.origin, angles or view.angles, fov or view.fov
+            end
+        end
+    end
 	return view
 end
 
 function ultimate.GetFovRadius()
     local Radius = ultimate.cfg.vars["Aimbot FOV"]
 
-    local Ratio = scrw / scrh
+    local Ratio = screenWidth / screenHeight
     local AimFOV = Radius * (math.pi / 180)
     local GameFOV = ultimate.viewfov * (math.pi / 180)
     local ViewFOV = 2 * math.atan(Ratio * (ultimate.znear / 2) * math.tan(GameFOV / 2))
 
 
 
-    return (math.tan(AimFOV) / math.tan(ViewFOV / 2)) * scrw
+    return (math.tan(AimFOV) / math.tan(ViewFOV / 2)) * screenWidth
 end
 
-/*
-    hooks -> CalcViewModelView
-*/
+function ultimate.CalcViewModelView(wep, vm, oldPos, oldAng, pos, ang)
 
-function ultimate.hCalcViewModelView(wep, vm, oldPos, oldAng, pos, ang)
-    if wep.CalcViewModelView then wep.CalcViewModelView = nil end
-
-    pos = ultimate.vieworigin 
+    pos = ultimate.vieworigin
 	ang = ultimate.cfg.vars["Silent aim"] and ultimate.SilentAngle or ang
-	if ultimate.cfg.vars["Viewmodel chams"] then
-        
-		local OverridePos = Vector(ultimate.cfg.vars["Viewmodel X"] + math_sin( CurTime() ) * ultimate.cfg.vars["Dynamic X"], ultimate.cfg.vars["Viewmodel Y"] + math_sin( CurTime() ) * ultimate.cfg.vars["Dynamic Y"], ultimate.cfg.vars["Viewmodel Z"] + math_sin( CurTime() ) * ultimate.cfg.vars["Dynamic Z"])
-		local OverrideAngle = Angle(ultimate.cfg.vars["Viewmodel Pitch"] + math_sin( CurTime() ) * ultimate.cfg.vars["Dynamic Pitch"], ultimate.cfg.vars["Viewmodel Yaw"] + math_sin( CurTime() ) * ultimate.cfg.vars["Dynamic Yaw"], ultimate.cfg.vars["Viewmodel Roll"] + math_sin( CurTime() ) * ultimate.cfg.vars["Dynamic Roll"])
 
-		ang = ang * 1
+    if ultimate.cfg.vars["Viewmodel Manip"] then
+        local OverridePos = Vector(
+            ultimate.cfg.vars["Viewmodel x"],
+            ultimate.cfg.vars["Viewmodel y"],
+            ultimate.cfg.vars["Viewmodel z"]
+        )
 
-		ang:RotateAroundAxis(ang:Right(), OverrideAngle.x * 1.0)
-		ang:RotateAroundAxis(ang:Up(), OverrideAngle.y * 1.0)
-		ang:RotateAroundAxis(ang:Forward(), OverrideAngle.z* 1.0)
+        local vmAngles = Angle(ang.p, ang.y, ang.r)
 
-		pos = pos + OverridePos.x * ang:Right() * 1.0
-		pos = pos + OverridePos.y * ang:Forward() * 1.0
-		pos = pos + OverridePos.z * ang:Up() * 1.0 
+        pos = pos + vmAngles:Right() * OverridePos.x
+        pos = pos + vmAngles:Forward() * OverridePos.y
+        pos = pos + vmAngles:Up() * OverridePos.z
     end
-	return pos, ang
+
+    return pos, ang
 end
 
 /*
@@ -11276,48 +10965,52 @@ end
 do
     local drawing = false
 
-    function ultimate.hPreDrawViewModel( vm, ply, w )
+    function ultimate.PreDrawViewModel( vm, ply, w )
         if ultimate.UnSafeFrame then return end
-        if ply != me then return end
+        if ply != pLocalPlayer then return end
 
         if ultimate.cfg.vars["Viewmodel chams"] then
-            local col = string_ToColor( ultimate.cfg.colors["Viewmodel chams"] )
+            local col = string.ToColor( ultimate.cfg.colors["Viewmodel chams"] )
             ultimate.chamMats.vis[6]:SetVector( "$envmaptint", Vector( col.r / 255, col.g / 255, col.b / 255 ) )
-            local mat = ultimate.chamMats.vis[ultimate.cfg.vars["Viewmodel chams type"]] 
+            local mat = ultimate.chamMats.vis[ultimate.cfg.vars["Viewmodel chams type"]]
 
-            render_SetBlend(col.a/255)
-            render_SetColorModulation(col.r/255,col.g/255,col.b/255)
-            render_MaterialOverride(mat)
+            render.SetBlend(col.a/255)
+            render.SetColorModulation(col.r/255,col.g/255,col.b/255)
+            render.MaterialOverride(mat)
         end
 
         if ultimate.cfg.vars["Fullbright viewmodel"] then
-            render_SuppressEngineLighting( true )
+            render.SuppressEngineLighting( true )
         end
 
-        if ultimate.cfg.vars["Viewmodel fov"] != GetConVar("viewmodel_fov"):GetInt() and not drawing then 
-            cam.IgnoreZ(true)
-                cam.Start3D(nil, nil, ultimate.cfg.vars["Viewmodel fov"])
+        if ultimate.cfg.vars["Viewmodel changer"] and ultimate.cfg.vars["Viewmodel fov"] != GetConVar("viewmodel_fov"):GetInt() and not drawing then
+            cam.Start3D(nil, nil, ultimate.cfg.vars["Viewmodel fov"])
+
                 drawing = true
+
+                render.DepthRange( 0, 0.01 )
 
                 vm:DrawModel()
 
+                render.DepthRange( 0, 1 )
+
                 drawing = false
-                cam.End3D()
-            cam.IgnoreZ(false)
+
+            cam.End3D()
         else
-            return 
+            return
         end
-        
+
         return true
     end
 
 end
 
-function ultimate.hPostDrawViewModel( vm, ply, w )
-    render_SetColorModulation(1, 1, 1)
-    render_MaterialOverride()
-    render_SetBlend(1)
-    render_SuppressEngineLighting(false)
+function ultimate.PostDrawViewModel( vm, ply, w )
+    render.SetColorModulation(1, 1, 1)
+    render.MaterialOverride()
+    render.SetBlend(1)
+    render.SuppressEngineLighting(false)
 end
 
 /*
@@ -11325,16 +11018,16 @@ end
 */
 ultimate.bulletImpacts = {}
 
-function ultimate.hOnImpact( data )
-    local startpos = data.m_vStart 
+function ultimate.OnImpact( data )
+    local startpos = data.m_vStart
 
-    if ultimate.cfg.vars[ "Bullet tracers muzzle" ] and data.m_vStart == me:EyePos() then
-        local vm = me:GetViewModel()
-	    local wep = me:GetActiveWeapon()
+    if ultimate.cfg.vars[ "Bullet tracers muzzle" ] and data.m_vStart == pLocalPlayer:EyePos() then
+        local vm = pLocalPlayer:GetViewModel()
+	    local wep = pLocalPlayer:GetActiveWeapon()
 
         if vm && IsValid( wep ) && IsValid( vm ) then
             local muzzle = vm:LookupAttachment( "muzzle" )
-			
+
 		    if muzzle == 0 then
 			    muzzle = vm:LookupAttachment( "1" )
 		    end
@@ -11352,18 +11045,9 @@ function ultimate.hOnImpact( data )
         hitbox = data.m_nHitbox,
         alpha = 255
     }
-	if headPos then
-		local nearestHeadPos = ClosestPointOnRay(headPos, data.m_vStart, data.m_vOrigin)
-		local headPosDiff = headPos - nearestHeadPos
-		local distanceToHead = headPosDiff:Length()
-		if distanceToHead < 64 then
-			local ang = -math_deg(math_atan2(headPosDiff.y, headPosDiff.x)) + realangles.y
-			ang = math_NormalizeAng(ang)
+end
 
-			attacker.sw_anti_bruteforce_angle = ang > 0 and -1 or 1
-        end
-end
-end
+
 
 
 /*
@@ -11372,138 +11056,224 @@ end
 
 do
     local oldtrmat = ultimate.cfg.vars["Bullet tracers material"]
-    local tracemat = Material("sprites/tp_beam001")
+    local tracemat = Material("effects/beam_generic01")
+
+    local realcolor, fakecolor, lbycolor = Color( 0, 255, 0 ), Color( 255, 0, 0 ), Color( 0, 0, 255 )
 
 
 
-    function ultimate.hPostDrawOpaqueRenderables()
+    function ultimate.PostDrawOpaqueRenderables()
+
         if ultimate.UnSafeFrame then return end
 
-
-
         if ultimate.cfg.vars["Bullet tracers"] then
-            local trmat = ultimate.cfg.vars["Bullet tracers material"] 
-    
+            local trmat = ultimate.cfg.vars["Bullet tracers material"]
 
-            //print( trmat, oldtrmat )
             if trmat != oldtrmat then
                 tracemat = Material( trmat )
                 oldtrmat = trmat
             end
-    
-            local tracercolor = string_ToColor(ultimate.cfg.colors["Bullet tracers"])
-    
+
+            render.SetMaterial( tracemat )
+
+            local tracercolor = string.ToColor(ultimate.cfg.colors["Bullet tracers"])
+            local oldAlpha = tracercolor.a
+
             local curTime = CurTime()
             local dieTime = ultimate.cfg.vars["Tracers die time"]
-    
+
             for i = #ultimate.bulletImpacts, 1, -1 do
                 local impact = ultimate.bulletImpacts[i]
 
-                // impact.alpha = impact.alpha - 0.15
-
                 if (curTime - impact.shootTime) > dieTime then
-                    table_remove(ultimate.bulletImpacts, i)
+                    table.remove(ultimate.bulletImpacts, i)
                     continue
                 end
 
-                tracercolor.a = impact.alpha
-    
-                render_SetMaterial( tracemat ) 
-                render_DrawBeam( impact.startPos, impact.endPos, 4, 1, 1, tracercolor )
+                tracercolor.a = 255 - ( ( curTime - impact.shootTime ) / dieTime * 255 )
+
+                render.DrawBeam( impact.startPos, impact.endPos, 1, 1, 1, tracercolor )
+            end
+
+            tracercolor.a = oldAlpha
+        end
+
+        if ultimate.cfg.vars["Hitbox"] then
+            if not IsValid(ultimate.fakeModel) then return end
+            if not pLocalPlayer:Alive() then return end
+            if ultimate.hideHitboxes then return end
+            if not pLocalPlayer:ShouldDrawLocalPlayer() then return end
+
+            local mymodel = pLocalPlayer:GetModel()
+            if ultimate.newModel ~= mymodel then
+                ultimate.fakeModel = ultimate.CS_Model(mymodel)
+                ultimate.newModel = mymodel
+            end
+
+            local tbl = {
+                layers = ultimate.fakeAngles.layers,
+                angles = ultimate.fakeAngles.angle,
+                sequence = ultimate.fakeAngles.seq,
+                cycle = ultimate.fakeAngles.cycle,
+                origin = ultimate.fakeAngles.origin,
+                movex = ultimate.fakeAngles.movex,
+                movey = ultimate.fakeAngles.movey,
+            }
+            ultimate.CS_Model_update(pLocalPlayer, ultimate.fakeModel, tbl)
+
+            if ultimate.fakeModel:GetHitBoxGroupCount() ~= nil then
+                cam.Start3D(EyePos(), EyeAngles())
+                    for group = 0, ultimate.fakeModel:GetHitBoxGroupCount() - 1 do
+                        for hitbox = 0, ultimate.fakeModel:GetHitBoxCount(group) - 1 do
+                            local bone = ultimate.fakeModel:GetHitBoxBone(hitbox, group)
+                            if not bone then continue end
+
+                            local pos, ang = ultimate.fakeModel:GetBonePosition(bone)
+                            if not pos then continue end
+
+                            local mins, maxs = ultimate.fakeModel:GetHitBoxBounds(hitbox, group)
+                            render.DrawWireframeBox(
+                                pos,
+                                ang,
+                                mins,
+                                maxs,
+                                string.ToColor(ultimate.cfg.colors["Hitbox"]),
+                                true
+                            )
+                        end
+                    end
+                cam.End3D()
             end
         end
 
-        
+
 
         if ultimate.cfg.vars["Auto peak"] and ultimate.startedPeeking then
             ultimate.drawAutopeak()
         end
 
 
-    end 
+        ultimate.DrawCStrafePath()
+
+
+    end
 end
 
 /*
     hooks -> FrameStageNotify ( c++ module )
 */
 
-// Player data tables 
+function ultimate.GetUserGroup(ply)
+    if ply.GetUserGroup then
+        return ply:GetUserGroup()
+    elseif ply.GetRankTable and ply:GetRankTable().NiceName then
+        // fix for RusEliteRP
+        return ply:GetRankTable().NiceName
+    else
+        return "unknown"
+    end
+end
 
-ultimate.playerTbl = FindMetaTable("Player")
+function ultimate.GetTeam( ply )
+    local iTeam = ply:Team()
+
+    if rp and rp.GetJobWithoutDisguise then
+        local index = rp.GetJobWithoutDisguise( ply:EntIndex() )
+        local tbl = rp.jobs.List[ index ]
+
+        return index, tbl.Name, tbl.Color
+    else
+        return iTeam, team.GetName(iTeam), team.GetColor(iTeam)
+    end
+end
+
+// Player data tables
 
 ultimate.playerCache = {}
+
 function ultimate.playerTableUpdate( ply )
-    ultimate.playerCache[ ply ].Name = ply:Name()
+    if not ultimate.playerCache[ ply ] then
+        ultimate.playerCache[ ply ] = {}
+    end
 
-    local t = ply:Team()
+    local v = ultimate.playerCache[ ply ]
 
-    ultimate.playerCache[ ply ].Team = t
-    ultimate.playerCache[ ply ].TeamColor = team_GetColor( t ) 
-    ultimate.playerCache[ ply ].TeamName = team_GetName( t )
+    v.entity = ply
 
-    ultimate.playerCache[ ply ].GetUserGroup = ply:GetUserGroup()
+    v.Name = ply:Name()
 
-    ultimate.playerCache[ ply ].Health = ply:Health()
-    ultimate.playerCache[ ply ].GetMaxHealth = ply:GetMaxHealth()
+    local index, name, color = ultimate.GetTeam( ply )
 
+    v.Team = index
+    v.TeamColor = color
+    v.TeamName = name
 
-    ultimate.playerCache[ ply ].Armor = ply:Armor()
-    ultimate.playerCache[ ply ].GetMaxArmor = ply:GetMaxArmor()
+    v.GetUserGroup = ultimate.GetUserGroup(ply)
 
-    ultimate.playerCache[ ply ].GetPos = ply:GetPos()
+    v.Health = ply:Health()
+    v.GetMaxHealth = ply:GetMaxHealth()
 
-    ultimate.playerCache[ ply ].ObserverMode = ply:GetObserverMode()
-    ultimate.playerCache[ ply ].ObserverTarget = ply:GetObserverTarget()
+    v.Armor = ply:Armor()
+    v.GetMaxArmor = ply:GetMaxArmor()
+
+    v.GetPos = ply:GetPos()
+
+    v.ObserverMode = ply:GetObserverMode()
+    v.ObserverTarget = ply:GetObserverTarget()
 
     local w = ply:GetActiveWeapon()
 
-    ultimate.playerCache[ ply ].WeaponClass = IsValid(w) and ( ultimate.cfg.vars["Weapon printname"] and language.GetPhrase( w:GetPrintName() ) or w:GetClass() ) or "Unarmed"
-    ultimate.playerCache[ ply ].WeaponAmmo = IsValid(w) and w:Clip1() or "-"
- 
-    ultimate.playerCache[ ply ].MoneyVar = ultimate.playerTbl.getDarkRPVar and DarkRP.formatMoney(ply:getDarkRPVar("money")) or "beggar"
-end  
- 
-function ultimate.playerDataUpdate( ply )
-    if not ultimate.playerCache[ ply ] then
-        ultimate.playerCache[ ply ] = {}
+    v.WeaponClass = IsValid(w) and ( ultimate.cfg.vars["Weapon printname"] and language.GetPhrase( w:GetPrintName() ) or w:GetClass() ) or "Unarmed"
+    v.WeaponAmmo = IsValid(w) and w:Clip1() or "-"
 
-        ultimate.playerTableUpdate( ply )
-        return
+    v.MoneyVar = MetaPlayer.getDarkRPVar and DarkRP.formatMoney(ply:getDarkRPVar("money")) or "beggar"
+end
+
+function ultimate.playerDataUpdate( )
+
+    ultimate.playerCache = {}
+
+    local plys = player.GetAll()
+
+                for i = 1, #plys do
+        local v = plys[i]
+
+        if v == pLocalPlayer then continue end
+
+        ultimate.playerTableUpdate( v )
     end
-
-    ultimate.playerTableUpdate( ply )
 end
 
 // Entity data
 
 ultimate.entityCache = {}
-ultimate.allowedClasses = {}
+ultimate.cfg.ents = {}
 
 function ultimate.entTableUpdate()
-    local entitys = ents_GetAll()
 
     ultimate.entityCache = {}
 
-    for i = 1, #entitys do
-        local ent = entitys[ i ]
+    local entitys = ents.GetAll()
 
-        if not IsValid( ent ) then continue end 
-        if not ultimate.allowedClasses[ ent:GetClass() ] then continue end
+    for i = 1, #entitys do
+        local v = entitys[ i ]
+
+        if not IsValid( v ) then continue end
+        if not ultimate.cfg.ents[ v:GetClass() ] then continue end
 
         ultimate.entityCache[ #ultimate.entityCache + 1 ] = {
-            entity = ent,
-            class = ent:GetClass(),
-            position = ent:GetPos(),
+            entity = v,
+            class = v:GetClass(),
+            position = v:GetPos(),
         }
     end
 end
 
 
 
-// Resolver 
+// Resolver
 
-ultimate.bruteYaw = { -90, 0, 90, 180, -180, 180, 90, 0, -90 }
-
+ultimate.bruteYaw = { -180, -120, -60, 0, 60, 120, 180 }
 
 do
     local localData = {}
@@ -11513,24 +11283,6 @@ do
     function ultimate.FillLocalNetworkData( netdata )
         localData.origin     =   netdata[1]
     end
-    
-    function ultimate.GetLocalNetworkData()
-        return localData
-    end
-end
-
-
-do
-    local missedTicks = 0
-    local lastSimTime = 0
-
-    local FRAME_START = 0
-    local FRAME_NET_UPDATE_START = 1
-    local FRAME_NET_UPDATE_POSTDATAUPDATE_START = 2
-    local FRAME_NET_UPDATE_POSTDATAUPDATE_END = 3
-    local FRAME_NET_UPDATE_END = 4
-    local FRAME_RENDER_START = 5
-    local FRAME_RENDER_END = 6
 
     function ultimate.GetLocalNetworkData()
         return localData
@@ -11550,7 +11302,7 @@ do
     local FRAME_RENDER_START = 5
     local FRAME_RENDER_END = 6
 
-    function ultimate.hFrameStageNotify( stage )
+    function ultimate.PreFrameStageNotify( stage )
         local plys = player.GetAll()
 
         if stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END then
@@ -11559,7 +11311,7 @@ do
 
             plys = player.GetAll()
 
-            local orig = me:GetNetworkOrigin()
+            local orig = pLocalPlayer:GetNetworkOrigin()
 
             local data = {}
 
@@ -11571,8 +11323,10 @@ do
                 local v = plys[i]
 
                 //if !v.ult_prev_pos then continue end
+                
+                if not IsValid(v) then continue end
 
-                local cur_simtime = ded.GetSimulationTime(v)
+                local cur_simtime = jopa.GetSimulationTime(v)
                 local cur_pos = v:GetNetworkOrigin()
 
                 --v.ult_cur_pos = cur_pos
@@ -11583,7 +11337,7 @@ do
                     // v.ult_prev_hitbox_pos = cur_pos
                     v.flticks = 0
                     v.missedanimticks = 0
-                    v.simtime_updated = false 
+                    v.simtime_updated = false
                     v.break_lc = false
 
                     ultimate.btrecords[ v ] = {}
@@ -11597,10 +11351,14 @@ do
 
                     // print(v,flticks )
 
-                    -- ded.SetMissedTicks( flticks )
-                    -- ded.AllowAnimationUpdate( true )
+                    if ded and jopa.SetMissedTicks then
+                        jopa.SetMissedTicks( flticks )
+                    end
+                    if ded and jopa.AllowAnimationUpdate then
+                        jopa.AllowAnimationUpdate( true )
+                    end
 
-                    v.flticks = math_Clamp(flticks,1,24)
+                    v.flticks = math.Clamp(flticks,1,24)
 
                     v.ult_prev_simtime = cur_simtime
 
@@ -11610,7 +11368,7 @@ do
                     v.ult_prev_pos = cur_pos
 
                     // v.ult_prev_hitbox_pos = ultimate.getHitbox(v)
-                    --end 
+                    --end
                     v.fakepitch = v:EyeAngles().p > 90
 
                     v.simtime_updated = true
@@ -11618,7 +11376,7 @@ do
                     v.simtime_updated = false
                 end
 
-                if ultimate.canBacktrack(v) and v != me and v.simtime_updated then
+                if ultimate.canBacktrack(v) and v != pLocalPlayer and v.simtime_updated then
                     ultimate.recordBacktrack(v)
                 end
 
@@ -11626,316 +11384,98 @@ do
                     ultimate.btrecords[ v ] = {}
                 end
             end
-          
-        elseif stage == FRAME_NET_UPDATE_END then
-            if not ultimate.cfg.vars["Extrapolation"] then return end
+        elseif stage == FRAME_NET_UPDATE_START then
+            plys = player.GetAll()
 
             for i = 1, #plys do
                 local v = plys[i]
-                if not IsValid(v) or v == me then continue end
-                if not v.simtime_updated or v.break_lc then
-                    v.ult_extrap_origin = nil
-                    v.ult_extrap_angles = nil
-                    v.extrapolated = false
-                    continue
-                end
 
-                local latency = ded.GetLatency(0) + ded.GetLatency(1)
-                local lerp = GetLerpTime()
-                local ping = (v:Ping() or 0) * 0.001
-
-                local predict = latency + lerp + ping
-                predict = predict + (v.flticks or 0) * engine.TickInterval()
-
-                local ticks = math.Clamp(ultimate.TIME_TO_TICKS(predict), 1, 32)
-
-                local old_angles = v:EyeAngles()
-
-                if v.ult_resolved_yaw then
-                    v:SetEyeAngles(Angle(old_angles.p, v.ult_resolved_yaw, old_angles.r))
-                end
-
-                ded.StartSimulation(v)
-                for t = 1, ticks do
-                    ded.SimulateTick()
-                end
-                local sim = ded.GetSimulationData()
-                ded.FinishSimulation()
-
-                v:SetEyeAngles(old_angles)
-
-                if sim and sim.m_vecAbsOrigin then
-                    v.ult_extrap_origin = sim.m_vecAbsOrigin
-                    v.ult_extrap_angles = sim.m_angAbsRotation
-                    v.extrapolated = true
-                else
-                    v.extrapolated = false
-                end
+                if v == me then continue end
+                if not ultimate.cfg.vars["Extrapolation"] then continue end
+                v.m_bPreDataUpdate = true
+                -- jopa.GetSimulationTime expects an entity, not an entindex
+                v.m_flOldSimulationTime = jopa.GetSimulationTime( v )
+                v.m_vecOldOrigin = v:GetNetworkOrigin()
+                v.m_vecOldVelocity = v:GetAbsVelocity()
             end
-        
-        --ded paste 1 x 1
-        
-        elseif stage == FRAME_RENDER_START then
-                plys = player.GetAll()
-    
-                for i = 1, #plys do
-                    local v = plys[i]
-    
-                    if v == me then continue end
-                   
-                   
-                    if ultimate.cfg.vars["Fake lag Fix"] and v.break_lc then
-                    local predTime =  (ded.GetLatency(0) + ded.GetLatency(1)) * ultimate.cfg.vars["Fix Factor"] 
-                    local predPos = v:GetNetworkOrigin() + v:GetVelocity() * predTime
-                    ded.StartSimulation(v:EntIndex())
-                  
-                    for tick = 1, ultimate.TIME_TO_TICKS(predTime) do
-                        ded.SimulateTick()
-    
-                        local data = ded.GetSimulationData()
-                        debugoverlay.Line(predPos, data.m_vecAbsOrigin, 0.1, color_white, true)
-    
-                        predPos  = data.m_vecAbsOrigin
-                    end
-    
-                    local data = ded.GetSimulationData()
-                    v:SetRenderOrigin(predPos)
-                    v:SetNetworkOrigin(predPos)
-    
-                    ded.FinishSimulation()
-                    
-                elseif ultimate.cfg.vars["Forwardtrack"] then
-                    local predTime =  (ded.GetLatency(0) + ded.GetLatency(1) + v:Ping() / 1000) * ultimate.cfg.vars["Forwardtrack time"] 
-                    
-                    ded.StartSimulation(v:EntIndex())
-    
-                    local prevPos = v:GetNetworkOrigin()
-                    for tick = 1, ultimate.TIME_TO_TICKS(predTime) do
-                        ded.SimulateTick()
-    
-                        local data = ded.GetSimulationData()
-                        debugoverlay.Line(prevPos, data.m_vecAbsOrigin, 0.1, color_white, true)
-    
-                        prevPos  = data.m_vecAbsOrigin
-                    end
-    
-                    local data = ded.GetSimulationData()
-                    v:SetRenderOrigin(data.m_vecAbsOrigin)
-                    v:SetNetworkOrigin(data.m_vecAbsOrigin)
-    
-                    ded.FinishSimulation()
-                end
-            
-                if ultimate.cfg.vars["Resolver"] then
-                -- Improved resolver with multiple modes
-                local resolverMode = ultimate.cfg.vars["Yaw mode"]
-                local angs = v:EyeAngles()
-                local skibidi = v:GetAngles()
-                local resolvedYaw = nil
-                
-                -- Detect jitter (rapid angle changes)
-                if v.ult_last_angles then
-                    local angleDiff = math.abs(math_NormalizeAngle(angs.y - v.ult_last_angles.y))
-                    v.ult_jitter_detected = angleDiff > 120
-                end
-                v.ult_last_angles = Angle(angs)
-                
-                -- Calculate LBY delta
-                local lby = ded.GetTargetLowerBodyYaw(v)
-                if lby then
-                    v.ult_lby_delta = math_NormalizeAngle(angs.y - lby)
-                end
-                
-                -- Velocity-based resolver
-                local velocity = v:GetVelocity()
-                local speed = velocity:Length2D()
-                local velocityYaw = velocity:Angle().y
-                
-                if resolverMode == 1 then
-                    -- Absolute brute
-                    local angles = {-90, 0, 90, 180, -180, 180, 90, 0, -90}
-                    resolvedYaw = angles[v.aimshots % #angles + 1]
-                    
-                elseif resolverMode == 2 then
-                    -- Relative brute
-                    local angles = {-90, 0, 90, 180, -180, 180, 90, 0, -90}
-                    resolvedYaw = angles[v.aimshots % #angles + 1] + angs.y
-                    
-                elseif resolverMode == 3 then
-                    -- Following (at player)
-                    local toTarget = (me:GetPos() - v:GetPos()):Angle().y
-                    local offsets = {145, 180, -145, 90, -90, 0}
-                    resolvedYaw = toTarget - offsets[v.aimshots % #offsets + 1]
-                    
-                elseif resolverMode == 4 then
-                    -- Lower body delta
-                    local deltas = {
-                        ultimate.cfg.vars["Lower delta Right"] + math_random(0, ultimate.cfg.vars["Lower delta Right add random"]),
-                        0,
-                        ultimate.cfg.vars["Lower delta Left"] + math_random(0, ultimate.cfg.vars["Lower delta Left add random"])
-                    }
-                    resolvedYaw = angs.y + deltas[v.aimshots % #deltas + 1]
-                    
-                elseif resolverMode == 5 then
-                    -- Statistical (use most successful angle)
-                    local bestYaw = 0
-                    local bestScore = -999999
-                    local priority = ultimate.cfg.vars["Resolver priority"]
-                    
-                    for yaw, _ in pairs(v.ult_resolve_stats or {}) do
-                        local hits = v.ult_resolve_hits[yaw] or 0
-                        local misses = v.ult_resolve_misses[yaw] or 0
-                        local total = hits + misses
-                        local score = 0
-                        
-                        if priority == 1 then
-                            -- Miss count priority (less misses = better)
-                            score = hits - misses * 2
-                        elseif priority == 2 then
-                            -- Hit rate priority
-                            score = total > 0 and (hits / total * 100) or 0
-                        elseif priority == 3 then
-                            -- Last hit priority
-                            score = hits > 0 and hits or -misses
-                        end
-                        
-                        if score > bestScore then
-                            bestScore = score
-                            bestYaw = yaw
-                        end
-                    end
-                    
-                    resolvedYaw = bestYaw ~= 0 and bestYaw or angs.y
-                    
-                elseif resolverMode == 6 then
-                    -- Adaptive (combines multiple methods)
-                    if ultimate.cfg.vars["Resolver adaptive"] then
-                        if v.ult_jitter_detected then
-                            -- Use last known good angle for jitter
-                            resolvedYaw = v.ult_resolved_yaw or angs.y
-                        elseif speed > 50 and ultimate.cfg.vars["Resolver velocity based"] then
-                            -- Moving: use velocity direction
-                            resolvedYaw = velocityYaw + 180
-                        elseif math.abs(v.ult_lby_delta) > 35 then
-                            -- Large LBY delta: likely faking
-                            resolvedYaw = lby + (v.ult_lby_delta > 0 and -90 or 90)
-                        else
-                            -- Default: use statistical
-                            local angles = {-90, 0, 90, 180, -180}
-                            resolvedYaw = angles[v.aimshots % #angles + 1] + angs.y
-                        end
-                    else
-                        local angles = {-90, 0, 90, 180, -180}
-                        resolvedYaw = angles[v.aimshots % #angles + 1] + angs.y
-                    end
-                    
-                elseif resolverMode == 7 then
-                    -- Velocity-based
-                    if speed > 50 then
-                        resolvedYaw = velocityYaw + 180
-                    else
-                        resolvedYaw = angs.y
-                    end
-                    
-                elseif resolverMode == 8 then
-                    -- LBY Delta resolver
-                    if lby and math.abs(v.ult_lby_delta) > 35 then
-                        local side = v.aimshots % 2 == 0 and 1 or -1
-                        resolvedYaw = lby + (v.ult_lby_delta > 0 and -60 or 60) * side
-                    else
-                        resolvedYaw = angs.y
-                    end
-                end
-                
-                -- Apply resolved yaw
-                if resolvedYaw then
-                    resolvedYaw = math_NormalizeAngle(resolvedYaw)
-                    v.ult_resolved_yaw = resolvedYaw
-                    ded.SetCurrentLowerBodyYaw(v, resolvedYaw)
-                    
-                    -- Store for rendering
-                    v:SetRenderAngles(Angle(angs.p, resolvedYaw, angs.r))
-                end
+        elseif stage == FRAME_NET_UPDATE_END then
+            plys = player.GetAll()
 
-                end -- end if Resolver
-
-                -- Taunt resolver
-                if ultimate.cfg.vars["Taunt resolver"] and v != me then
-                    local seq = v:GetSequence()
-                    local seqName = v:GetSequenceName(seq)
-                    local taunt = false
-
-                    if v:IsPlayingTaunt() then
-                        taunt = true
-                    elseif seqName then
-                        seqName = seqName:lower()
-                        if seqName:find("taunt")
-                        or seqName:find("gesture")
-                        or seqName:find("act")
-                        or seqName:find("dance")
-                        or seqName:find("pose") then
-                            taunt = true
-                        end
-                    end
-
-                    if taunt then
-                        if IsValid(me) then
-                            local ang = (me:EyePos() - v:EyePos()):Angle()
-
-                            v:SetPlaybackRate(0)
-                            v:SetCycle(0)
-
-                            v:SetPoseParameter("move_yaw", 0)
-                            v:SetPoseParameter("aim_yaw", ang.y)
-                            v:SetPoseParameter("aim_pitch", math.Clamp(ang.p, -89, 89))
-
-                            v:SetRenderAngles(Angle(0, ang.y, 0))
-
-                            v:InvalidateBoneCache()
-                            v:SetupBones()
-                        end
-                    else
-                        v:SetPlaybackRate(1)
-                        v:SetPoseParameter("aim_pitch", 0)
-                        v:SetPoseParameter("aim_yaw", 0)
-                    end
-                end
-
-                -- Apply extrapolation
-                if ultimate.cfg.vars["Extrapolation"] and v.ult_extrap_origin then
-                    v:SetRenderOrigin(v.ult_extrap_origin)
-                    if v.ult_extrap_angles then
-                        v:SetRenderAngles(v.ult_extrap_angles)
-                    end
-                end
-            end -- end for loop
-            
-        elseif stage == FRAME_RENDER_END then
             for i = 1, #plys do
                 local v = plys[i]
-                if IsValid(v) and v != me then
-                    v.ult_extrap_origin = nil
-                    v.ult_extrap_angles = nil
-                    v.extrapolated = false
+                local LAG_COMPENSATION_TELEPORTED_DISTANCE_SQR = 64 * 64
+
+                if v == me then continue end
+                
+                if not ultimate.cfg.vars["Extrapolation"] then continue end
+				
+                if ( v.m_bPreDataUpdate ) then
+
+                    local update = false
+
+                    -- guard against nil old-origin to avoid IsEqualTol receiving nil
+                    if ( v.m_vecOldOrigin and !v:GetNetworkOrigin():IsEqualTol( v.m_vecOldOrigin, 0 ) ) then
+                        v.m_nPrevUpdateTick = v.m_nLastUpdateTick || engine.TickCount()
+                        update = true
+                    end
+
+                    -- pass the entity to GetSimulationTime (not the entindex)
+                    local time_delta = jopa.GetSimulationTime( v ) - v.m_flOldSimulationTime
+    				
+    				if ( time_delta > 0 ) then
+    					v.m_nPrevUpdateTick = engine.TickCount() - ultimate.TIME_TO_TICKS( time_delta )
+    					update = true 
+    				end
+				
+    				if ( update ) then
+    					v.m_nLastUpdateTick = engine.TickCount()
+    					v.m_nSimulationTicks = v.m_nLastUpdateTick - v.m_nPrevUpdateTick
+                        -- determine a safe local origin (use stored network data if available)
+                        local localOrigin = (ultimate.GetLocalNetworkData() and ultimate.GetLocalNetworkData().origin) or pLocalPlayer:GetNetworkOrigin()
+                        if v.m_vecOldOrigin and localOrigin then
+                            v.m_bBreaksLagCompensation = ( localOrigin - v.m_vecOldOrigin ):LengthSqr() > LAG_COMPENSATION_TELEPORTED_DISTANCE_SQR
+                        else
+                            v.m_bBreaksLagCompensation = false
+                        end
+    					if v.m_bBreaksLagCompensation then
+                            v.m_needStrafeCalc = true
+                        else
+                            v.m_nStrafeType = 0
+                            v.m_flAirAngle = 0
+                        end
+
+                        if not v.m_PositionHistory then v.m_PositionHistory = {} end
+                        table.insert(v.m_PositionHistory, 1, { pos = v:GetNetworkOrigin(), time = CurTime() })
+                        if #v.m_PositionHistory > 5 then
+                            table.remove(v.m_PositionHistory)
+                        end
+                    end
                 end
             end
         end
-    end -- end function ultimate.hFrameStageNotify
-end -- end do block
-
-function ultimate.hPostFrameStageNotify( stage ) 
-    if stage != 3 then return end
-    
-    local plys = player_GetAll()
-
-    for i = 1, #plys do
-        local v = plys[i]
-
-        if v == me then continue end
-        
-        ultimate.playerDataUpdate( v )
     end
+end
 
+function ultimate.PostFrameStageNotify( stage )
+    if stage == 3 then
+        ultimate.playerDataUpdate()
+
+        /*local playerlist = player.GetAll()
+
+        for i = 1, #playerlist do
+            local pEntity = playerlist[ i ]
+
+            local iEntIndex = pEntity:EntIndex()
+            local pTable = pEntity:GetTable()
+
+            -- Simulation time
+            local flSimulationTime = jopa.GetSimulationTime( iEntIndex )
+
+            pTable.iChokedCommands = Utility.TimeToTicks( flSimulationTime - pTable.flSimulationTime )
+            pTable.bIsSimulated = flSimulationTime ~= pTable.flSimulationTime
+            pTable.flSimulationTime = flSimulationTime
+        end*/
+    end
 end
 
 /*
@@ -11943,97 +11483,47 @@ end
 */
 
 ultimate.fakeAngles = {
-    angle = me:EyeAngles(),
+    angle = pLocalPlayer:EyeAngles(),
     movex = 0,
     movey = 0,
     layers = {},
     seq = 0,
     cycle = 0,
-    origin = me:GetPos(),
+    origin = pLocalPlayer:GetPos(),
 }
 
-function ultimate.hUpdateAnimation( v )
-    v:SetPoseParameter( "head_pitch", 0 )
-    v:SetPoseParameter( "head_yaw", 0 )
-
-   
-   
-    if ultimate.cfg.vars["Resolver"] and v.fakepitch then
-        local cfg = ultimate.cfg.vars["Auto Pitch mode"]
-		local ang = v:EyeAngles()
-
-    if cfg == 1 then
-            
-    
-    
-    elseif cfg == 2 then
-        nikitaPitch = {-89,89}
-        ang.p = nikitaPitch[ v.aimshots % #nikitaPitch+ 1 ]
-        v:SetPoseParameter("aim_pitch", ang.p)
-		v:SetPoseParameter("head_pitch", ang.p)
-
-   
-   
-    elseif cfg == 3 then
-        nikitaPitch = {-89,-89,89,89}
-        ang.p = nikitaPitch[ v.aimshots % #nikitaPitch+ 1 ]
-        v:SetPoseParameter("aim_pitch", ang.p)
-		v:SetPoseParameter("head_pitch", ang.p)
-
-    
-    
-    elseif cfg == 4 then
-        nikitaPitch = {-89,0,0,0,89}
-        ang.p = nikitaPitch[ v.aimshots % #nikitaPitch+ 1 ]
-        v:SetPoseParameter("aim_pitch", ang.p)
-		v:SetPoseParameter("head_pitch", ang.p)
-
-   
-    
-    elseif cfg == 5 then
-        nikitaPitch = {-89,-89,0,0,89,89}  
-        ang.p = nikitaPitch[ v.aimshots % #nikitaPitch+ 1 ]
-
-       
-		v:SetPoseParameter("aim_pitch", ang.p)
-		v:SetPoseParameter("head_pitch", ang.p)
-    elseif cfg == 6 then
-        nikitaPitch = {-89}  
-        ang.p = nikitaPitch[ v.aimshots % #nikitaPitch+ 1 ]
-
-       
-		v:SetPoseParameter("aim_pitch", ang.p)
-		v:SetPoseParameter("head_pitch", ang.p)
-    end
-
+function ultimate.UpdateAnimation( v )
     v:InvalidateBoneCache()
 end
-end
 
-function ultimate.hShouldUpdateAnimation( entIndex ) 
+function ultimate.ShouldUpdateAnimation( entIndex )
     local ent = Entity( entIndex )
 
     if not ent.simtime_updated then return end
 
-    -- ded.SetMissedTicks( ent.flticks )
-    -- ded.AllowAnimationUpdate( true )
+    if ded and jopa.SetMissedTicks then
+        jopa.SetMissedTicks( ent.flticks )
+    end
+    if ded and jopa.AllowAnimationUpdate then
+        jopa.AllowAnimationUpdate( true )
+    end
 end
 
 // AA shit
-ultimate.realModel = ultimate.CS_Model( me:GetModel() )
-ultimate.fakeModel = ultimate.CS_Model( me:GetModel() )
+ultimate.realModel = ultimate.CS_Model( pLocalPlayer:GetModel() )
+ultimate.fakeModel = ultimate.CS_Model( pLocalPlayer:GetModel() )
 
-ultimate.newModel = me:GetModel()
+ultimate.newModel = pLocalPlayer:GetModel()
 
 function ultimate.drawCSModels_real()
-    if not ultimate.cfg.vars["Anti aim chams"] then 
-        return 
-    end 
-    if not me:Alive()  then 
-        return 
+    if not ultimate.cfg.vars["Anti aim chams"] or not ultimate.tpenabled then
+        return
+    end
+    if not pLocalPlayer:Alive() then
+        return
     end
 
-    local mymodel = me:GetModel()
+    local mymodel = pLocalPlayer:GetModel()
 
     if ultimate.newModel != mymodel then
         ultimate.CS_Model( mymodel )
@@ -12050,22 +11540,22 @@ function ultimate.drawCSModels_real()
         movey = ultimate.fakeAngles.movey,
     }
 
-    ultimate.CS_Model_update( me, ultimate.realModel, tbl )
+    ultimate.CS_Model_update( pLocalPlayer, ultimate.realModel, tbl )
 
     if ultimate.cfg.vars["Antiaim fullbright"] then
-        render_SuppressEngineLighting(true)
+        render.SuppressEngineLighting(true)
     end
 
-    local col = string_ToColor(ultimate.cfg.colors["Real chams"])
+    local col = string.ToColor(ultimate.cfg.colors["Real chams"])
     ultimate.chamMats.invis[6]:SetVector( "$envmaptint", Vector( col.r / 255, col.g / 255, col.b / 255 ) )
-    render_MaterialOverride(ultimate.chamMats.invis[ultimate.cfg.vars["Antiaim material"]]) 
-    render_SetColorModulation(col.r/255,col.g/255,col.b/255)
-    render_SetBlend(col.a/255) 
+    render.MaterialOverride(ultimate.chamMats.invis[ultimate.cfg.vars["Antiaim material"]])
+    render.SetColorModulation(col.r/255,col.g/255,col.b/255)
+    render.SetBlend(col.a/255)
     ultimate.realModel:SetRenderMode(1)
     ultimate.realModel:DrawModel()
 
     if ultimate.cfg.vars["Antiaim fullbright"] then
-        render_SuppressEngineLighting(false)
+        render.SuppressEngineLighting(false)
     end
 end
 
@@ -12075,7 +11565,7 @@ end
 
 do
     /*
-            
+
 
     */
 
@@ -12096,7 +11586,7 @@ do
         [2] = true,
         //[4] = true,
     }
-    
+
     ultimate.cfg.vars["Player outline"] = false
     ultimate.cfg.vars["Entity outline"] = false
     ultimate.cfg.colors["Player outline"] = "45 255 86 255"
@@ -12111,10 +11601,10 @@ do
         if ultimate.cfg.vars["Player outline"] then
             local plys = player.GetAll()
 
-            for i = 1, #plys do 
+            for i = 1, #plys do
                 local v = plys[ i ]
 
-                if not IsValid( v ) or v == me or not v:Alive() or v:IsDormant() then continue end
+                if not IsValid( v ) or v == pLocalPlayer or not v:Alive() or v:IsDormant() then continue end
 
                 renderEnts[ #renderEnts + 1 ] = v
             end
@@ -12122,10 +11612,10 @@ do
 
         if ultimate.cfg.vars["Entity outline"] then
             for i = 1, #ultimate.entityCache do
-                local v = ultimate.entityCache[ i ].entity 
+                local v = ultimate.entityCache[ i ].entity
 
                 if not IsValid( v ) or v:IsDormant() then continue end
-        
+
                 renderEnts[ #renderEnts + 1 ] = v
             end
         end
@@ -12134,7 +11624,7 @@ do
 
         local scene = render.GetRenderTarget()
         render.CopyRenderTargetToTexture(StoreTexture)
-        
+
         if subclear[ ultimate.cfg.vars["Outline style"] ] then
             render.Clear( 255, 255, 255, 255, true, true )
         else
@@ -12142,47 +11632,47 @@ do
         end
 
         render.SetStencilEnable(true)
-            cam_IgnoreZ(true)
+            cam.IgnoreZ(true)
             render.SuppressEngineLighting(true)
-        
+
             render.SetStencilWriteMask(255)
             render.SetStencilTestMask(255)
-            
+
             render.SetStencilCompareFunction(STENCIL_ALWAYS)
             render.SetStencilFailOperation(STENCIL_KEEP)
             render.SetStencilZFailOperation(STENCIL_REPLACE)
             render.SetStencilPassOperation(STENCIL_REPLACE)
-            
-            cam_Start3D()
-                for i = 1, #renderEnts do 
+
+            cam.Start3D()
+                for i = 1, #renderEnts do
                     render.SetStencilReferenceValue( i )
 
                     renderEnts[i]:DrawModel()
                 end
-            cam_End3D()
-            
+            cam.End3D()
+
             render.SetStencilCompareFunction(STENCIL_EQUAL)
-            
-            cam_Start2D()
-                for i = 1, #renderEnts do 
-                    local c = renderEnts[i]:IsPlayer() and string_ToColor( ultimate.cfg.colors["Player outline"] ) or string_ToColor( ultimate.cfg.colors["Entity outline"] ) 
+
+            cam.Start2D()
+                for i = 1, #renderEnts do
+                    local c = renderEnts[i]:IsPlayer() and string.ToColor( ultimate.cfg.colors["Player outline"] ) or string.ToColor( ultimate.cfg.colors["Entity outline"] )
 
 				    render.SetStencilReferenceValue( i )
 
-                    surface_SetDrawColor( c )
-                    surface_DrawRect( 0, 0, scrw, scrh )
+                    surface.SetDrawColor( c )
+                    surface.DrawRect( 0, 0, screenWidth, screenHeight )
 
-                    // surface_SimpleTexturedRect( 0, 0, scrw, scrh, string_ToColor( ultimate.cfg.colors["Health bar gradient"] ) , ultimate.Materials["Gradient"] )
+                    // surface_SimpleTexturedRect( 0, 0, screenWidth, screenHeight, string.ToColor( ultimate.cfg.colors["Health bar gradient"] ) , ultimate.Materials["Gradient"] )
                 end
-            cam_End2D()
-            
-            render_SuppressEngineLighting(false)
-            cam_IgnoreZ(false)
+            cam.End2D()
+
+            render.SuppressEngineLighting(false)
+            cam.IgnoreZ(false)
         render.SetStencilEnable(false)
-        
+
         render.CopyRenderTargetToTexture(DrawTexture)
 
-        if ultimate.cfg.vars["Outline style"] > 1 then 
+        if ultimate.cfg.vars["Outline style"] > 1 then
             render.BlurRenderTarget( DrawTexture, 1, 1, 1 )
         end
 
@@ -12190,157 +11680,68 @@ do
         CopyMat:SetTexture("$basetexture",StoreTexture)
         render.SetMaterial(CopyMat)
         render.DrawScreenQuad()
-        
+
         render.SetStencilEnable(true)
             render.SetStencilReferenceValue(0)
             render.SetStencilCompareFunction(STENCIL_EQUAL)
-            
+
             local mat = outline_mats[ ultimate.cfg.vars["Outline style"] ]
 
             mat:SetTexture( "$basetexture", DrawTexture )
-            render_SetMaterial( mat )
-            
+            render.SetMaterial( mat )
+
             for x=-1,1 do
                 for y=-1,1 do
                     if x==0 and x==0 then continue end
-                    
-                    render.DrawScreenQuadEx(x,y,scrw,scrh)
+
+                    render.DrawScreenQuadEx(x,y,screenWidth,screenHeight)
                 end
             end
         render.SetStencilEnable(false)
     end
 end
 
-function ultimate.hPostDrawEffects()
+function ultimate.PostDrawEffects()
     if ultimate.UnSafeFrame then return end
     if not ultimate.cfg.vars["Player outline"] and not ultimate.cfg.vars["Entity outline"] then return end
 
-    ultimate.PostRender()
     ultimate.RenderOutline()
 end
-    
-/*
-    hooks -> FireBullets ( Player cpp ) 
-*/
 
-//function ultimate.hFireBullets( data )
-//    PrintTable(data)
-//end
-
-/*
-    Misc hooks
-*/
-
-function ultimate.DSADJ( s )
-    return ultimate.cfg.vars["Disable SADJ"] and -1 or nil
+function ultimate.AdjustMouseSensitivity( defaultSensivity )
+    return ultimate.cfg.vars["Disable sensivity adjustment"] and 0 or nil
 end
 
-ultimate.lmc = false 
 ultimate.fbe = false
 
 function ultimate.PreRender()
-    if ultimate.cfg.vars["Fullbright"] or ultimate.fbe then
+    if ultimate.cfg.vars["Fullbright"] and ultimate.fbe then
         render.SetLightingMode( ultimate.cfg.vars["Fullbright mode"] )
-        ultimate.lmc = true
     end
 end
 
-function ultimate.PostRender()
-    if ultimate.lmc then
-        render.SetLightingMode( 0 )
-        ultimate.lmc = false
-    end
+function ultimate.GetMotionBlurValues()
+    render.SetLightingMode( 0 )
 end
 
-
-/*
-    ConVar manipulation 
-*/
-
-ded.ConVarSetFlags( "mat_fullbright", 0 )
-ded.ConVarSetFlags( "r_aspectratio", 0 )
-ded.ConVarSetFlags( "cl_showhitboxes", 0 )
-ded.ConVarSetFlags( "sv_showlagcompensation", 0 )
-
-
-
-/*
-    Hooks
-*/
-
-ultimate.hooks          = {}
-ultimate.hooks.tbl      = {}
-ultimate.hooks.removed  = {}
-
-function ultimate.hooks.Add( event, func )
-    local str =  event .. me:SteamID64()
-    ultimate.hooks.tbl[ event ] = str
-
-    hook_Add( event, str, func )
-end
-
-function ultimate.hooks.Remove( event, func )
-    ultimate.hooks.tbl[ event ] = nil
-
-    hook_Remove( event, event..me:SteamID64() )
-end
-
-function hook.Add( str1, str2, func )
-    //if ultimate.hooks.tbl[ str1 ] == str2 then return end 
-
-    hook_Add( str1, str2, func )
-end
-
-function hook.Remove( str1, str2 )
-    if ultimate.hooks.tbl[ str1 ] == str2 then return end 
-
-    hook_Remove( str1, str2 )
-end
-
-/*
-function hook.Call(  )
-
-end
-
-function hook.Run(  )
-
-end
-*/
-
-function hook.GetTable()
-    local hooks = hook_GetTable()
-    local empty = {}
-
-    for eventName, hookTable in pairs( hooks ) do
-        empty[ eventName ] = {}
-
-        for hookName, hookFunc in pairs( hookTable ) do
-            if ultimate.hooks.tbl[ eventName ] != hookName then
-                empty[ eventName ][ hookName ] = hookFunc
-            end
-        end
-    end
-
-    return empty
-end
-
-// Gamemode hooks
+jopa.ConVarSetFlags( "mat_fullbright", 0 )
+jopa.ConVarSetFlags( "r_aspectratio", 0 )
+jopa.ConVarSetFlags( "cl_showhitboxes", 0 )
 
 function GAMEMODE:CreateMove( cmd ) return true end
 function GAMEMODE:CalcView( view )  return true end
 function GAMEMODE:ShouldDrawLocal() return true end
 
-
-GAMEMODE["EntityFireBullets"] = function( self, p, data ) 
+GAMEMODE["EntityFireBullets"] = function( self, p, data )
     if not ultimate.activeWeapon then return end
 
     local tick = engine.TickCount()
-    if ultimate.cfg.vars[ "On screen logs" ] and data.Src == me:EyePos() and ultimate.aimingrn and ultimate.target and not ultimate.onScreenLogs[ tick ] and IsFirstTimePredicted() then
+    if ultimate.cfg.vars[ "On screen logs" ] and data.Src == pLocalPlayer:EyePos() and ultimate.aimingrn and ultimate.target and not ultimate.onScreenLogs[ tick ] and IsFirstTimePredicted() then
         local reason = 1
-        
+
         local tr = {}
-        tr.filter = me 
-        tr.start = data.Src 
+        tr.filter = pLocalPlayer
+        tr.start = data.Src
         tr.endpos = data.Src + data.Dir * 13337
         tr.mask = MASK_SHOT
 
@@ -12348,64 +11749,143 @@ GAMEMODE["EntityFireBullets"] = function( self, p, data )
 
         if ultimate.target.break_lc then
             reason = 4
-        elseif ded.GetLatency( 0 ) > 0.2 then
+        elseif jopa.GetLatency( 0 ) > 0.2 then
             reason = 3
         elseif tr.StartSolid or tr.Hit and tr.Entity != ultimate.target then
             reason = 2
         end
-        
-        local hlcolor = string_ToColor( ultimate.cfg.colors[ ultimate.MissReasons[ reason ].var ] )
+
+        local hlcolor = string.ToColor( ultimate.cfg.colors[ ultimate.MissReasons[ reason ].var ] )
         local data = {
             tick = tick,
             { "Shot at ", ultimate.target:Name(), " missed due to ", ultimate.MissReasons[ reason ].str, },
-            { ultimate.HitLogulthite, hlcolor, ultimate.HitLogulthite, hlcolor, }
+            { ultimate.HitLogsWhite, hlcolor, ultimate.HitLogsWhite, hlcolor, }
         }
-            
+
         ultimate.onScreenLogs[ tick ] = data
     end
- 
+
     local spread = data.Spread * -1
-    
+
 	if ultimate.cones[ ultimate.activeWeaponClass ] == spread or spread == ultimate.nullVec then return end
 
     ultimate.cones[ ultimate.activeWeaponClass ] = spread;
 end
 
-// Hooks 
+function ultimate.SetupWorldFog()
+    if not ultimate.cfg.vars[ "FogChanger" ] then return end
 
-ultimate.hooks.Add( "Think",                            ultimate.hThink )
+    local color = string.ToColor(ultimate.cfg.colors["FogChanger"])
 
-ultimate.hooks.Add( "RenderScene",                      ultimate.hRenderScene )
-ultimate.hooks.Add( "Ungrabbable2D", function() ultimate.DrawESP() ultimate.DrawSomeShit() end )   
 
-ultimate.hooks.Add( "CalcView",                         ultimate.hCalcView )
-ultimate.hooks.Add( "CalcViewModelView",                ultimate.hCalcViewModelView )
+    render.FogMode( MATERIAL_FOG_LINEAR )
+    render.FogColor( color.r, color.g, color.b )
+    render.FogStart( ultimate.cfg.vars[ "FogStart" ] )
+    render.FogEnd( ultimate.cfg.vars[ "FogEnd" ] )
+    render.FogMaxDensity( color.a / 255 )
 
-ultimate.hooks.Add( "PreDrawViewModel",                 ultimate.hPreDrawViewModel )
-ultimate.hooks.Add( "PostDrawViewModel",                ultimate.hPostDrawViewModel )
+    return true
+end
 
-ultimate.hooks.Add( "PostDrawOpaqueRenderables",        ultimate.hPostDrawOpaqueRenderables )
-ultimate.hooks.Add( "PostDrawEffects",                  ultimate.hPostDrawEffects )
+function ultimate.SetupSkyboxFog( SkyboxSize )
+    if not ultimate.cfg.vars[ "FogChanger" ] then return end
 
-ultimate.hooks.Add( "OnImpact",                         ultimate.hOnImpact )
+    local color = string.ToColor(ultimate.cfg.colors["FogChanger"])
 
-ultimate.hooks.Add( "PreFrameStageNotify",              ultimate.hFrameStageNotify )
-ultimate.hooks.Add( "PostFrameStageNotify",             ultimate.hPostFrameStageNotify )
+    render.FogMode( MATERIAL_FOG_LINEAR )
+    render.FogColor( color.r, color.g, color.b )
+    render.FogStart( ultimate.cfg.vars[ "FogStart" ] * SkyboxSize )
+    render.FogEnd( ultimate.cfg.vars[ "FogEnd" ] * SkyboxSize )
+    render.FogMaxDensity( color.a / 255 )
 
-ultimate.hooks.Add( "UpdateAnimation",                  ultimate.hUpdateAnimation )
-ultimate.hooks.Add( "ShouldUpdateAnimation",            ultimate.hShouldUpdateAnimation )
+    return true
+end
 
-ultimate.hooks.Add( "AdjustMouseSensitivity",           ultimate.DSADJ )
+function ultimate.CalcMainActivity(ply, velocity)
+    if ultimate.cfg.vars[ "Invalidate activity" ] then
+        return -1, -1
+    end
+end
 
-ultimate.hooks.Add( "RenderScreenspaceEffects",         ultimate.drawChams )
-ultimate.hooks.Add( "PostDrawTranslucentRenderables",   ultimate.PostDrawTranslucentRenderables )
+net.Receive("rp.police.SetLocalHandcuff", function()
+    if not ultimate.cfg.vars["Retry on handcuff"] then return end
 
-ultimate.hooks.Add( "DrawOverlay",                      ultimate.drawOverlay )
+    RunConsoleCommand("retry")
+end)
 
-ultimate.hooks.Add( "PreRender",                        ultimate.PreRender )
-ultimate.hooks.Add( "PostRender",                       ultimate.PostRender )
-ultimate.hooks.Add( "PreDrawHUD",                       ultimate.PostRender )
+/*
+    Hooks
+*/
 
-ultimate.hooks.Add( "Shutdown",                         ultimate.Shutdown )
+ultimate.hooks           = {}
 
-ultimate.hooks.Add( "DrawPhysgunBeam",                  ultimate.DrawPhysgunBeamFunc )          
+function ultimate.AddHook( event, func )
+    if func == nil and not ultimate[ event ] then print("Failed to find hook: " .. event) return end
+    local name = util.Base64Encode( event ) .. CurTime()
+    hook.Add( event, name, ultimate[ event ] or func )
+    ultimate.hooks[ #ultimate.hooks + 1 ] = { event, name }
+end
+
+function ultimate.RemoveAllHooks()
+    for i = #ultimate.hooks, 1, -1 do
+        local chk = ultimate.hooks[i]
+        hook.Remove(chk[1], chk[2])
+        table.remove(ultimate.hooks, i)
+    end
+end
+
+function ultimate.Unload()
+    ultimate.frame:Remove()
+
+    jopa.SetBSendPacket( true )
+    jopa.SetInterpolation( true )
+    jopa.SetSequenceInterpolation( true )
+    ultimate.RemoveAllHooks()
+
+    render.SetLightingMode( 0 )
+end
+
+ultimate.AddHook( "CreateMove" )
+ultimate.AddHook( "Think" )
+
+ultimate.AddHook( "RenderScene" )
+ultimate.AddHook( "DrawOverlay" )
+ultimate.AddHook( "Ungrabbable2D", function() ultimate.DrawESP() ultimate.DrawSomeShit() end )
+
+ultimate.AddHook( "CalcView" )
+ultimate.AddHook( "CalcViewModelView" )
+
+ultimate.AddHook( "PreDrawViewModel" )
+ultimate.AddHook( "PostDrawViewModel" )
+
+ultimate.AddHook( "PostDrawOpaqueRenderables" )
+ultimate.AddHook( "PostDrawEffects" )
+
+ultimate.AddHook( "OnImpact" )
+
+ultimate.AddHook( "PreFrameStageNotify" )
+ultimate.AddHook( "PostFrameStageNotify" )
+
+ultimate.AddHook( "UpdateAnimation" )
+ultimate.AddHook( "ShouldUpdateAnimation" )
+
+ultimate.AddHook( "AdjustMouseSensitivity" )
+
+ultimate.AddHook( "RenderScreenspaceEffects" )
+ultimate.AddHook( "PostDrawTranslucentRenderables" )
+
+ultimate.AddHook( "PreRender" )
+ultimate.AddHook( "GetMotionBlurValues" )
+
+ultimate.AddHook( "DrawPhysgunBeam" )
+
+ultimate.AddHook( "PrePlayerDraw" )
+
+ultimate.AddHook( "OnEntityCreated" )
+
+ultimate.AddHook( "entity_killed" )
+ultimate.AddHook( "player_hurt" )
+
+ultimate.AddHook( "SetupWorldFog" )
+ultimate.AddHook( "SetupSkyboxFog" )
+ultimate.AddHook( "CalcMainActivity" )
